@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <QWidget>
-#include "../settings.h"
+#include "ComponentBase.h"
 
 namespace Ui {
 class MainComponent;
@@ -9,16 +9,19 @@ class WriteModeComponent;
 }
 
 class WriteModeComponent;
-class MainComponent : public QWidget
+class MainComponent : public QWidget, public ComponentBase
 {
     Q_OBJECT
 
 public:
-    explicit MainComponent(QWidget *parent = nullptr);
-    ~MainComponent();
+    explicit MainComponent(Common::Type setting, QWidget *parent = nullptr);
+    ~MainComponent() override;
 
 signals:
     QString requestOpenOutputDir(QString root);
+
+public slots:
+    void openGameProject(QString path);
 
 protected:
     void paintEvent(QPaintEvent* p) override;
@@ -32,8 +35,6 @@ private:
     friend WriteModeComponent;
     Ui::MainComponent *ui;
     WriteModeComponent* writeUi;
-
-    settings setting;
 
     void openFiles(QString path);
     QString findGameProject(QList<QUrl> urlList);

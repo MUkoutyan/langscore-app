@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include "settings.h"
+#include "src/ui/ComponentBase.h"
 #include <QObject>
 #include <QProcess>
 
-class invoker : public QObject
+class invoker : public QObject, public ComponentBase
 {
     Q_OBJECT
 public:
@@ -14,7 +14,7 @@ public:
         VZ
     };
 
-    invoker(settings setting);
+    invoker(ComponentBase::Common::Type setting);
 
     bool run();
 
@@ -22,7 +22,6 @@ signals:
     void getStdOut(QString);
 
 private:
-    settings setting;
     QProcess* process;
 };
 

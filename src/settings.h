@@ -8,17 +8,17 @@ public:
     settings();
 
     //Common
-    QString project;
+    QString gameProjectPath;
     QStringList languages;
     QString defaultLanguage;
 
-    //Analuze
-    QString outputDirectory;
+    //Analyze
+    QString tempFileOutputDirectory;
+    QString transFileOutputDirName = "Translate";
 
     //Write
     struct WriteProps
     {
-        QString transFileOutputDirName = "Translate";
         QString unisonCustomFuncComment = "";
         struct Font {
             QString name = "";
@@ -28,14 +28,20 @@ public:
 
         struct ScriptInfo{
             QString name  = "";
-            size_t line   = 0;
-            size_t col    = 0;
+            std::vector<std::pair<size_t, size_t>> ignorePoint;
             int writeMode = 0;
             bool ignore   = false;
         };
         std::vector<ScriptInfo> ignoreScriptInfo;
     };
-    QMap<QString, WriteProps> write;
+    WriteProps writeObj;
+
+    QString translateDirectoryPath() const;
+    QString tempFileDirectoryPath() const;
+    QString tempScriptFileDirectoryPath() const;
+
+    void write(QString path);
+    void save();
 
 };
 

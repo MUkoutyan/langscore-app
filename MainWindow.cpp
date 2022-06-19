@@ -3,24 +3,27 @@
 #include "./src/ui/FormTaskBar.h"
 #include "./src/ui/MainComponent.h"
 
+#include <QStandardPaths>
 #include <QMouseEvent>
 #include <QSettings>
 #include <QSizeGrip>
 #include <QGraphicsDropShadowEffect>
 #include <QFileDialog>
+#include <QPalette>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , setting(std::make_shared<settings>())
     , taskBar(new FormTaskBar(this))
-    , mainComponent(new MainComponent(this))
+    , mainComponent(new MainComponent(setting, this))
 {
     ui->setupUi(this);
-    this->setWindowFlag(Qt::FramelessWindowHint, true);
-
-//    QGraphicsDropShadowEffect* effect = new QGraphicsDropShadowEffect();
-//    effect->setBlurRadius(5);
-//    this->centralWidget()->setGraphicsEffect(effect);
+    this->setObjectName("mainWindow");
+    this->setWindowFlag(Qt::FramelessWindowHint);
+    this->setAutoFillBackground(true);
+    mainComponent->setContentsMargins(8,0,8,0);
 
     this->ui->verticalLayout->insertWidget(0, taskBar);
     this->ui->verticalLayout->insertWidget(1, mainComponent);
@@ -39,6 +42,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->mainComponent, &MainComponent::requestOpenOutputDir, this, &MainWindow::openOutputProjectDir);
 
+    connect(this->taskBar, &FormTaskBar::openGameProj, this, [this]()
+    {
+        auto&& settings = ComponentBase::getSettings();
+        auto openPath = settings.value("lastOpenGameProjDirectory", QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation)).toUrl();
+        openPath = QFileDialog::getExistingDirectory(this, tr("Open Game Project Folder..."), openPath.toString());
+        if(openPath.isEmpty()){ return; }
+        settings.setValue("lastOpenGameProjDirectory", openPath);
+        this->openGameProject(openPath.toString());
+    });
+    connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
+        this->setting->save();
+    });
+    connect(this->taskBar, &FormTaskBar::requestOpenProj, this, &MainWindow::openGameProject);
+    connect(this->taskBar, &FormTaskBar::quit,            this, [](){
+        qApp->exit(0);
+    });
 
 #ifdef Q_OS_WIN
     QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
@@ -67,6 +86,8 @@ MainWindow::MainWindow(QWidget *parent)
         qApp->setPalette(darkPalette);
 
         qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #2a82da; border: 1px solid white; }");
+
+        this->setStyleSheet("#mainWindow{ border: 2px solid #0f0f0f; }");
     }
 #endif
 }
@@ -74,6 +95,24 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::openGameProject(QString path)
+{
+    auto&& settings = ComponentBase::getSettings();
+
+    QVariantList recentFiles;
+    recentFiles = settings.value("recentFiles", recentFiles).toList();
+    auto contain = std::count_if(recentFiles.cbegin(), recentFiles.cend(), [&path](QVariant v){
+        return v == path;
+    });
+    if(contain > 0){
+        recentFiles.emplaceBack(path);
+        settings.setValue("recentFiles", recentFiles);
+        settings.sync();
+    }
+
+    this->mainComponent->openGameProject(path);
 }
 
 void MainWindow::changeMaximumState()

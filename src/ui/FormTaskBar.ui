@@ -30,13 +30,13 @@
     <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>0</number>
+    <number>8</number>
    </property>
    <property name="topMargin">
-    <number>0</number>
+    <number>4</number>
    </property>
    <property name="rightMargin">
-    <number>0</number>
+    <number>8</number>
    </property>
    <property name="bottomMargin">
     <number>0</number>
@@ -88,10 +88,16 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>48</width>
+       <height>0</height>
+      </size>
+     </property>
      <property name="maximumSize">
       <size>
-       <width>28</width>
-       <height>16777215</height>
+       <width>48</width>
+       <height>32</height>
       </size>
      </property>
      <property name="text">
@@ -100,6 +106,9 @@
      <property name="icon">
       <iconset resource="../../resources.qrc">
        <normaloff>:/images/resources/image/minimize.svg</normaloff>:/images/resources/image/minimize.svg</iconset>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
      </property>
     </widget>
    </item>
@@ -111,10 +120,16 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>48</width>
+       <height>0</height>
+      </size>
+     </property>
      <property name="maximumSize">
       <size>
-       <width>28</width>
-       <height>16777215</height>
+       <width>48</width>
+       <height>32</height>
       </size>
      </property>
      <property name="text">
@@ -123,6 +138,9 @@
      <property name="icon">
       <iconset resource="../../resources.qrc">
        <normaloff>:/images/resources/image/maxminze.svg</normaloff>:/images/resources/image/maxminze.svg</iconset>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
      </property>
     </widget>
    </item>
@@ -134,11 +152,20 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>48</width>
+       <height>0</height>
+      </size>
+     </property>
      <property name="maximumSize">
       <size>
-       <width>28</width>
-       <height>16777215</height>
+       <width>48</width>
+       <height>32</height>
       </size>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
      </property>
      <property name="text">
       <string/>
@@ -146,6 +173,9 @@
      <property name="icon">
       <iconset resource="../../resources.qrc">
        <normaloff>:/images/resources/image/close.svg</normaloff>:/images/resources/image/close.svg</iconset>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
      </property>
     </widget>
    </item>

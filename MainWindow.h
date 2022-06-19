@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "src/settings.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,6 +20,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    std::shared_ptr<settings> setting;
     FormTaskBar* taskBar;
     MainComponent* mainComponent;
 
@@ -26,5 +28,7 @@ private slots:
     void changeMaximumState();
 
     QString openOutputProjectDir(QString root);
+
+    void openGameProject(QString path);
 };
 #endif // MAINWINDOW_H

@@ -21,6 +21,12 @@ signals:
     void minimum();
     void doubleClick();
 
+    void openGameProj();
+    void saveProj();
+    void saveAsProj();
+    void requestOpenProj(QString path);
+    void quit();
+
     void dragging(QMouseEvent* event, QPoint delta);
 
 private:

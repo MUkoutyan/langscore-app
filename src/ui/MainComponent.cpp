@@ -3,6 +3,7 @@
 #include "ui_MainComponent.h"
 #include "ui_WriteModeComponent.h"
 
+#include "../csv.hpp"
 #include "../invoker.h"
 
 #include <QPaintEvent>
@@ -15,10 +16,13 @@
 
 #include <QDebug>
 
-MainComponent::MainComponent(QWidget *parent) :
+using namespace langscore;
+
+MainComponent::MainComponent(Common::Type setting, QWidget *parent) :
     QWidget(parent),
+    ComponentBase(setting),
     ui(new Ui::MainComponent()),
-    writeUi(new WriteModeComponent(this))
+    writeUi(new WriteModeComponent(setting, this))
 {
     this->setAcceptDrops(true); //D&D許可
 
@@ -29,7 +33,7 @@ MainComponent::MainComponent(QWidget *parent) :
 
     connect(this->ui->setOutputDirButton, &QPushButton::clicked, this, [this]()
     {
-        this->setting.outputDirectory = emit this->requestOpenOutputDir(setting.project);
+        this->common.obj->tempFileOutputDirectory = emit this->requestOpenOutputDir(common.obj->gameProjectPath);
     });
 
     this->ui->invokeLog->setVisible(false);
@@ -38,6 +42,10 @@ MainComponent::MainComponent(QWidget *parent) :
 MainComponent::~MainComponent()
 {
     delete ui;
+}
+
+void MainComponent::openGameProject(QString path){
+    this->openFiles(path);
 }
 
 void MainComponent::paintEvent(QPaintEvent *p)
@@ -77,9 +85,9 @@ bool MainComponent::event(QEvent *event)
 
 void MainComponent::openFiles(QString path)
 {
-    setting.project = path;
-    setting.outputDirectory = path + "/langscore_proj";
-    if(QFile::exists(setting.outputDirectory+"/tmp")){
+    this->common.obj->gameProjectPath = path;
+    this->common.obj->tempFileOutputDirectory = path + "/langscore_proj";
+    if(QFile::exists(this->common.obj->tempFileDirectoryPath())){
         toWriteMode();
     }
     else{
@@ -119,7 +127,7 @@ void MainComponent::toAnalyzeMode()
     this->ui->analyzeButton->setEnabled(true);
     this->ui->setOutputDirButton->setEnabled(true);
     this->ui->label->setVisible(false);
-    this->ui->lineEdit->setText(setting.outputDirectory);
+    this->ui->lineEdit->setText(this->common.obj->tempFileOutputDirectory);
     this->ui->lineEdit->setReadOnly(false);
     this->ui->invokeLog->setVisible(true);
 
@@ -134,7 +142,7 @@ void MainComponent::toWriteMode()
 
 void MainComponent::invokeAnalyze()
 {
-    invoker invoker(this->setting);
+    invoker invoker(this->common.obj);
 
     connect(&invoker, &invoker::getStdOut, this, [this](QString text){
         this->ui->invokeLog->insertPlainText(text);
@@ -142,7 +150,39 @@ void MainComponent::invokeAnalyze()
 
     if(invoker.run() == false){ return; }
 
-    if(QFile::exists(setting.outputDirectory+"/tmp")){
-        this->toWriteMode();
+    if(QFile::exists(this->common.obj->tempFileDirectoryPath()) == false){ return; }
+
+    auto writedScripts = [this]()
+    {
+        const auto translateFolder = this->common.obj->translateDirectoryPath();
+        auto scriptCsv     = readCsv(translateFolder + "Scripts.csv");
+        QStringList result;
+        scriptCsv.erase(scriptCsv.begin()); //Headerを削除
+        for(auto& line : scriptCsv){
+            result.emplace_back(line[0]);
+        }
+        result.sort();
+        result.erase(std::unique(result.begin(), result.end()), result.end());
+        return result;
+    }();
+
+    for(auto& script : writedScripts)
+    {
+        auto [fileName, row, col] = parseScriptNameWithRowCol(script);
+
+        auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
+        const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+                return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
+            });
+            return result != scriptList.cend();
+        };
+        if(IsIgnoreText(fileName, row, col)){
+            this->common.obj->writeObj.ignoreScriptInfo.emplace_back(
+                settings::WriteProps::ScriptInfo{fileName, {{size_t(row), size_t(col)}}, 0, false}
+            );
+        }
     }
+
+    this->toWriteMode();
 }

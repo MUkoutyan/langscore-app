@@ -21,6 +21,7 @@ set(PROJECT_SOURCES
         MainWindow.cpp
         MainWindow.h
         MainWindow.ui
+        src/ui/ComponentBase.h
         src/ui/FormTaskBar.h
         src/ui/FormTaskBar.cpp
         src/ui/FormTaskBar.ui
@@ -30,6 +31,11 @@ set(PROJECT_SOURCES
         src/ui/WriteModeComponent.h
         src/ui/WriteModeComponent.cpp
         src/ui/WriteModeComponent.ui
+        src/ui/SwitchButton.h
+        src/ui/SwitchButton.cpp
+        src/ui/ScriptViewer.h
+        src/ui/ScriptViewer.cpp
+        src/csv.hpp
         src/invoker.h
         src/invoker.cpp
         src/settings.h
