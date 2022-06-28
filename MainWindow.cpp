@@ -18,16 +18,27 @@ MainWindow::MainWindow(QWidget *parent)
     , setting(std::make_shared<settings>())
     , taskBar(new FormTaskBar(this))
     , mainComponent(new MainComponent(setting, this))
+    , mousePressEdge(Edges::None)
+    , mouseMoveEdge(Edges::None)
+    , mousePressPos()
+    , leftButtonPressed(false)
+    , isDragging(false)
+    , cursorChanged(false)
+    , draggingStartPos()
+    , borderWidth(2)
 {
     ui->setupUi(this);
     this->setObjectName("mainWindow");
     this->setWindowFlag(Qt::FramelessWindowHint);
+    this->setAttribute(Qt::WA_Hover);
     this->setAutoFillBackground(true);
+    this->setMouseTracking(this);
+    this->installEventFilter(this);
     mainComponent->setContentsMargins(8,0,8,0);
 
     this->ui->verticalLayout->insertWidget(0, taskBar);
     this->ui->verticalLayout->insertWidget(1, mainComponent);
-    this->ui->verticalLayout->addWidget(new QSizeGrip(this), 0, Qt::AlignBottom | Qt::AlignRight);
+//    this->ui->verticalLayout->addWidget(new QSizeGrip(this), 0, Qt::AlignBottom | Qt::AlignRight);
     this->ui->verticalLayout->setStretch(1,1);
 
     connect(this->taskBar, &FormTaskBar::pushClose,   this, &QMainWindow::close);
@@ -35,9 +46,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->taskBar, &FormTaskBar::doubleClick, this, &MainWindow::changeMaximumState);
     connect(this->taskBar, &FormTaskBar::minimum,     this, &QMainWindow::showMinimized);
 
-    connect(this->taskBar, &FormTaskBar::dragging, this, [this](QMouseEvent* event, QPoint delta){
-        auto pos = this->pos() + delta;
-        this->move(pos);
+    connect(this->taskBar, &FormTaskBar::dragging, this, [this](QMouseEvent* event, QPoint delta)
+    {
+        if(mousePressEdge == Edges::None){
+            auto pos = this->pos() + delta;
+            this->move(pos);
+        }
     });
 
     connect(this->mainComponent, &MainComponent::requestOpenOutputDir, this, &MainWindow::openOutputProjectDir);
@@ -128,4 +142,182 @@ void MainWindow::changeMaximumState()
 QString MainWindow::openOutputProjectDir(QString root)
 {
     return QFileDialog::getExistingDirectory(this, tr("Open Project File"), root);
+}
+
+bool MainWindow::event(QEvent*e)
+{
+    switch (e->type()) {
+    case QEvent::MouseMove:
+        mouseMove(static_cast<QMouseEvent*>(e));
+        break;
+    case QEvent::HoverMove:
+        mouseHover(static_cast<QHoverEvent*>(e));
+        break;
+    case QEvent::Leave:
+        mouseLeave(e);
+        break;
+    case QEvent::MouseButtonPress:
+        mousePress(static_cast<QMouseEvent*>(e));
+        break;
+    case QEvent::MouseButtonRelease:
+        mouseRealese(static_cast<QMouseEvent*>(e));
+        break;
+    default:
+        break;
+    }
+    return QMainWindow::event(e);
+}
+
+void MainWindow::mouseHover(QHoverEvent *e) {
+    updateCursorShape(e->globalPosition().toPoint());
+}
+
+void MainWindow::mouseLeave(QEvent *e) {
+    if (!leftButtonPressed) {
+        this->unsetCursor();
+    }
+}
+
+void MainWindow::mousePress(QMouseEvent *e) {
+    if (e->button() & Qt::LeftButton) {
+        leftButtonPressed = true;
+        calculateCursorPosition(e->globalPosition().toPoint(), mousePressEdge);
+
+        if (this->rect().marginsRemoved(QMargins(borderWidth, borderWidth, borderWidth, borderWidth)).contains(e->pos())) {
+            isDragging = true;
+            draggingStartPos = e->pos();
+        }
+    }
+}
+
+void MainWindow::mouseRealese(QMouseEvent *e) {
+    if (e->button() & Qt::LeftButton) {
+        leftButtonPressed = false;
+        isDragging = false;
+        mousePressPos = QPoint();
+    }
+}
+
+void MainWindow::mouseMove(QMouseEvent *e)
+{
+    if (leftButtonPressed == false) {
+        updateCursorShape(e->globalPosition().toPoint());
+        return;
+    }
+
+    if(mousePressEdge == Edges::None){ return; }
+
+    auto rect = this->frameGeometry();
+    auto pos = e->globalPosition();
+    int top = rect.top(), bottom = rect.bottom(), left = rect.left(), right = rect.right();
+
+    qDebug() << pos;
+
+    switch (mousePressEdge) {
+    case Edges::Top:
+        top = pos.y();
+        break;
+    case Edges::Bottom:
+        bottom = pos.y();
+        break;
+    case Edges::Left:
+        left = pos.x();
+        break;
+    case Edges::Right:
+        right = pos.x();
+        break;
+    case Edges::TopLeft:
+        top = pos.y();
+        left = pos.x();
+        break;
+    case Edges::TopRight:
+        right = pos.x();
+        top = pos.y();
+        break;
+    case Edges::BottomLeft:
+        bottom = pos.y();
+        left = pos.x();
+        break;
+    case Edges::BottomRight:
+        bottom = pos.y();
+        right = pos.x();
+        break;
+    default:
+        break;
+    }
+    QRect newRect(QPoint(left, top), QPoint(right, bottom));
+    if (newRect.width() < this->minimumWidth()) {
+        newRect.setLeft(this->frameGeometry().x());
+    }
+    else if (newRect.height() < this->minimumHeight()) {
+        newRect.setTop(this->frameGeometry().y());
+    }
+    qDebug() << newRect;
+    this->resize(newRect.size());
+    this->move(newRect.topLeft());
+    this->update();
+}
+
+void MainWindow::updateCursorShape(const QPoint &pos)
+{
+    if (this->isFullScreen() || this->isMaximized()) {
+        if (cursorChanged) {
+            this->unsetCursor();
+        }
+        return;
+    }
+    if(leftButtonPressed){ return; }
+
+    calculateCursorPosition(pos, mouseMoveEdge);
+    cursorChanged = true;
+    if (mouseMoveEdge&Edges::Top || mouseMoveEdge&Edges::Bottom) {
+        this->setCursor(Qt::SizeVerCursor);
+    }
+    else if (mouseMoveEdge&Edges::Left || mouseMoveEdge&Edges::Right) {
+        this->setCursor(Qt::SizeHorCursor);
+    }
+    else if (mouseMoveEdge&Edges::TopLeft || mouseMoveEdge&Edges::BottomRight) {
+        this->setCursor(Qt::SizeFDiagCursor);
+    }
+    else if (mouseMoveEdge&Edges::TopRight || mouseMoveEdge&Edges::BottomLeft) {
+        this->setCursor(Qt::SizeBDiagCursor);
+    }
+    else if (cursorChanged) {
+        this->unsetCursor();
+        cursorChanged = false;
+    }
+}
+
+void MainWindow::calculateCursorPosition(const QPoint &pos, Edges &_edge)
+{
+    auto rect = this->frameGeometry();
+    auto border = borderWidth*2;
+
+    if (QRect(rect.x()-border, rect.bottom()-border, border*2, border*2).contains(pos)) {
+        _edge = BottomLeft;
+    }
+    else if (QRect(rect.right()-border, rect.bottom()-border, border*2, border*2).contains(pos)) {
+        _edge = BottomRight;
+    }
+    else if (QRect(rect.right()-border, rect.top(), border*2, border).contains(pos)) {
+        _edge = TopRight;
+    }
+    else if (QRect(rect.left()-border, rect.top(), border*2, border).contains(pos)) {
+        _edge = TopLeft;
+    }
+    else if (QRect(rect.x()-border, rect.y()+border, border*2, rect.height()-border).contains(pos)) {
+        _edge = Left;
+    }
+    else if (QRect(rect.right()-border, rect.y()+border, border*2, rect.height()-border).contains(pos)) {
+        _edge = Right;
+    }
+    else if (QRect(rect.x()+border, rect.bottom()-border, rect.width(), border*2).contains(pos)) {
+        _edge = Bottom;
+    }
+    else if (QRect(rect.x()+border, rect.top()-border, rect.width(), border*2).contains(pos)) {
+        _edge = Top;
+    }
+    else {
+        _edge = None;
+    }
 }
