@@ -33,12 +33,15 @@ public:
             bool ignore   = false;
         };
         std::vector<ScriptInfo> ignoreScriptInfo;
+
+        std::vector<QString> ignorePicturePath;
     };
     WriteProps writeObj;
 
     QString translateDirectoryPath() const;
     QString tempFileDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
+    QString tempGraphicsFileDirectoryPath() const;
 
     void write(QString path);
     void save();

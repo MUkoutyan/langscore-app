@@ -27,6 +27,11 @@ QString settings::tempScriptFileDirectoryPath() const {
     return this->tempFileDirectoryPath() + "Scripts/";
 }
 
+QString settings::tempGraphicsFileDirectoryPath() const
+{
+    return this->gameProjectPath + "/Graphics/Pictures/";
+}
+
 void settings::write(QString path)
 {
     QJsonObject root;

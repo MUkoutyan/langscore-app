@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QTableWidget>
+#include <QGraphicsPixmapItem>
 #include "ComponentBase.h"
 
 namespace Ui {
@@ -23,6 +24,7 @@ signals:
 private:
     Ui::WriteModeComponent* ui;
     MainComponent* _parent;
+    QGraphicsScene* scene;
 
     void setNormalCsvText(QString fileName);
     void setScriptCsvText();

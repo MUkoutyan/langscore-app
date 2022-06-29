@@ -14,7 +14,7 @@ using namespace langscore;
 enum TreeItemType{
     Main,
     Script,
-    Graphics
+    Pictures
 };
 
 WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *parent)
@@ -22,6 +22,7 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
     , ComponentBase(setting)
     , ui(new Ui::WriteModeComponent)
     , _parent(parent)
+    , scene(new QGraphicsScene(this))
 {
     ui->setupUi(this);
 
@@ -34,12 +35,13 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
         if(item->parent() == nullptr){ return; }
 
         auto targetTable = this->ui->tableWidget;
-        if(item->parent()->data(0, Qt::UserRole) == TreeItemType::Main){
+        const auto treeType = item->parent()->data(0, Qt::UserRole);
+        if(treeType == TreeItemType::Main){
             auto fileName = item->data(0, Qt::UserRole).toString();
             this->ui->tabWidget->setCurrentIndex(1);
             setNormalCsvText(fileName);
         }
-        else if(item->parent()->data(0, Qt::UserRole) == TreeItemType::Script)
+        else if(treeType == TreeItemType::Script)
         {
             auto fileName = item->data(1, Qt::UserRole).toString();
             targetTable = this->ui->tableWidget_script;
@@ -48,6 +50,17 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
             auto scriptFilePath = this->common.obj->tempScriptFileDirectoryPath() + fileName + ".rb";
             this->ui->scriptViewer->showFile(scriptFilePath);
             if(targetTable->rowCount() != 0){ return; }
+        }
+        else if(treeType == TreeItemType::Pictures)
+        {
+            scene->clear();
+            auto path = item->data(1, Qt::UserRole).toString();
+            QImage image(path);
+            auto* imageItem = new QGraphicsPixmapItem(QPixmap::fromImage(image));
+            scene->addItem(imageItem);
+            this->ui->graphicsView->setScene(scene);
+
+            this->ui->tabWidget->setCurrentIndex(3);
         }
     });
 
@@ -105,6 +118,26 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
                 }
             }
             this->ui->tableWidget_script->blockSignals(false);
+        }
+        else if(treeType == TreeItemType::Script)
+        {
+            const bool ignore = item->checkState(0) == Qt::Unchecked;
+            auto filePath = item->data(1, Qt::UserRole).toString();
+            auto& picturePathList = this->common.obj->writeObj.ignorePicturePath;
+            auto result = std::find_if(picturePathList.begin(), picturePathList.end(), [&filePath](const auto& path){
+                return path == filePath;
+            });
+            if(result != picturePathList.end()){
+                if(ignore == false){
+                    picturePathList.erase(result);
+                }
+                else {
+                    picturePathList.emplace_back(*result);
+                }
+            }
+            else if(ignore){
+                picturePathList.emplace_back(*result);
+            }
         }
     });
 
@@ -257,7 +290,7 @@ void WriteModeComponent::show()
         this->ui->langTabGrid->addWidget(check, count/3, count%3);
         count++;
     }
-    //CSV
+    //通常データベース
     const auto translateFolder = this->common.obj->translateDirectoryPath();
     this->ui->lineEdit->setText(this->common.obj->gameProjectPath);
     {
@@ -286,6 +319,7 @@ void WriteModeComponent::show()
             mainItem->addChild(child);
         }
     }
+    //スクリプト
     {
         auto scriptFolder  = this->common.obj->tempScriptFileDirectoryPath();
         auto scriptFiles   = readCsv(scriptFolder + "_list.csv");
@@ -339,6 +373,43 @@ void WriteModeComponent::show()
                 else{
                     child->setCheckState(0, Qt::Checked);
                 }
+            }
+
+            scriptItem->addChild(child);
+        }
+    }
+    //画像
+    {
+        auto graphicsFolder  = this->common.obj->tempGraphicsFileDirectoryPath();
+        auto scriptItem    = new QTreeWidgetItem();
+        scriptItem->setText(0, "Pictures");
+        scriptItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
+        this->ui->treeWidget->addTopLevelItem(scriptItem);
+
+        QFileInfoList files = QDir(graphicsFolder).entryInfoList(QStringList() << "*.*", QDir::Files);
+
+        for(const auto& pict : files)
+        {
+            if(pict.size() == 0){ continue; }
+
+            auto filename = pict.completeBaseName();
+            auto child = new QTreeWidgetItem();
+            child->setData(0, Qt::CheckStateRole, true);
+            //チェックを外すとこのスクリプトを翻訳から除外します。
+            child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
+            child->setText(1, filename);
+            child->setData(1, Qt::UserRole, pict.absoluteFilePath());
+            child->setCheckState(0, Qt::Checked);
+
+            auto& pixtureList = this->common.obj->writeObj.ignorePicturePath;
+            auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&filename](const auto& pic){
+                return pic == filename;
+            });
+            if(result != pixtureList.end()){
+                child->setCheckState(0, Qt::Unchecked);
+            }
+            else {
+                child->setCheckState(0, Qt::Checked);
             }
 
             scriptItem->addChild(child);

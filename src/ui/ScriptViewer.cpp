@@ -210,6 +210,7 @@ void ScriptViewer::scrollWithHighlight(int row, int col, int length)
     this->setFocus();
     this->setTextCursor(highlightCursor);
 
+    //カーソルの位置を基に表示箇所を中央へ移動
     auto currentCursolHeight = this->cursorRect(highlightCursor);
     auto vBar = this->verticalScrollBar();
     vBar->setValue(vBar->value() + currentCursolHeight.top() - (this->rect().height()/2));
