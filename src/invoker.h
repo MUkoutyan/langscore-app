@@ -16,12 +16,14 @@ public:
 
     invoker(ComponentBase::Common::Type setting);
 
-    bool run();
+    bool analyze();
+    bool write();
 
 signals:
     void getStdOut(QString);
 
 private:
+    bool doProcess(QStringList option);
     QProcess* process;
 };
 

@@ -6,7 +6,21 @@ invoker::invoker(Common::Type setting)
     : ComponentBase(std::move(setting)){
 }
 
-bool invoker::run()
+bool invoker::analyze()
+{
+    auto path = this->common.obj->tempFileOutputDirectory+"/tmp.json";
+    this->common.obj->write(path);
+    return doProcess({"-c", path, "--analyze"});
+}
+
+bool invoker::write()
+{
+    auto path = this->common.obj->tempFileOutputDirectory+"/tmp.json";
+    this->common.obj->write(path);
+    return doProcess({"-c", path, "--write"});
+}
+
+bool invoker::doProcess(QStringList option)
 {
     process = new QProcess(this);
     connect(process, &QProcess::readyReadStandardOutput, this, [this](){
@@ -15,10 +29,8 @@ bool invoker::run()
         emit this->getStdOut(message);
     });
     process->setProgram(qApp->applicationDirPath()+"/bin/divisi.exe");
-    auto path = this->common.obj->tempFileOutputDirectory+"/tmp.json";
-    this->common.obj->write(path);
 
-    process->setArguments({"-c", path, "--analyze"});
+    process->setArguments(option);
 
     process->start();
     if (!process->waitForStarted(-1)) {
@@ -39,7 +51,6 @@ bool invoker::run()
 
     qDebug() << QString(process->readAllStandardOutput());
 
-    QFile::remove(path);
 
     return true;
 }

@@ -31,8 +31,8 @@ set(PROJECT_SOURCES
         src/ui/WriteModeComponent.h
         src/ui/WriteModeComponent.cpp
         src/ui/WriteModeComponent.ui
-        src/ui/SwitchButton.h
-        src/ui/SwitchButton.cpp
+        src/ui/LanguageSelectComponent.h
+        src/ui/LanguageSelectComponent.cpp
         src/ui/ScriptViewer.h
         src/ui/ScriptViewer.cpp
         src/csv.hpp
