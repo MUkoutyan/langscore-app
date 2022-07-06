@@ -7,6 +7,20 @@
 #include <QFile>
 #include <QDir>
 
+void ReverceHSVValue(QImage& image)
+{
+    for (int i = 0; i < image.width(); i++)
+    {
+        for (int j = 0; j < image.height(); j++)
+        {
+            QColor color = image.pixelColor(i, j);
+
+            color.setHsv(color.hue(), color.saturation(), 255-color.value(), color.alpha());
+            image.setPixelColor(i, j, color);
+        }
+    }
+}
+
 FormTaskBar::FormTaskBar(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::FormTaskBar)
@@ -39,8 +53,24 @@ FormTaskBar::FormTaskBar(QWidget *parent)
         #minimumButton:hover:pressed{background-color: rgba(255,255,255,32);}
     )");
 
+    const auto SetIcon = [](QPushButton* button, QString iconPath){
+        QImage img(iconPath);
+        ReverceHSVValue(img);
+        button->setIcon(QIcon(QPixmap::fromImage(img)));
+    };
+    SetIcon(this->ui->closeButton, ":images/resources/image/close.svg");
+    SetIcon(this->ui->maximumButton, ":images/resources/image/maxminze.svg");
+    SetIcon(this->ui->minimumButton, ":images/resources/image/minimize.svg");
+
     connect(this->ui->closeButton,   &QPushButton::clicked, this, &FormTaskBar::pushClose);
-    connect(this->ui->maximumButton, &QPushButton::clicked, this, &FormTaskBar::maximum);
+    connect(this->ui->maximumButton, &QPushButton::clicked, this, [this, &SetIcon](){
+        if(emit this->maximum()){
+            SetIcon(this->ui->maximumButton, ":/images/resources/image/normalize.svg");
+        }
+        else{
+            SetIcon(this->ui->maximumButton, ":/images/resources/image/maxminze.svg");
+        }
+    });
     connect(this->ui->minimumButton, &QPushButton::clicked, this, &FormTaskBar::minimum);
 
     auto menuBar = new QMenuBar(this);
@@ -73,6 +103,11 @@ FormTaskBar::FormTaskBar(QWidget *parent)
     auto helpMenu = menuBar->addMenu(tr("Help"));
 
     this->ui->horizontalLayout_2->setStretch(2, 1);
+
+    openGameProj->setShortcut(Qt::CTRL | Qt::Key_O);
+    saveProj->setShortcut(Qt::CTRL | Qt::Key_S);
+    quit->setShortcut(Qt::CTRL | Qt::Key_Q);
+
 }
 
 FormTaskBar::~FormTaskBar()
