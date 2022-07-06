@@ -59,7 +59,7 @@ private:
     int borderWidth;
 
 private slots:
-    void changeMaximumState();
+    bool changeMaximumState();
 
     QString openOutputProjectDir(QString root);
 

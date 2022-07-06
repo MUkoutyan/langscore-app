@@ -66,7 +66,8 @@ MainWindow::MainWindow(QWidget *parent)
         this->openGameProject(openPath.toString());
     });
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
-        this->setting->save();
+        this->setting->saveForProject();
+        this->ui->statusBar->showMessage(tr("Save Projet."), 5000);
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, &MainWindow::openGameProject);
     connect(this->taskBar, &FormTaskBar::quit,            this, [](){
@@ -129,13 +130,15 @@ void MainWindow::openGameProject(QString path)
     this->mainComponent->openGameProject(path);
 }
 
-void MainWindow::changeMaximumState()
+bool MainWindow::changeMaximumState()
 {
     if(this->isMaximized()){
         this->showNormal();
+        return false;
     }
     else {
         this->showMaximized();
+        return true;
     }
 }
 
@@ -211,8 +214,6 @@ void MainWindow::mouseMove(QMouseEvent *e)
     auto pos = e->globalPosition();
     int top = rect.top(), bottom = rect.bottom(), left = rect.left(), right = rect.right();
 
-    qDebug() << pos;
-
     switch (mousePressEdge) {
     case Edges::Top:
         top = pos.y();
@@ -252,7 +253,6 @@ void MainWindow::mouseMove(QMouseEvent *e)
     else if (newRect.height() < this->minimumHeight()) {
         newRect.setTop(this->frameGeometry().y());
     }
-    qDebug() << newRect;
     this->resize(newRect.size());
     this->move(newRect.topLeft());
     this->update();
