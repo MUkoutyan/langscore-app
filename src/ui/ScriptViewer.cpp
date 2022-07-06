@@ -2,7 +2,6 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QScrollBar>
-#include <QDebug>
 #include <QPainter>
 
 /****************************************************************************
@@ -186,11 +185,6 @@ void ScriptViewer::showFile(QString scriptFilePath)
 
         currentFileName = info.baseName();
         this->verticalScrollBar()->setValue(0);
-
-
-        qDebug() << this->verticalScrollBar()->minimum();
-        qDebug() << this->verticalScrollBar()->maximum();
-        qDebug() << this->verticalScrollBar()->pageStep();
     }
 }
 
