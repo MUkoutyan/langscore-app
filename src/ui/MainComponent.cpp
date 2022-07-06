@@ -87,7 +87,12 @@ void MainComponent::openFiles(QString path)
 {
     this->common.obj->gameProjectPath = path;
     this->common.obj->tempFileOutputDirectory = path + "/langscore_proj";
-    if(QFile::exists(this->common.obj->tempFileDirectoryPath())){
+    if(QFile::exists(this->common.obj->tempFileDirectoryPath()))
+    {
+        auto projFile = this->common.obj->tempFileOutputDirectory+"/config.json";
+        if(QFile::exists(projFile)){
+            this->common.obj->load(projFile);
+        }
         toWriteMode();
     }
     else{
@@ -148,7 +153,7 @@ void MainComponent::invokeAnalyze()
         this->ui->invokeLog->insertPlainText(text);
     });
 
-    if(invoker.run() == false){ return; }
+    if(invoker.analyze() == false){ return; }
 
     if(QFile::exists(this->common.obj->tempFileDirectoryPath()) == false){ return; }
 

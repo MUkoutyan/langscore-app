@@ -17,7 +17,7 @@ public:
 
 signals:
     void pushClose();
-    void maximum();
+    bool maximum();
     void minimum();
     void doubleClick();
 

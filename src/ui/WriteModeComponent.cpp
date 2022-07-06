@@ -1,6 +1,8 @@
 ﻿#include "WriteModeComponent.h"
 #include "ui_WriteModeComponent.h"
 #include "MainComponent.h"
+#include "LanguageSelectComponent.h"
+#include "../invoker.h"
 #include "../csv.hpp"
 
 #include <QFileInfo>
@@ -8,6 +10,8 @@
 #include <QString>
 #include <QCheckBox>
 #include <QLocale>
+#include <QPlainTextEdit>
+#include <QDebug>
 
 using namespace langscore;
 
@@ -25,6 +29,7 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
     , scene(new QGraphicsScene(this))
 {
     ui->setupUi(this);
+    this->ui->modeDesc->hide();
 
     connect(this->ui->treeWidget, &QTreeWidget::itemSelectionChanged, this, [this]()
     {
@@ -64,82 +69,93 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
         }
     });
 
-    connect(this->ui->treeWidget, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem *item, int column)
+    connect(this->ui->treeWidget, &QTreeWidget::itemChanged, this, [this](QTreeWidgetItem *_item, int column)
     {
-        if(item->parent() == nullptr){ return; }
+        if(_item->parent() == nullptr){ return; }
         if(column != 0){ return; }
 
-        const auto treeType = item->parent()->data(0, Qt::UserRole);
-        if(treeType == TreeItemType::Main){
-            auto fileName = item->data(0, Qt::UserRole).toString();
-        }
-        else if(treeType == TreeItemType::Script)
-        {
-            const bool ignore = item->checkState(0) == Qt::Unchecked;
-            auto fileName = item->data(1, Qt::UserRole).toString();
-            auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
-            auto result = std::find_if(scriptList.begin(), scriptList.end(), [&fileName](const auto& script){
-                return script.name == fileName;
-            });
-            if(result != scriptList.end()){
-                result->ignore = ignore;
-            }
-            else{
-                scriptList.emplace_back(
-                    settings::WriteProps::ScriptInfo{fileName, {}, 0, ignore}
-                );
-            }
+        const bool ignore = _item->checkState(0) == Qt::Unchecked;
 
-            //テーブル側への反映
-            this->ui->tableWidget_script->blockSignals(true);
-            int row = this->ui->tableWidget_script->rowCount();
-            std::vector<int> targetItemRow;
-            for(int i=0; i<row; ++i){
-                auto tableItem = this->ui->tableWidget_script->item(i, 1);
-                auto text = tableItem ? tableItem->text() : "";
-                if(text.indexOf(fileName) == 0){
-                    targetItemRow.emplace_back(i);
-                }
-            }
-            const auto tableCol = this->ui->tableWidget_script->columnCount();
-            if(ignore)
-            {
-                for(auto r : targetItemRow){
-                    for(int c=0; c<tableCol; ++c){
-                        this->ui->tableWidget_script->item(r, c)->setFlags(item->flags()&~Qt::ItemIsEnabled);
-                    }
-                }
-            }
-            else{
-                for(auto r : targetItemRow){
-                    for(int c=0; c<tableCol; ++c){
-                        this->ui->tableWidget_script->item(r, c)->setFlags(item->flags()|Qt::ItemIsEnabled);
-                    }
-                }
-            }
-            this->ui->tableWidget_script->blockSignals(false);
+        auto selectedItems = this->ui->treeWidget->selectedItems();
+        if(selectedItems.empty()){ return; }
+        if(selectedItems.contains(_item) == false){
+            selectedItems.clear();
+            selectedItems.emplace_back(_item);
         }
-        else if(treeType == TreeItemType::Script)
+
+        for(auto* item : selectedItems)
         {
-            const bool ignore = item->checkState(0) == Qt::Unchecked;
-            auto filePath = item->data(1, Qt::UserRole).toString();
-            auto& picturePathList = this->common.obj->writeObj.ignorePicturePath;
-            auto result = std::find_if(picturePathList.begin(), picturePathList.end(), [&filePath](const auto& path){
-                return path == filePath;
-            });
-            if(result != picturePathList.end()){
-                if(ignore == false){
-                    picturePathList.erase(result);
+            const auto treeType = item->parent()->data(0, Qt::UserRole);
+            if(treeType == TreeItemType::Main){ continue; }
+
+            item->setCheckState(0, _item->checkState(0));
+
+            if(treeType == TreeItemType::Script)
+            {
+                auto fileName = item->data(1, Qt::UserRole).toString();
+                auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
+                auto result = std::find_if(scriptList.begin(), scriptList.end(), [&fileName](const auto& script){
+                    return script.name == fileName;
+                });
+                if(result != scriptList.end()){
+                    result->ignore = ignore;
                 }
-                else {
-                    picturePathList.emplace_back(*result);
+                else{
+                    scriptList.emplace_back(
+                        settings::WriteProps::ScriptInfo{fileName, {}, 0, ignore}
+                    );
                 }
+
+                //テーブル側への反映
+                this->ui->tableWidget_script->blockSignals(true);
+                int row = this->ui->tableWidget_script->rowCount();
+                std::vector<int> targetItemRow;
+                for(int i=0; i<row; ++i){
+                    auto tableItem = this->ui->tableWidget_script->item(i, 1);
+                    auto text = tableItem ? tableItem->text() : "";
+                    if(text.indexOf(fileName) == 0){
+                        targetItemRow.emplace_back(i);
+                    }
+                }
+                const auto tableCol = this->ui->tableWidget_script->columnCount();
+                if(ignore)
+                {
+                    for(auto r : targetItemRow){
+                        for(int c=0; c<tableCol; ++c){
+                            this->ui->tableWidget_script->item(r, c)->setFlags(item->flags()&~Qt::ItemIsEnabled);
+                        }
+                    }
+                }
+                else{
+                    for(auto r : targetItemRow){
+                        for(int c=0; c<tableCol; ++c){
+                            this->ui->tableWidget_script->item(r, c)->setFlags(item->flags()|Qt::ItemIsEnabled);
+                        }
+                    }
+                }
+                this->ui->tableWidget_script->blockSignals(false);
             }
-            else if(ignore){
-                picturePathList.emplace_back(*result);
+            else if(treeType == TreeItemType::Pictures)
+            {
+                auto filePath = item->data(1, Qt::UserRole).toString();
+                auto& picturePathList = this->common.obj->writeObj.ignorePicturePath;
+                auto result = std::find_if(picturePathList.begin(), picturePathList.end(), [&filePath](const auto& path){
+                    return path == filePath;
+                });
+                if(result != picturePathList.end()){
+                    if(ignore){
+                        picturePathList.emplace_back(*result);
+                    }
+                    else {
+                        picturePathList.erase(result);
+                    }
+                }
+                else if(ignore){
+                    picturePathList.emplace_back(filePath);
+                }
             }
         }
-    });
+    }); //treeWidget, &QTreeWidget::itemChanged
 
     connect(this->ui->tableWidget_script, &QTableWidget::itemSelectionChanged, this, [this]()
     {
@@ -241,6 +257,27 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
 
     });
 
+    connect(this->ui->writeButton, &QPushButton::clicked, this, [this](){
+        invoker invoke(this->common.obj);
+        invoke.write();
+        qDebug() << "Write Translate";
+    });
+
+#ifdef QT_DEBUG
+    auto* configView = new QPlainTextEdit(this);
+    auto configTabIndex = this->ui->tabWidget->addTab(configView, "Config");
+
+    connect(this->ui->tabWidget, &QTabWidget::currentChanged, this, [this, configTabIndex, configView](int index)
+    {
+        if(configTabIndex != index){ return; }
+
+        QString text = this->common.obj->createJson();
+
+        configView->clear();
+        configView->appendPlainText(text);
+    });
+#endif
+
 }
 
 WriteModeComponent::~WriteModeComponent(){
@@ -272,11 +309,11 @@ void WriteModeComponent::show()
         if(bcp47Name == "zh"){ bcp47Name = "zh-cn"; }
         auto& langList = this->common.obj->languages;
         auto text = lang.nativeLanguageName() + "(" + bcp47Name.toLower() + ")";
-        auto check = new QCheckBox(text);
+        auto* langComp = new LanguageSelectComponent(":flags/"+flagName, text, this);
         if(langList.contains(bcp47Name)){
-            check->setChecked(true);
+            langComp->setUseLang(true);
         }
-        connect(check, &QCheckBox::toggled, this, [this, shortName = bcp47Name.toLower()](bool check)
+        connect(langComp, &LanguageSelectComponent::changeUseLang, this, [this, shortName = bcp47Name.toLower()](bool check)
         {
             auto& langList = this->common.obj->languages;
             if(check && langList.contains(shortName) == false)
@@ -287,7 +324,8 @@ void WriteModeComponent::show()
                 langList.removeOne(shortName);
             }
         });
-        this->ui->langTabGrid->addWidget(check, count/3, count%3);
+
+        this->ui->langTabGrid->addWidget(langComp, count/3, count%3);
         count++;
     }
     //通常データベース
@@ -478,20 +516,28 @@ void WriteModeComponent::setScriptCsvText()
         return result != scriptList.cend();
     };
 
+    const auto IsIgnoreScript = [&scriptList](QString fileName){
+        auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+            return x.name == fileName && x.ignore;
+        });
+        return result != scriptList.cend();
+    };
+
 
     for(int r=0; r<csv.size()-1; ++r)
     {
         const auto& line = csv[r+1];
+        auto [fileName, row, col] = parseScriptNameWithRowCol(line[0]);
 
+        const auto isEnabled = IsIgnoreScript(fileName) ? Qt::NoItemFlags : Qt::ItemIsEnabled;
         auto* checkItem = new QTableWidgetItem();
-        checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEditable | Qt::ItemIsEnabled);
+        checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEditable | isEnabled);
         targetTable->setItem(r, 0, checkItem);
 
         //名前
         {
-            auto [fileName, row, col] = parseScriptNameWithRowCol(line[0]);
             auto* item = new QTableWidgetItem(line[0]);
-            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+            item->setFlags(Qt::ItemIsSelectable | isEnabled);
             targetTable->setItem(r, 1, item);
 
             checkItem->setData(Qt::CheckStateRole, IsIgnoreText(fileName, row, col) ? Qt::Unchecked : Qt::Checked);
@@ -499,10 +545,11 @@ void WriteModeComponent::setScriptCsvText()
 
         for(int c=1; c<line.size(); ++c){
             auto* item = new QTableWidgetItem(line[c]);
-            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+            item->setFlags(Qt::ItemIsSelectable | isEnabled);
             targetTable->setItem(r, c+1, item);
         }
     }
 
     targetTable->resizeColumnsToContents();
+    targetTable->update();
 }
