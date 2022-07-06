@@ -32,7 +32,7 @@ QString settings::tempGraphicsFileDirectoryPath() const
     return this->gameProjectPath + "/Graphics/Pictures/";
 }
 
-void settings::write(QString path)
+QByteArray settings::createJson()
 {
     QJsonObject root;
 
@@ -85,19 +85,80 @@ void settings::write(QString path)
 
     write["RPGMakerIgnoreScripts"] = ignoreScripts;
 
+
+    QJsonArray ignorePictures;
+    for(const auto& path : writeObj.ignorePicturePath){
+        ignorePictures.append(path);
+    }
+    write["ignorePictures"] = ignorePictures;
+
     root["write"] = write;
 
 
     QJsonDocument doc(root);
-    {
-        QFile file(path);
-        if(file.open(QFile::WriteOnly)){
-            file.write(doc.toJson());
-        }
-    }
-
+    return doc.toJson();
 }
 
-void settings::save(){
+void settings::write(QString path)
+{
+    QFile file(path);
+    if(file.open(QFile::WriteOnly)){
+        file.write(createJson());
+    }
+}
+
+void settings::saveForProject(){
     write(this->tempFileOutputDirectory+"/config.json");
+}
+
+void settings::load(QString path)
+{
+    QFile file(path);
+    if(file.open(QFile::ReadOnly) == false){ return; }
+
+    QJsonDocument root = QJsonDocument::fromJson(QByteArray(file.readAll()));
+
+    this->languages.clear();
+    auto jsonLanguages = root["Languages"].toArray({"ja", "en"});
+    for(auto l : jsonLanguages){
+        this->languages.emplace_back(l.toString());
+    }
+    this->defaultLanguage = root["DefaultLanguage"].toString("ja");
+
+    auto write = root["write"].toObject();
+    auto jsonFonts = write["fonts"].toObject();
+    QMap<QString, WriteProps::Font> fonts;
+    for(const auto& key : jsonFonts.keys())
+    {
+        auto f = jsonFonts[key].toObject();
+        WriteProps::Font font;
+        font.name = f["name"].toString();
+        font.name = f["size"].toString();
+        fonts[key] = font;
+    }
+
+    auto jsonIgnoreScripts = write["RPGMakerIgnoreScripts"].toArray();
+    for(auto jsonInfo : jsonIgnoreScripts)
+    {
+        auto jsonScript = jsonInfo.toObject();
+        WriteProps::ScriptInfo info;
+        info.name = jsonScript["name"].toString();
+        info.ignore = jsonScript["ignore"].toBool();
+
+        auto jsonIgnorePoints = jsonScript["ignorePoints"].toArray();
+        for(auto jsonPoint : jsonIgnorePoints){
+            auto obj = jsonPoint.toObject();
+            auto pair = std::pair<size_t, size_t>{obj["row"].toInteger(), obj["col"].toInteger()};
+            info.ignorePoint.emplace_back(std::move(pair));
+        }
+        this->writeObj.ignoreScriptInfo.emplace_back(std::move(info));
+    }
+
+    auto jsonIgnorePictures = write["ignorePictures"].toArray();
+    for(auto jsonPath : jsonIgnorePictures)
+    {
+        this->writeObj.ignorePicturePath.emplace_back(jsonPath.toString());
+    }
+
+
 }

@@ -43,8 +43,10 @@ public:
     QString tempScriptFileDirectoryPath() const;
     QString tempGraphicsFileDirectoryPath() const;
 
+    QByteArray createJson();
     void write(QString path);
-    void save();
+    void saveForProject();
+    void load(QString path);
 
 };
 
