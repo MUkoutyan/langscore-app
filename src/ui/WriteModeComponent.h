@@ -9,6 +9,7 @@ namespace Ui {
 class WriteModeComponent;
 }
 
+class LanguageSelectComponent;
 class MainComponent;
 class WriteModeComponent : public QWidget, public ComponentBase
 {
@@ -25,9 +26,12 @@ private:
     Ui::WriteModeComponent* ui;
     MainComponent* _parent;
     QGraphicsScene* scene;
+    std::vector<LanguageSelectComponent*> languageButtons;
 
     void setNormalCsvText(QString fileName);
     void setScriptCsvText();
+
+    QTableWidgetItem* scriptTableItem(int row, int col);
 
 };
 
