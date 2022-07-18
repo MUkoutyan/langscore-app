@@ -13,10 +13,17 @@
 #include <QUrl>
 #include <QDir>
 #include <QFileInfo>
+#include <QFontDatabase>
 
 #include <QDebug>
 
 using namespace langscore;
+
+const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
+    {"rvproj2",     settings::VXAce},
+    {"rpgproject",  settings::MV},
+    {"rmmzproject", settings::MZ},
+};
 
 MainComponent::MainComponent(Common::Type setting, QWidget *parent) :
     QWidget(parent),
@@ -45,7 +52,8 @@ MainComponent::~MainComponent()
 }
 
 void MainComponent::openGameProject(QString path){
-    this->openFiles(path);
+    auto fileInfo = findGameProject({path});
+    this->openFiles(fileInfo);
 }
 
 void MainComponent::paintEvent(QPaintEvent *p)
@@ -60,9 +68,9 @@ void MainComponent::dropEvent(QDropEvent *event)
     const QMimeData* mimeData = event->mimeData();
     //URLがあれば通す
     if(mimeData->hasUrls() == false){ return; }
-    auto filePath = findGameProject(mimeData->urls());
-    if(filePath != ""){
-        openFiles(filePath);
+    auto fileInfo = findGameProject(mimeData->urls());
+    if(fileInfo.first != ""){
+        openFiles(fileInfo);
     }
 }
 
@@ -73,7 +81,7 @@ void MainComponent::dragEnterEvent(QDragEnterEvent *event)
     if(mimeData->hasUrls() == false){ return; }
 
     QList<QUrl> urlList = mimeData->urls();
-    if(findGameProject(std::move(urlList)) != ""){
+    if(findGameProject(std::move(urlList)).first != ""){
         event->acceptProposedAction();
     }
 }
@@ -83,14 +91,17 @@ bool MainComponent::event(QEvent *event)
     return QWidget::event(event);
 }
 
-void MainComponent::openFiles(QString path)
+void MainComponent::openFiles(std::pair<QString, settings::ProjectType> fileInfo)
 {
+    auto path = fileInfo.first;
+    this->common.obj->projectType = fileInfo.second;
     this->common.obj->gameProjectPath = path;
     this->common.obj->tempFileOutputDirectory = path + "/langscore_proj";
     if(QFile::exists(this->common.obj->tempFileDirectoryPath()))
     {
         auto projFile = this->common.obj->tempFileOutputDirectory+"/config.json";
-        if(QFile::exists(projFile)){
+        if(QFile::exists(projFile))
+        {
             this->common.obj->load(projFile);
         }
         toWriteMode();
@@ -102,14 +113,14 @@ void MainComponent::openFiles(QString path)
     this->update();
 }
 
-QString MainComponent::findGameProject(QList<QUrl> urlList)
+std::pair<QString, settings::ProjectType> MainComponent::findGameProject(QList<QUrl> urlList)
 {
     for(auto& url : urlList)
     {
         auto filePath = url.toLocalFile();
         QFileInfo info(filePath);
-        if(info.isFile() && info.suffix() == "rvproj2"){
-            return filePath;
+        if(info.isFile() && projectExtensionAndType.contains(info.suffix())){
+            return {filePath, projectExtensionAndType[info.suffix()]};
         }
         else if(info.isDir()){
             QDir dir(filePath);
@@ -117,14 +128,14 @@ QString MainComponent::findGameProject(QList<QUrl> urlList)
             if(files.empty()){ continue; }
 
             for(auto& child : files){
-                if(child.suffix() == "rvproj2"){
-                    return filePath;
+                if(projectExtensionAndType.contains(child.suffix())){
+                    return {filePath, projectExtensionAndType[info.suffix()]};
                 }
             }
         }
     }
 
-    return "";
+    return {"", settings::VXAce};
 }
 
 void MainComponent::toAnalyzeMode()
@@ -159,8 +170,8 @@ void MainComponent::invokeAnalyze()
 
     auto writedScripts = [this]()
     {
-        const auto translateFolder = this->common.obj->translateDirectoryPath();
-        auto scriptCsv     = readCsv(translateFolder + "Scripts.csv");
+        const auto tempFolder = this->common.obj->tempFileDirectoryPath();
+        auto scriptCsv     = readCsv(tempFolder + "Scripts.csv");
         QStringList result;
         scriptCsv.erase(scriptCsv.begin()); //Headerを削除
         for(auto& line : scriptCsv){

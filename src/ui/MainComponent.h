@@ -36,8 +36,8 @@ private:
     Ui::MainComponent *ui;
     WriteModeComponent* writeUi;
 
-    void openFiles(QString path);
-    QString findGameProject(QList<QUrl> urlList);
+    void openFiles(std::pair<QString, settings::ProjectType> path);
+    std::pair<QString, settings::ProjectType> findGameProject(QList<QUrl> urlList);
     void toAnalyzeMode();
     void toWriteMode();
 
