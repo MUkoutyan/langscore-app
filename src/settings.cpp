@@ -7,8 +7,9 @@
 #include <QFile>
 
 settings::settings()
-    : gameProjectPath("")
-    , languages({"ja", "en"})
+    : projectType(settings::VXAce)
+    , gameProjectPath("")
+    , languages()
     , defaultLanguage("ja")
     , tempFileOutputDirectory("")
 {
@@ -32,13 +33,36 @@ QString settings::tempGraphicsFileDirectoryPath() const
     return this->gameProjectPath + "/Graphics/Pictures/";
 }
 
+settings::Language &settings::fetchLanguage(QString bcp47Name)
+{
+    auto result = std::find(this->languages.begin(), this->languages.end(), bcp47Name);
+    if(result != this->languages.end()){
+        return *result;
+    }
+    this->languages.emplace_back(
+        settings::Language{ bcp47Name, settings::Font{ "", 22 } }
+    );
+    return this->languages[this->languages.size() - 1];
+}
+
+void settings::removeLanguage(QString bcp47Name)
+{
+    auto result = std::find(this->languages.begin(), this->languages.end(), bcp47Name);
+    if(result == this->languages.end()){ return; }
+    this->languages.erase(result);
+}
+
 QByteArray settings::createJson()
 {
     QJsonObject root;
 
     QJsonArray langs;
     for(auto& l : this->languages){
-        langs.append(l);
+        QJsonObject langObj;
+        langObj["languageName"] = l.languageName;
+        langObj["fontName"] = l.font.name;
+        langObj["fontSize"] = int(l.font.size);
+        langs.append(langObj);
     }
     root["Languages"] = langs;
     root["DefaultLanguage"] = this->defaultLanguage;
@@ -55,16 +79,6 @@ QByteArray settings::createJson()
 
     QJsonObject write;
     write["UsCustomFuncComment"] = "Scripts/{0}#{1},{2}";
-    QJsonObject fonts;
-    for(const auto& key : writeObj.langFont.keys())
-    {
-        const auto& font = writeObj.langFont[key];
-        QJsonObject fontInfo;
-        fontInfo["name"] = font.name;
-        fontInfo["size"] = int(font.size);
-        fonts[key] = fontInfo;
-    }
-    write["fonts"] = fonts;
 
     QJsonArray ignoreScripts;
     for(const auto& info : writeObj.ignoreScriptInfo)
@@ -102,6 +116,13 @@ QByteArray settings::createJson()
 void settings::write(QString path)
 {
     QFile file(path);
+
+    QFileInfo info(file);
+    QDir parentDir = info.dir();
+    if(parentDir.exists() == false){
+        parentDir.mkdir(parentDir.absolutePath());
+    }
+
     if(file.open(QFile::WriteOnly)){
         file.write(createJson());
     }
@@ -119,23 +140,20 @@ void settings::load(QString path)
     QJsonDocument root = QJsonDocument::fromJson(QByteArray(file.readAll()));
 
     this->languages.clear();
-    auto jsonLanguages = root["Languages"].toArray({"ja", "en"});
-    for(auto l : jsonLanguages){
-        this->languages.emplace_back(l.toString());
+    auto jsonLanguages = root["Languages"].toArray();
+    if(jsonLanguages.empty() == false)
+    {
+        for(auto l : jsonLanguages)
+        {
+            auto obj = l.toObject();
+            auto data = Language{obj["languageName"].toString(),
+                                 Font{obj["fontName"].toString(), static_cast<uint32_t>(obj["fontSize"].toInt())}};
+            this->languages.emplace_back(data);
+        }
     }
     this->defaultLanguage = root["DefaultLanguage"].toString("ja");
 
     auto write = root["write"].toObject();
-    auto jsonFonts = write["fonts"].toObject();
-    QMap<QString, WriteProps::Font> fonts;
-    for(const auto& key : jsonFonts.keys())
-    {
-        auto f = jsonFonts[key].toObject();
-        WriteProps::Font font;
-        font.name = f["name"].toString();
-        font.name = f["size"].toString();
-        fonts[key] = font;
-    }
 
     auto jsonIgnoreScripts = write["RPGMakerIgnoreScripts"].toArray();
     for(auto jsonInfo : jsonIgnoreScripts)

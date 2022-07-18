@@ -8,23 +8,39 @@ public:
     settings();
 
     //Common
+    enum ProjectType{
+        VXAce,
+        MV,
+        MZ
+    };
+
+    struct Font {
+        QString name = "";
+        std::uint32_t size = 22;
+    };
+    struct Language{
+        QString languageName;
+        Font font;
+        bool operator==(QString langName) const {
+            return this->languageName == langName;
+        }
+    };
+
+    ProjectType projectType;
     QString gameProjectPath;
-    QStringList languages;
+    std::vector<Language> languages;
     QString defaultLanguage;
 
     //Analyze
     QString tempFileOutputDirectory;
     QString transFileOutputDirName = "Translate";
 
+    std::vector<int> fontIndexList;
+
     //Write
     struct WriteProps
     {
         QString unisonCustomFuncComment = "";
-        struct Font {
-            QString name = "";
-            std::uint32_t size = 22;
-        };
-        QMap<QString, Font> langFont;
 
         struct ScriptInfo{
             QString name  = "";
@@ -42,6 +58,9 @@ public:
     QString tempFileDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
     QString tempGraphicsFileDirectoryPath() const;
+
+    Language& fetchLanguage(QString bcp47Name);
+    void removeLanguage(QString bcp47Name);
 
     QByteArray createJson();
     void write(QString path);
