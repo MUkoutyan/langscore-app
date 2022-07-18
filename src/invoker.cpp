@@ -10,12 +10,14 @@ bool invoker::analyze()
 {
     auto path = this->common.obj->tempFileOutputDirectory+"/tmp.json";
     this->common.obj->write(path);
-    return doProcess({"-c", path, "--analyze"});
+    auto result = doProcess({"-c", path, "--analyze"});
+    QFile::remove(path);
+    return result;
 }
 
 bool invoker::write()
 {
-    auto path = this->common.obj->tempFileOutputDirectory+"/tmp.json";
+    auto path = this->common.obj->tempFileOutputDirectory+"/config.json";
     this->common.obj->write(path);
     return doProcess({"-c", path, "--write"});
 }
