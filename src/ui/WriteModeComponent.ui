@@ -194,10 +194,17 @@ Unchecked text and images are excluded from translation.</string>
         <attribute name="title">
          <string>Scripts</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <property name="spacing">
-          <number>0</number>
-         </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QSplitter" name="splitter">
+          <property name="geometry">
+           <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>711</width>
+            <height>451</height>
+           </rect>
+          </property>
          <property name="leftMargin">
           <number>0</number>
          </property>

@@ -1,25 +1,13 @@
 ﻿#include "FormTaskBar.h"
 #include "ui_FormTaskBar.h"
 #include "ComponentBase.h"
+#include "../graphics.hpp"
 
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QFile>
 #include <QDir>
 
-void ReverceHSVValue(QImage& image)
-{
-    for (int i = 0; i < image.width(); i++)
-    {
-        for (int j = 0; j < image.height(); j++)
-        {
-            QColor color = image.pixelColor(i, j);
-
-            color.setHsv(color.hue(), color.saturation(), 255-color.value(), color.alpha());
-            image.setPixelColor(i, j, color);
-        }
-    }
-}
 
 FormTaskBar::FormTaskBar(QWidget *parent)
     : QWidget(parent)
@@ -55,7 +43,7 @@ FormTaskBar::FormTaskBar(QWidget *parent)
 
     const auto SetIcon = [](QPushButton* button, QString iconPath){
         QImage img(iconPath);
-        ReverceHSVValue(img);
+        graphics::ReverceHSVValue(img);
         button->setIcon(QIcon(QPixmap::fromImage(img)));
     };
     SetIcon(this->ui->closeButton, ":images/resources/image/close.svg");
