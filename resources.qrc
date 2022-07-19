@@ -4,6 +4,7 @@
         <file>resources/image/maxminze.svg</file>
         <file>resources/image/minimize.svg</file>
         <file>resources/image/normalize.svg</file>
+        <file>resources/image/filter.svg</file>
     </qresource>
     <qresource prefix="/flags">
         <file alias="ac.svg">flag-icons/flags/4x3/ac.svg</file>
@@ -272,5 +273,9 @@
         <file alias="za.svg">flag-icons/flags/4x3/za.svg</file>
         <file alias="zm.svg">flag-icons/flags/4x3/zm.svg</file>
         <file alias="zw.svg">flag-icons/flags/4x3/zw.svg</file>
+    </qresource>
+    <qresource prefix="/fonts">
+        <file alias="1m_reg">resources/fonts/mplus-1m-regular.ttf</file>
+        <file alias="VLGothic">resources/fonts/VL-Gothic-Regular.ttf</file>
     </qresource>
 </RCC>

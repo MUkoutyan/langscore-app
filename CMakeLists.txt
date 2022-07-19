@@ -40,6 +40,7 @@ set(PROJECT_SOURCES
         src/invoker.cpp
         src/settings.h
         src/settings.cpp
+        src/graphics.hpp
         resources.qrc
         ${TS_FILES}
 )
