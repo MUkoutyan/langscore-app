@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QTextEdit>
+#include <QPlainTextEdit>
 
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
@@ -41,7 +42,7 @@ private:
 };
 //! [0]
 
-class ScriptViewer : public QTextEdit
+class ScriptViewer : public QPlainTextEdit
 {
     Q_OBJECT
 public:
@@ -49,6 +50,7 @@ public:
 
     void showFile(QString scriptFilePath);
     void scrollWithHighlight(int row, int col, int length);
+    QString GetCurrentFileName() const { return currentFileName; }
 
 private:
     Highlighter* highlighter;
