@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , taskBar(new FormTaskBar(this->history, this))
     , mainComponent(new MainComponent(this, this))
+    , undoView(nullptr)
     , mousePressEdge(Edges::None)
     , mouseMoveEdge(Edges::None)
     , mousePressPos()
@@ -38,6 +39,8 @@ MainWindow::MainWindow(QWidget *parent)
     this->ui->verticalLayout->insertWidget(1, mainComponent);
     this->ui->verticalLayout->setStretch(1,1);
 
+    connect(this->taskBar, &FormTaskBar::showUndoView, this, &MainWindow::createUndoView);
+
     connect(this->taskBar, &FormTaskBar::pushClose,   this, &QMainWindow::close);
     connect(this->taskBar, &FormTaskBar::maximum,     this, &MainWindow::changeMaximumState);
     connect(this->taskBar, &FormTaskBar::doubleClick, this, &MainWindow::changeMaximumState);
@@ -52,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(this->mainComponent, &MainComponent::requestOpenOutputDir, this, &MainWindow::openOutputProjectDir);
+    connect(this->mainComponent, &MainComponent::openProject, this->taskBar, &FormTaskBar::updateRecentMenu);
 
     connect(this->taskBar, &FormTaskBar::openGameProj, this, [this]()
     {
@@ -60,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
         openPath = QFileDialog::getExistingDirectory(this, tr("Open Game Project Folder..."), openPath.toString());
         if(openPath.isEmpty()){ return; }
         settings.setValue("lastOpenGameProjDirectory", openPath);
+        settings.sync();
         this->openGameProject(openPath.toString());
     });
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
@@ -109,21 +114,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::openGameProject(QString path)
-{
-    auto&& settings = ComponentBase::getAppSettings();
-
-    QVariantList recentFiles;
-    recentFiles = settings.value("recentFiles", recentFiles).toList();
-    auto contain = std::count_if(recentFiles.cbegin(), recentFiles.cend(), [&path](QVariant v){
-        return v == path;
-    });
-    if(contain > 0){
-        recentFiles.emplaceBack(path);
-        settings.setValue("recentFiles", recentFiles);
-        settings.sync();
-    }
-
+void MainWindow::openGameProject(QString path) {
     this->mainComponent->openGameProject(path);
 }
 
@@ -317,4 +308,12 @@ void MainWindow::calculateCursorPosition(const QPoint &pos, Edges &_edge)
     else {
         _edge = None;
     }
+}
+
+void MainWindow::createUndoView()
+{
+    undoView = new QUndoView(this->history);
+    undoView->setWindowTitle(tr("Command List"));
+    undoView->show();
+    undoView->setAttribute(Qt::WA_QuitOnClose, false);
 }

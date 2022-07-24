@@ -52,15 +52,8 @@ MainComponent::~MainComponent()
 }
 
 void MainComponent::openGameProject(QString path){
-    auto fileInfo = findGameProject({path});
+    auto fileInfo = findGameProject({QUrl::fromLocalFile(path)});
     this->openFiles(fileInfo);
-}
-
-void MainComponent::paintEvent(QPaintEvent *p)
-{
-    if(this->isHidden()){ return; }
-
-
 }
 
 void MainComponent::dropEvent(QDropEvent *event)
@@ -154,8 +147,29 @@ void MainComponent::toAnalyzeMode()
 
 void MainComponent::toWriteMode()
 {
+    auto&& settings = ComponentBase::getAppSettings();
+    auto projDir = this->setting->gameProjectPath;
+    QVariantList recentFiles;
+    auto recentList = settings.value("recentFiles", recentFiles).toList();
+    if(recentList.size() >= 8){
+        recentList.remove(7, qMin(1, recentList.size()-7));
+    }
+    int index = 0;
+    for(auto& obj : recentList){
+        if(obj.toString() == projDir){
+            recentList.removeAt(index);
+            break;
+        }
+        ++index;
+    }
+    recentList.insert(0, QVariant(projDir));
+    settings.setValue("recentFiles", recentList);
+    settings.sync();
+
     this->writeUi->show();
     this->ui->base->setCurrentIndex(1);
+
+    emit this->openProject();
 }
 
 void MainComponent::invokeAnalyze()

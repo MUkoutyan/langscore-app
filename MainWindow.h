@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QUndoView>
 #include "src/ui/ComponentBase.h"
 #include "src/settings.h"
 
@@ -46,6 +47,7 @@ private:
     Ui::MainWindow *ui;
     FormTaskBar* taskBar;
     MainComponent* mainComponent;
+    QUndoView* undoView;
 
     Edges mousePressEdge;
     Edges mouseMoveEdge;
@@ -58,11 +60,11 @@ private:
     QPoint draggingStartPos;
     int borderWidth;
 
+
 private slots:
+    void createUndoView();
     bool changeMaximumState();
-
     QString openOutputProjectDir(QString root);
-
     void openGameProject(QString path);
 };
 #endif // MAINWINDOW_H

@@ -19,13 +19,12 @@ public:
 
 signals:
     QString requestOpenOutputDir(QString root);
+    void openProject();
 
 public slots:
     void openGameProject(QString path);
 
 protected:
-    void paintEvent(QPaintEvent* p) override;
-
     void dropEvent(QDropEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
 

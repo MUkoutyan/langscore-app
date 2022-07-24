@@ -30,8 +30,12 @@ signals:
 
     void undo();
     void redo();
+    void showUndoView();
 
     void dragging(QMouseEvent* event, QPoint delta);
+
+public slots:
+    void updateRecentMenu();
 
 private:
     Ui::FormTaskBar *ui;
@@ -44,6 +48,8 @@ private:
     bool pressLeftButton;
     QPoint beforeMousePos;
     QUndoStack* history;
+
+    QMenu* recentProjMenu;
 };
 
 #endif // FORMTASKBAR_H

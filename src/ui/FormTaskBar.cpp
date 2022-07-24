@@ -14,6 +14,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     , ui(new Ui::FormTaskBar)
     , pressLeftButton(false)
     , history(history)
+    , recentProjMenu(nullptr)
 {
     ui->setupUi(this);
 
@@ -68,26 +69,13 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     auto fileMenu = menuBar->addMenu(tr("File"));
     auto openGameProj = fileMenu->addAction(tr("Open Game Project..."));
     auto saveProj     = fileMenu->addAction(tr("Save Langscore Project..."));
-    //auto saveAsProj   = fileMenu->addAction(tr("Save as Langscore Project..."));
-    auto recentProjMenu = fileMenu->addMenu(tr("Recent Project"));
-
-    auto&& settings = ComponentBase::getAppSettings();
-    QVariantList recentFiles;
-    auto recentProjs = settings.value("recentFiles", recentFiles).toList();
-    for(auto& proj : recentProjs){
-        auto path = proj.toString();
-        auto action = new QAction(QDir(path).dirName() + " (" + path + ")");
-        connect(action, &QAction::triggered, this, [this, path](){
-            emit this->requestOpenProj(path);
-        });
-        recentProjMenu->addAction(action);
-    }
+    recentProjMenu = fileMenu->addMenu(tr("Recent Project"));
+    updateRecentMenu();
 
     auto quit = fileMenu->addAction(tr("Quit"));
 
     connect(openGameProj, &QAction::triggered, this, &FormTaskBar::openGameProj);
     connect(saveProj,     &QAction::triggered, this, &FormTaskBar::saveProj);
-//    connect(saveAsProj,   &QAction::triggered, this, &FormTaskBar::saveAsProj);
     connect(quit,         &QAction::triggered, this, &FormTaskBar::quit);
 
     //Edit Menu
@@ -98,9 +86,12 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     auto redoAction = history->createRedoAction(this, tr("Redo"));
     redoAction->setShortcut(Qt::CTRL|Qt::SHIFT|Qt::Key_Z);
     editMenu->addAction(redoAction);
+    editMenu->addSeparator();
+    auto undoView = editMenu->addAction(tr("Show Undo View..."));
 
     connect(undoAction, &QAction::triggered, this, &FormTaskBar::undo);
     connect(redoAction, &QAction::triggered, this, &FormTaskBar::redo);
+    connect(undoView, &QAction::triggered, this, &FormTaskBar::showUndoView);
 
     //Help Menu
     auto helpMenu = menuBar->addMenu(tr("Help"));
@@ -117,6 +108,22 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
 FormTaskBar::~FormTaskBar()
 {
     delete ui;
+}
+
+void FormTaskBar::updateRecentMenu()
+{
+    recentProjMenu->clear();
+    auto&& settings = ComponentBase::getAppSettings();
+    QVariantList recentFiles;
+    auto recentProjs = settings.value("recentFiles", recentFiles).toList();
+    for(auto& proj : recentProjs){
+        auto path = proj.toString();
+        auto action = new QAction(QDir(path).dirName() + " (" + path + ")");
+        connect(action, &QAction::triggered, this, [this, path](){
+            emit this->requestOpenProj(path);
+        });
+        recentProjMenu->addAction(action);
+    }
 }
 
 void FormTaskBar::mousePressEvent(QMouseEvent *event)
