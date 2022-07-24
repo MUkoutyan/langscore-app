@@ -108,10 +108,14 @@ void ScriptViewer::showFile(QString scriptFilePath)
     QFile script(scriptFilePath);
     if(script.open(QFile::ReadOnly | QFile::Text))
     {
+        highlightCursor.setCharFormat(QTextCharFormat());
+        highlightCursor = QTextCursor();
+
         this->clear();
         this->setPlainText(script.readAll());
 
         currentFileName = info.baseName();
+        this->verticalScrollBar()->setValue(0);
     }
 }
 
