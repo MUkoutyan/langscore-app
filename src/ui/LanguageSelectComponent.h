@@ -58,6 +58,7 @@ private:
         {}
         ~LanguageButtonUndo(){}
 
+        int id() const override { return 1; }
         void undo() override;
         void redo() override;
 

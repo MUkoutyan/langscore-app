@@ -351,17 +351,35 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
     if(_item->parent() == nullptr){ return; }
     if(column != 0){ return; }
 
-    auto result = this->setTreeItemCheck(_item, _item->checkState(0));
+    auto selectedItems = this->ui->treeWidget->selectedItems();
+    if(selectedItems.contains(_item) == false){
+        selectedItems.clear();
+        selectedItems.emplace_back(_item);
+    }
 
+    const auto check = _item->checkState(0);
+    const bool ignore = check == Qt::Unchecked;
+    std::vector<QUndoCommand *> result;
+    for(auto item : selectedItems){
+        result.emplace_back(new TreeUndo(this, item, check, ignore ? Qt::Checked : Qt::Unchecked));
+    }
+
+    if(result.empty()){ return; }
     if(_suspendHistory){
-        this->discardCommand(result);
+        this->discardCommand(std::move(result));
         return;
     }
-    this->history->beginMacro(tr("Change Enable State"));
-    for(auto* command : result){
-        this->history->push(command);
+    if(result.size() == 1){
+        this->history->push(result[0]);
     }
-    this->history->endMacro();
+    else
+    {
+        this->history->beginMacro(tr("Change Enable State"));
+        for(auto* command : result){
+            this->history->push(command);
+        }
+        this->history->endMacro();
+    }
 }
 
 void WriteModeComponent::scriptTableSelected()
@@ -390,14 +408,43 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
 {
     if(item->column() != 0){ return; }
 
-    auto result = this->setScriptTableItemCheck(item, item->checkState());
-
-    if(_suspendHistory){ return; }
-    this->history->beginMacro(tr("Change Script Table Check"));
-    for(auto* command : result){
-        this->history->push(command);
+    auto selectItems = this->ui->tableWidget_script->selectedItems();
+    //選択アイテムでは無いアイテムをクリックした場合、クリック側のみを処理する。
+    QSet<int> rows;
+    for(auto* _item : selectItems){ rows.insert(_item->row()); }
+    if(rows.contains(item->row()) == false){
+        rows.clear();
+        rows.insert(item->row());
     }
-    this->history->endMacro();
+
+    //無視リストの操作
+    auto check = item->checkState();
+    bool ignore = check == Qt::Unchecked;
+    std::vector<QUndoCommand *> result;
+    for(int row : rows)
+    {
+        if(auto checkItem = this->scriptTableItem(row, ScriptTableCol::EnableCheck)){
+            result.emplace_back(new TableUndo(this, checkItem, check, ignore ? Qt::Checked : Qt::Unchecked));
+        }
+    }
+
+    if(result.empty()){ return; }
+    if(_suspendHistory){
+        discardCommand(std::move(result));
+        return;
+    }
+
+    if(result.size() == 1){
+        this->history->push(result[0]);
+    }
+    else
+    {
+        this->history->beginMacro(tr("Change Script Table Check"));
+        for(auto* command : result){
+            this->history->push(command);
+        }
+        this->history->endMacro();
+    }
 }
 
 void WriteModeComponent::setNormalCsvText(QString fileName)
@@ -511,95 +558,67 @@ void WriteModeComponent::setScriptCsvText()
     this->ui->tableWidget_script->blockSignals(false);
 }
 
-std::vector<QUndoCommand *> WriteModeComponent::setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check)
+void WriteModeComponent::setTreeItemCheck(QTreeWidgetItem *item, Qt::CheckState check)
 {
     const bool ignore = check == Qt::Unchecked;
-    auto selectedItems = this->ui->treeWidget->selectedItems();
-    if(selectedItems.contains(_item) == false){
-        selectedItems.clear();
-        selectedItems.emplace_back(_item);
-    }
-    if(selectedItems.empty()){ return {}; }
+    const auto treeType = item->parent()->data(0, Qt::UserRole);
+    if(treeType == TreeItemType::Main){ return; }
 
-    std::vector<QUndoCommand *> result;
-    for(auto* item : selectedItems)
+    item->setCheckState(0, check);
+
+    if(treeType == TreeItemType::Script)
     {
-        const auto treeType = item->parent()->data(0, Qt::UserRole);
-        if(treeType == TreeItemType::Main){ continue; }
+        writeToScriptList(item, ignore);
 
-        item->setCheckState(0, check);
-
-        if(treeType == TreeItemType::Script)
-        {
-            writeToScriptList(item, ignore);
-
-            //テーブル側への反映
-            this->ui->tableWidget_script->blockSignals(true);
-            int row = this->ui->tableWidget_script->rowCount();
-            std::vector<int> targetItemRow;
-            auto fileName = item->data(1, Qt::UserRole).toString();
-            for(int i=0; i<row; ++i){
-                auto tableItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
-                auto text = tableItem ? tableItem->text() : "";
-                if(text.indexOf(fileName) == 0){
-                    targetItemRow.emplace_back(i);
-                }
+        //テーブル側への反映
+        this->ui->tableWidget_script->blockSignals(true);
+        int row = this->ui->tableWidget_script->rowCount();
+        std::vector<int> targetItemRow;
+        auto fileName = item->data(1, Qt::UserRole).toString();
+        for(int i=0; i<row; ++i){
+            auto tableItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
+            auto text = tableItem ? tableItem->text() : "";
+            if(text.indexOf(fileName) == 0){
+                targetItemRow.emplace_back(i);
             }
-            const auto tableCol = this->ui->tableWidget_script->columnCount();
-            const auto setItemStatus = [&](QBrush textColor)
-            {
-                for(auto r : targetItemRow){
-                    for(int c=0; c<tableCol; ++c){
-                        if(auto i = this->scriptTableItem(r, c)){
-                            i->setForeground(textColor);
-                        }
+        }
+        const auto tableCol = this->ui->tableWidget_script->columnCount();
+        const auto setItemStatus = [&](QBrush textColor)
+        {
+            for(auto r : targetItemRow){
+                for(int c=0; c<tableCol; ++c){
+                    if(auto i = this->scriptTableItem(r, c)){
+                        i->setForeground(textColor);
                     }
                 }
-            };
-            if(ignore){
-                setItemStatus(Qt::gray);
             }
-            else{
-                setItemStatus(this->ui->tableWidget_script->palette().text());
-            }
-            this->ui->tableWidget_script->blockSignals(false);
+        };
+        if(ignore){
+            setItemStatus(Qt::gray);
         }
-        else if(treeType == TreeItemType::Pictures){
-            writeToPictureList(item, ignore);
+        else{
+            setItemStatus(this->ui->tableWidget_script->palette().text());
         }
-        result.emplace_back(new TreeUndo(this, _item, check, ignore ? Qt::Checked : Qt::Unchecked));
+        this->ui->tableWidget_script->blockSignals(false);
+    }
+    else if(treeType == TreeItemType::Pictures){
+        writeToPictureList(item, ignore);
     }
 
     this->update();
-
-    return result;
 }
 
-std::vector<QUndoCommand *> WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckState check)
+void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckState check)
 {
-    auto selectItems = this->ui->tableWidget_script->selectedItems();
-    //選択アイテムでは無いアイテムをクリックした場合、クリック側のみを処理する。
-    QSet<int> rows;
-    for(auto* _item : selectItems){ rows.insert(_item->row()); }
-    if(rows.contains(item->row()) == false){
-        rows.clear();
-        rows.insert(item->row());
-    }
-
     //無視リストの操作
     QStringList targetFileNames;
     bool ignore = check == Qt::Unchecked;
     this->ui->tableWidget_script->blockSignals(true);
 
-    std::vector<QUndoCommand *> result;
-    for(int row : rows)
+    if(auto checkItem = this->scriptTableItem(item->row(), ScriptTableCol::EnableCheck))
     {
-        if(auto _item = this->scriptTableItem(row, ScriptTableCol::EnableCheck))
-        {
-            result.emplace_back(new TableUndo(this, _item, check, ignore ? Qt::Checked : Qt::Unchecked));
-            writeToIgnoreScriptLine(_item, ignore, targetFileNames);
-            _item->setCheckState(item->checkState());
-        }
+        writeToIgnoreScriptLine(checkItem, ignore, targetFileNames);
+        checkItem->setCheckState(check);
     }
     this->ui->tableWidget_script->blockSignals(false);
 
@@ -611,10 +630,10 @@ std::vector<QUndoCommand *> WriteModeComponent::setScriptTableItemCheck(QTableWi
     for(int i=0; i<tableRows; ++i)
     {
         auto checkItem = this->scriptTableItem(i, ScriptTableCol::EnableCheck);
-        auto textPItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
-        if(checkItem && textPItem)
+        auto textPosItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
+        if(checkItem && textPosItem)
         {
-            auto [fileName,r,c] = ::parseScriptNameWithRowCol(textPItem->text());
+            auto [fileName,r,c] = ::parseScriptNameWithRowCol(textPosItem->text());
             if(targetFileNames.contains(fileName) == false){ continue; }
             numFileItems++;
 
@@ -653,9 +672,6 @@ std::vector<QUndoCommand *> WriteModeComponent::setScriptTableItemCheck(QTableWi
     this->ui->treeWidget->blockSignals(false);
 
     this->update();
-
-    return result;
-
 }
 
 void WriteModeComponent::writeToScriptList(QTreeWidgetItem *item, bool ignore)
@@ -735,34 +751,30 @@ QTableWidgetItem *WriteModeComponent::scriptTableItem(int row, int col){
 
 void WriteModeComponent::TableUndo::undo(){
     this->setValue(oldValue);
+    auto textItem = this->parent->ui->tableWidget_script->item(this->target->row(), ScriptTableCol::Original);
+    this->setText(tr("Change Table State : %1").arg(textItem->text()));
 }
 
 void WriteModeComponent::TableUndo::redo(){
     this->setValue(newValue);
+    auto textItem = this->parent->ui->tableWidget_script->item(this->target->row(), ScriptTableCol::Original);
+    this->setText(tr("Change Table State : %1").arg(textItem->text()));
 }
 
-void WriteModeComponent::TableUndo::setValue(ValueType value)
-{
-    this->parent->_suspendHistory = true;
-    auto result = this->parent->setScriptTableItemCheck(this->target, value ? Qt::Checked : Qt::Unchecked);
-    //親無しでnewしているので明示的に破棄
-    this->parent->discardCommand(std::move(result));
-    this->parent->_suspendHistory = true;
+void WriteModeComponent::TableUndo::setValue(ValueType value){
+    this->parent->setScriptTableItemCheck(this->target, value ? Qt::Checked : Qt::Unchecked);
 }
 
 void WriteModeComponent::TreeUndo::undo(){
     this->setValue(oldValue);
+    this->setText(tr("Change Tree State : %1").arg(this->target->text(1)));
 }
 
 void WriteModeComponent::TreeUndo::redo(){
     this->setValue(newValue);
+    this->setText(tr("Change Tree State : %1").arg(this->target->text(1)));
 }
 
-void WriteModeComponent::TreeUndo::setValue(ValueType value)
-{
-    this->parent->_suspendHistory = true;
-    auto result = this->parent->setTreeItemCheck(this->target, value);
-    //親無しでnewしているので明示的に破棄
-    this->parent->discardCommand(std::move(result));
-    this->parent->_suspendHistory = true;
+void WriteModeComponent::TreeUndo::setValue(ValueType value){
+    this->parent->setTreeItemCheck(this->target, value);
 }

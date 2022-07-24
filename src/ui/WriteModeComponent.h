@@ -44,8 +44,8 @@ private:
     void setScriptCsvText();
     void showScriptFile(QString scriptFilePath);
 
-    std::vector<QUndoCommand*> setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
-    std::vector<QUndoCommand*> setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
+    void setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
+    void setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
 
     void writeToScriptList(QTreeWidgetItem *item, bool ignore);
     void writeToIgnoreScriptLine(QTableWidgetItem *item, bool ignore, QStringList& targetFileNames);
@@ -61,6 +61,7 @@ private:
         {}
         ~TableUndo(){}
 
+        int id() const override { return 2; }
         void undo() override;
         void redo() override;
 
@@ -81,6 +82,7 @@ private:
         {}
         ~TreeUndo(){}
 
+        int id() const override { return 3; }
         void undo() override;
         void redo() override;
 
