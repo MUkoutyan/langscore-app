@@ -21,6 +21,7 @@ public:
     struct Language{
         QString languageName;
         Font font;
+        bool enable;
         bool operator==(QString langName) const {
             return this->languageName == langName;
         }

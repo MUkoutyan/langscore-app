@@ -2,14 +2,14 @@
 #include <QApplication>
 #include <QFile>
 
-invoker::invoker(Common::Type setting)
-    : ComponentBase(std::move(setting)){
+invoker::invoker(ComponentBase *setting)
+    : ComponentBase(setting){
 }
 
 bool invoker::analyze()
 {
-    auto path = this->common.obj->tempFileOutputDirectory+"/tmp.json";
-    this->common.obj->write(path);
+    auto path = this->setting->tempFileOutputDirectory+"/tmp.json";
+    this->setting->write(path);
     auto result = doProcess({"-c", path, "--analyze"});
     QFile::remove(path);
     return result;
@@ -17,8 +17,8 @@ bool invoker::analyze()
 
 bool invoker::write()
 {
-    auto path = this->common.obj->tempFileOutputDirectory+"/config.json";
-    this->common.obj->write(path);
+    auto path = this->setting->tempFileOutputDirectory+"/config.json";
+    this->setting->write(path);
     return doProcess({"-c", path, "--write"});
 }
 

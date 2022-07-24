@@ -14,10 +14,10 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , ComponentBase()
     , ui(new Ui::MainWindow)
-    , setting(std::make_shared<settings>())
-    , taskBar(new FormTaskBar(this))
-    , mainComponent(new MainComponent(setting, this))
+    , taskBar(new FormTaskBar(this->history, this))
+    , mainComponent(new MainComponent(this, this))
     , mousePressEdge(Edges::None)
     , mouseMoveEdge(Edges::None)
     , mousePressPos()
@@ -32,13 +32,10 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setAttribute(Qt::WA_Hover);
     this->setAutoFillBackground(true);
-    this->setMouseTracking(this);
-    this->installEventFilter(this);
     mainComponent->setContentsMargins(8,0,8,0);
 
     this->ui->verticalLayout->insertWidget(0, taskBar);
     this->ui->verticalLayout->insertWidget(1, mainComponent);
-//    this->ui->verticalLayout->addWidget(new QSizeGrip(this), 0, Qt::AlignBottom | Qt::AlignRight);
     this->ui->verticalLayout->setStretch(1,1);
 
     connect(this->taskBar, &FormTaskBar::pushClose,   this, &QMainWindow::close);
@@ -58,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->taskBar, &FormTaskBar::openGameProj, this, [this]()
     {
-        auto&& settings = ComponentBase::getSettings();
+        auto&& settings = ComponentBase::getAppSettings();
         auto openPath = settings.value("lastOpenGameProjDirectory", QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation)).toUrl();
         openPath = QFileDialog::getExistingDirectory(this, tr("Open Game Project Folder..."), openPath.toString());
         if(openPath.isEmpty()){ return; }
@@ -114,7 +111,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::openGameProject(QString path)
 {
-    auto&& settings = ComponentBase::getSettings();
+    auto&& settings = ComponentBase::getAppSettings();
 
     QVariantList recentFiles;
     recentFiles = settings.value("recentFiles", recentFiles).toList();

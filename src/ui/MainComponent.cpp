@@ -1,10 +1,10 @@
 ﻿#include "MainComponent.h"
 #include "WriteModeComponent.h"
+#include "src/invoker.h"
 #include "ui_MainComponent.h"
 #include "ui_WriteModeComponent.h"
 
 #include "../csv.hpp"
-#include "../invoker.h"
 
 #include <QPaintEvent>
 #include <QDropEvent>
@@ -25,7 +25,7 @@ const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
     {"rmmzproject", settings::MZ},
 };
 
-MainComponent::MainComponent(Common::Type setting, QWidget *parent) :
+MainComponent::MainComponent(ComponentBase *setting, QWidget *parent) :
     QWidget(parent),
     ComponentBase(setting),
     ui(new Ui::MainComponent()),
@@ -40,7 +40,7 @@ MainComponent::MainComponent(Common::Type setting, QWidget *parent) :
 
     connect(this->ui->setOutputDirButton, &QPushButton::clicked, this, [this]()
     {
-        this->common.obj->tempFileOutputDirectory = emit this->requestOpenOutputDir(common.obj->gameProjectPath);
+        this->setting->tempFileOutputDirectory = emit this->requestOpenOutputDir(this->setting->gameProjectPath);
     });
 
     this->ui->invokeLog->setVisible(false);
@@ -93,16 +93,18 @@ bool MainComponent::event(QEvent *event)
 
 void MainComponent::openFiles(std::pair<QString, settings::ProjectType> fileInfo)
 {
+    this->history->clear();
+
     auto path = fileInfo.first;
-    this->common.obj->projectType = fileInfo.second;
-    this->common.obj->gameProjectPath = path;
-    this->common.obj->tempFileOutputDirectory = path + "/langscore_proj";
-    if(QFile::exists(this->common.obj->tempFileDirectoryPath()))
+    this->setting->projectType = fileInfo.second;
+    this->setting->gameProjectPath = path;
+    this->setting->tempFileOutputDirectory = path + "/langscore_proj";
+    if(QFile::exists(this->setting->tempFileDirectoryPath()))
     {
-        auto projFile = this->common.obj->tempFileOutputDirectory+"/config.json";
+        auto projFile = this->setting->tempFileOutputDirectory+"/config.json";
         if(QFile::exists(projFile))
         {
-            this->common.obj->load(projFile);
+            this->setting->load(projFile);
         }
         toWriteMode();
     }
@@ -143,7 +145,7 @@ void MainComponent::toAnalyzeMode()
     this->ui->analyzeButton->setEnabled(true);
     this->ui->setOutputDirButton->setEnabled(true);
     this->ui->label->setVisible(false);
-    this->ui->lineEdit->setText(this->common.obj->tempFileOutputDirectory);
+    this->ui->lineEdit->setText(this->setting->tempFileOutputDirectory);
     this->ui->lineEdit->setReadOnly(false);
     this->ui->invokeLog->setVisible(true);
 
@@ -158,7 +160,7 @@ void MainComponent::toWriteMode()
 
 void MainComponent::invokeAnalyze()
 {
-    invoker invoker(this->common.obj);
+    invoker invoker(this);
 
     connect(&invoker, &invoker::getStdOut, this, [this](QString text){
         this->ui->invokeLog->insertPlainText(text);
@@ -166,11 +168,11 @@ void MainComponent::invokeAnalyze()
 
     if(invoker.analyze() == false){ return; }
 
-    if(QFile::exists(this->common.obj->tempFileDirectoryPath()) == false){ return; }
+    if(QFile::exists(this->setting->tempFileDirectoryPath()) == false){ return; }
 
     auto writedScripts = [this]()
     {
-        const auto tempFolder = this->common.obj->tempFileDirectoryPath();
+        const auto tempFolder = this->setting->tempFileDirectoryPath();
         auto scriptCsv     = readCsv(tempFolder + "Scripts.csv");
         QStringList result;
         scriptCsv.erase(scriptCsv.begin()); //Headerを削除
@@ -186,7 +188,7 @@ void MainComponent::invokeAnalyze()
     {
         auto [fileName, row, col] = parseScriptNameWithRowCol(script);
 
-        auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
+        auto& scriptList = this->setting->writeObj.ignoreScriptInfo;
         const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
             auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
                 return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
@@ -194,7 +196,7 @@ void MainComponent::invokeAnalyze()
             return result != scriptList.cend();
         };
         if(IsIgnoreText(fileName, row, col)){
-            this->common.obj->writeObj.ignoreScriptInfo.emplace_back(
+            this->setting->writeObj.ignoreScriptInfo.emplace_back(
                 settings::WriteProps::ScriptInfo{fileName, {{size_t(row), size_t(col)}}, 0, false}
             );
         }

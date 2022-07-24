@@ -3,22 +3,32 @@
 #include "../settings.h"
 #include <QCoreApplication>
 #include <QSettings>
+#include <QUndoStack>
 
 class ComponentBase
 {
 public:
-    struct Common {
-        using Type = std::shared_ptr<settings>;
-        Type obj;
-    };
+    ComponentBase():setting(std::make_shared<settings>()), history(new QUndoStack){}
+    ComponentBase(ComponentBase* t):setting(t->setting), history(t->history){}
 
-    ComponentBase(Common::Type t):common({std::move(t)}){}
+    ComponentBase(const ComponentBase&) = delete;
+    ComponentBase(ComponentBase&&) = delete;
+
     virtual ~ComponentBase(){}
 
-    static QSettings getSettings() {
+    static QSettings getAppSettings() {
         return {qApp->applicationDirPath()+"/settings.ini", QSettings::IniFormat};
     }
 
 protected:
-    Common common;
+
+    std::shared_ptr<settings> setting;
+    QUndoStack* history;
+
+    void discardCommand(std::vector<QUndoCommand*> commands){
+        for(auto* command : commands){
+            delete command;
+        }
+        commands.clear();
+    }
 };

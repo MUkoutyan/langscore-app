@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "src/ui/ComponentBase.h"
 #include "src/settings.h"
 
 QT_BEGIN_NAMESPACE
@@ -10,7 +11,7 @@ QT_END_NAMESPACE
 
 class FormTaskBar;
 class MainComponent;
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public ComponentBase
 {
     Q_OBJECT
 
@@ -43,7 +44,6 @@ protected:
 
 private:
     Ui::MainWindow *ui;
-    std::shared_ptr<settings> setting;
     FormTaskBar* taskBar;
     MainComponent* mainComponent;
 

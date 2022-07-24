@@ -14,7 +14,7 @@ public:
         VZ
     };
 
-    invoker(ComponentBase::Common::Type setting);
+    invoker(ComponentBase* setting);
 
     bool analyze();
     bool write();

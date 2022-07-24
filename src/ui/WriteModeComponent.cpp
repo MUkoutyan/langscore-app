@@ -31,7 +31,7 @@ enum ScriptTableCol : int {
     Original
 };
 
-WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *parent)
+WriteModeComponent::WriteModeComponent(ComponentBase* setting, MainComponent *parent)
     : QWidget{parent}
     , ComponentBase(setting)
     , ui(new Ui::WriteModeComponent)
@@ -39,6 +39,7 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
     , scene(new QGraphicsScene(this))
     , languageButtons()
     , showAllScriptContents(true)
+    , _suspendHistory(false)
 {
     ui->setupUi(this);
     this->ui->modeDesc->hide();
@@ -55,7 +56,7 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
     connect(this->ui->tableWidget_script, &QTableWidget::itemSelectionChanged, this, &WriteModeComponent::scriptTableSelected);
     connect(this->ui->tableWidget_script, &QTableWidget::itemChanged, this, &WriteModeComponent::scriptTableItemChanged);
     connect(this->ui->writeButton, &QPushButton::clicked, this, [this](){
-        invoker invoke(this->common.obj);
+        invoker invoke(this);
         invoke.write();
         qDebug() << "Write Translate";
     });
@@ -93,7 +94,7 @@ WriteModeComponent::WriteModeComponent(Common::Type setting, MainComponent *pare
     {
         if(configTabIndex != index){ return; }
 
-        QString text = this->common.obj->createJson();
+        QString text = this->setting->createJson();
 
         configView->clear();
         configView->appendPlainText(text);
@@ -111,115 +112,35 @@ void WriteModeComponent::show()
     this->ui->tableWidget_script->blockSignals(true);
     this->ui->treeWidget->blockSignals(true);
     //Languages
-    const std::vector<std::tuple<QLocale, QString>> languages = {
-        {QLocale::English, "us.svg"},
-        {QLocale::Spanish, "es.svg"},
-        {QLocale::German, "de.svg"},
-        {QLocale::French, "fr.svg"},
-        {QLocale::Italian, "it.svg"},
-        {QLocale::Japanese, "jp.svg"},
-        {QLocale::Korean, "kr.svg"},
-        {QLocale::Russian, "ru.svg"},
-        {{QLocale::Chinese, QLocale::SimplifiedChineseScript}, "cn.svg"},
-        {{QLocale::Chinese, QLocale::TraditionalChineseScript}, "cn.svg"}
+    const std::vector<QLocale> languages = {
+        {QLocale::English},
+        {QLocale::Spanish},
+        {QLocale::German},
+        {QLocale::French},
+        {QLocale::Italian},
+        {QLocale::Japanese},
+        {QLocale::Korean},
+        {QLocale::Russian},
+        {QLocale::Chinese, QLocale::SimplifiedChineseScript},
+        {QLocale::Chinese, QLocale::TraditionalChineseScript}
     };
-
-    if(this->common.obj->fontIndexList.empty())
-    {
-        auto fontExtensions = QStringList() << "*.ttf" << "*.otf";
-        {
-            QFileInfoList files = QDir(qApp->applicationDirPath()+"/resources/fonts").entryInfoList(fontExtensions, QDir::Files);
-            for(auto& info : files){
-                this->common.obj->fontIndexList.emplace_back(QFontDatabase::addApplicationFont(info.absoluteFilePath()));
-            }
-        }
-        //プロジェクトに登録されたフォント
-        {
-            QFileInfoList files = QDir(this->common.obj->gameProjectPath+"/Fonts").entryInfoList(fontExtensions, QDir::Files);
-            for(auto& info : files){
-                this->common.obj->fontIndexList.emplace_back(QFontDatabase::addApplicationFont(info.absoluteFilePath()));
-            }
-        }
-    }
-    std::vector<QFont> fontList;
-    QFont defaultFont;
-    for(auto fontIndex : this->common.obj->fontIndexList){
-        auto familyList = QFontDatabase::applicationFontFamilies(fontIndex);
-        for(auto family : familyList)
-        {
-            auto familyName = family.toLower();
-            if(this->common.obj->projectType == settings::VXAce && familyName.contains("vl gothic")){
-                defaultFont = QFont(family);
-            }
-            else if(this->common.obj->projectType == settings::MV && this->common.obj->projectType == settings::MZ &&
-                    familyName.contains("m+ 1m"))
-            {
-                defaultFont = QFont(family);
-            }
-            fontList.emplace_back(QFont(family));
-        }
-    }
 
     int count = 0;
     auto* buttonGroup = new QButtonGroup(this);
-    for(const auto& info : languages)
+    for(const auto& lang : languages)
     {
-        auto [lang, flagName] = info;
-        auto bcp47Name = lang.bcp47Name().toLower();
-        if(bcp47Name == "zh"){ bcp47Name = "zh-cn"; }
-        auto& langList = this->common.obj->languages;
-
-        auto langName = lang.nativeLanguageName() + "(" + bcp47Name + ")";
-        auto* langComp = new LanguageSelectComponent(":flags/"+flagName, langName, this);
+        auto langComp = new LanguageSelectComponent(lang, this, this);
         langComp->attachButtonGroup(buttonGroup);
-
-        //プロジェクトの設定を反映
-        if(this->common.obj->defaultLanguage == bcp47Name){
-            langComp->setDefault(true);
-        }
-        auto langData = std::find(langList.begin(), langList.end(), bcp47Name);
-        if(langData != langList.end()){
-            langComp->setUseLang(true);
-            QFont f(langData->font.name);
-            f.setPixelSize(langData->font.size);
-            langComp->setFontList(fontList, f);
-        }
-        else{
-            defaultFont.setPixelSize(22);
-            langComp->setFontList(fontList, defaultFont);
-        }
-
-        connect(langComp, &LanguageSelectComponent::changeUseLang, this, [this, langComp, shortName = bcp47Name](bool check)
-        {
-            if(check)
-            {
-                auto font = langComp->currentFont();
-                auto& lang = this->common.obj->fetchLanguage(shortName);
-                lang.font = settings::Font{font.family(), static_cast<std::uint32_t>(font.pixelSize())};
-            }
-            else if(check==false){
-                this->common.obj->removeLanguage(shortName);
-            }
-        });
-        connect(langComp, &LanguageSelectComponent::changeDefault, this, [this, shortName = bcp47Name](bool check){
-            this->common.obj->defaultLanguage = shortName;
-        });
-        connect(langComp, &LanguageSelectComponent::changeFont, this, [this, shortName = bcp47Name](const QFont& font)
-        {
-            auto& lang = this->common.obj->fetchLanguage(shortName);
-            lang.font = settings::Font{font.family(), static_cast<std::uint32_t>(font.pixelSize())};
-        });
-
         this->ui->langTabGrid->addWidget(langComp, count/3, count%3);
         langComp->update();
         languageButtons.emplace_back(langComp);
         count++;
     }
     //通常データベース
-    const auto translateFolder = this->common.obj->tempFileDirectoryPath();
-    this->ui->lineEdit->setText(this->common.obj->gameProjectPath);
+    const auto translateFolder = this->setting->tempFileDirectoryPath();
+    this->ui->lineEdit->setText(this->setting->gameProjectPath);
     {
-        QDir sourceDir(this->common.obj->tempFileDirectoryPath());
+        QDir sourceDir(this->setting->tempFileDirectoryPath());
         auto files = sourceDir.entryInfoList();
 
         auto mainItem = new QTreeWidgetItem();
@@ -267,7 +188,7 @@ void WriteModeComponent::show()
         scriptItem->setText(0, "Script");
         scriptItem->setData(0, Qt::UserRole, TreeItemType::Script);
         this->ui->treeWidget->addTopLevelItem(scriptItem);
-        auto scriptFolder  = this->common.obj->tempScriptFileDirectoryPath();
+        auto scriptFolder  = this->setting->tempScriptFileDirectoryPath();
         auto scriptFiles   = readCsv(scriptFolder + "_list.csv");
         for(const auto& l : scriptFiles)
         {
@@ -275,21 +196,21 @@ void WriteModeComponent::show()
             if(file.suffix() != "rb"){ continue; }
             if(file.size() == 0){ continue; }
 
-            auto filename = file.completeBaseName();
-            if(writedScripts.contains(filename) == false){ continue; }
+            auto fileName = file.completeBaseName();
+            if(writedScripts.contains(fileName) == false){ continue; }
             auto child = new QTreeWidgetItem();
             child->setData(0, Qt::CheckStateRole, true);
             //チェックを外すとこのスクリプトを翻訳から除外します。
             child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
-            child->setText(1, filename);
-            child->setData(1, Qt::UserRole, filename);
+            child->setText(1, fileName);
+            child->setData(1, Qt::UserRole, fileName);
             child->setCheckState(0, Qt::Checked);
 
-            auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
-            auto result = std::find_if(scriptList.begin(), scriptList.end(), [&filename](const auto& script){
-                return script.name == filename;
+            const auto& scriptList = this->setting->writeObj.ignoreScriptInfo;
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&fileName](const auto& script){
+                return script.name == fileName;
             });
-            if(result != scriptList.end())
+            if(result != scriptList.cend())
             {
                 if(result->ignore){
                     child->setCheckState(0, Qt::Unchecked);
@@ -307,7 +228,7 @@ void WriteModeComponent::show()
     }
     //画像
     {
-        auto graphicsFolder  = this->common.obj->tempGraphicsFileDirectoryPath();
+        auto graphicsFolder  = this->setting->tempGraphicsFileDirectoryPath();
         auto scriptItem    = new QTreeWidgetItem();
         scriptItem->setText(0, "Pictures");
         scriptItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
@@ -319,18 +240,18 @@ void WriteModeComponent::show()
         {
             if(pict.size() == 0){ continue; }
 
-            auto filename = pict.completeBaseName();
+            auto fileName = pict.completeBaseName();
             auto child = new QTreeWidgetItem();
             child->setData(0, Qt::CheckStateRole, true);
             //チェックを外すとこのスクリプトを翻訳から除外します。
             child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
-            child->setText(1, filename);
+            child->setText(1, fileName);
             child->setData(1, Qt::UserRole, pict.absoluteFilePath());
             child->setCheckState(0, Qt::Checked);
 
-            auto& pixtureList = this->common.obj->writeObj.ignorePicturePath;
-            auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&filename](const auto& pic){
-                return pic == filename;
+            auto& pixtureList = this->setting->writeObj.ignorePicturePath;
+            auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&fileName](const auto& pic){
+                return pic == fileName;
             });
             if(result != pixtureList.end()){
                 child->setCheckState(0, Qt::Unchecked);
@@ -349,9 +270,30 @@ void WriteModeComponent::show()
     this->ui->treeWidget->blockSignals(false);
 }
 
+void WriteModeComponent::clear()
+{
+    this->ui->treeWidget->blockSignals(true);
+    this->ui->tableWidget->blockSignals(true);
+    this->ui->tableWidget_script->blockSignals(true);
+
+    this->showAllScriptContents = true;
+    this->ui->treeWidget->clear();
+    this->ui->tableWidget->clear();
+    this->ui->tableWidget_script->clear();
+    this->ui->scriptViewer->clear();
+    for(auto langButton : this->languageButtons){
+        this->ui->langTabGrid->removeWidget(langButton);
+    }
+    this->languageButtons.clear();
+
+    this->ui->treeWidget->blockSignals(false);
+    this->ui->tableWidget->blockSignals(false);
+    this->ui->tableWidget_script->blockSignals(false);
+}
+
 void WriteModeComponent::treeItemSelected()
 {
-    const auto translateFolder = this->common.obj->translateDirectoryPath();
+    const auto translateFolder = this->setting->translateDirectoryPath();
     auto selectedItems = this->ui->treeWidget->selectedItems();
     if(selectedItems.empty()){ return; }
     auto item = selectedItems[0];
@@ -370,10 +312,10 @@ void WriteModeComponent::treeItemSelected()
         this->ui->tabWidget->setCurrentIndex(2);
 
         auto scriptExt = ".rb";
-        if(this->common.obj->projectType == settings::MV || this->common.obj->projectType == settings::MZ){
+        if(this->setting->projectType == settings::MV || this->setting->projectType == settings::MZ){
             scriptExt = ".js";
         }
-        auto scriptFilePath = this->common.obj->tempScriptFileDirectoryPath() + fileName + scriptExt;
+        auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + fileName + scriptExt;
         this->ui->scriptViewer->showFile(scriptFilePath);
 
         targetTable = this->ui->tableWidget_script;
@@ -409,88 +351,17 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
     if(_item->parent() == nullptr){ return; }
     if(column != 0){ return; }
 
-    const bool ignore = _item->checkState(0) == Qt::Unchecked;
+    auto result = this->setTreeItemCheck(_item, _item->checkState(0));
 
-    auto selectedItems = this->ui->treeWidget->selectedItems();
-    if(selectedItems.empty()){ return; }
-    if(selectedItems.contains(_item) == false){
-        selectedItems.clear();
-        selectedItems.emplace_back(_item);
+    if(_suspendHistory){
+        this->discardCommand(result);
+        return;
     }
-
-    for(auto* item : selectedItems)
-    {
-        const auto treeType = item->parent()->data(0, Qt::UserRole);
-        if(treeType == TreeItemType::Main){ continue; }
-
-        item->setCheckState(0, _item->checkState(0));
-
-        if(treeType == TreeItemType::Script)
-        {
-            auto fileName = item->data(1, Qt::UserRole).toString();
-            auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
-            auto result = std::find_if(scriptList.begin(), scriptList.end(), [&fileName](const auto& script){
-                return script.name == fileName;
-            });
-            if(result != scriptList.end()){
-                result->ignore = ignore;
-            }
-            else{
-                scriptList.emplace_back(
-                    settings::WriteProps::ScriptInfo{fileName, {}, 0, ignore}
-                );
-            }
-
-            //テーブル側への反映
-            this->ui->tableWidget_script->blockSignals(true);
-            int row = this->ui->tableWidget_script->rowCount();
-            std::vector<int> targetItemRow;
-            for(int i=0; i<row; ++i){
-                auto tableItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
-                auto text = tableItem ? tableItem->text() : "";
-                if(text.indexOf(fileName) == 0){
-                    targetItemRow.emplace_back(i);
-                }
-            }
-            const auto tableCol = this->ui->tableWidget_script->columnCount();
-            const auto setItemStatus = [&](QBrush textColor)
-            {
-                for(auto r : targetItemRow){
-                    for(int c=0; c<tableCol; ++c){
-                        if(auto i = this->scriptTableItem(r, c)){
-                            i->setForeground(textColor);
-                        }
-                    }
-                }
-            };
-            if(ignore){
-                setItemStatus(Qt::gray);
-            }
-            else{
-                setItemStatus(this->ui->tableWidget_script->palette().text());
-            }
-            this->ui->tableWidget_script->blockSignals(false);
-        }
-        else if(treeType == TreeItemType::Pictures)
-        {
-            auto filePath = item->data(1, Qt::UserRole).toString();
-            auto& picturePathList = this->common.obj->writeObj.ignorePicturePath;
-            auto result = std::find_if(picturePathList.begin(), picturePathList.end(), [&filePath](const auto& path){
-                return path == filePath;
-            });
-            if(result != picturePathList.end()){
-                if(ignore){
-                    picturePathList.emplace_back(*result);
-                }
-                else {
-                    picturePathList.erase(result);
-                }
-            }
-            else if(ignore){
-                picturePathList.emplace_back(filePath);
-            }
-        }
+    this->history->beginMacro(tr("Change Enable State"));
+    for(auto* command : result){
+        this->history->push(command);
     }
+    this->history->endMacro();
 }
 
 void WriteModeComponent::scriptTableSelected()
@@ -503,7 +374,7 @@ void WriteModeComponent::scriptTableSelected()
     auto _item = this->scriptTableItem(row, ScriptTableCol::TextPoint);
     if(_item == nullptr){ return; }
     auto [fileName,textRow,textCol] = ::parseScriptNameWithRowCol(_item->text());
-    auto scriptFilePath = this->common.obj->tempScriptFileDirectoryPath() + fileName;
+    auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + fileName;
     this->ui->scriptViewer->showFile(scriptFilePath);
 
     //スクリプトのスクロール
@@ -519,116 +390,19 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
 {
     if(item->column() != 0){ return; }
 
-    //無視リストの操作
-    QStringList targetFileNames;
-    const auto changeIgnoreState = [this, &targetFileNames](QTableWidgetItem *item, bool ignore)
-    {
-        auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
-        auto filenameItem = this->scriptTableItem(item->row(), ScriptTableCol::TextPoint);
-        if(filenameItem == nullptr){ return; }
-        auto [filename, row, col] = parseScriptNameWithRowCol(filenameItem->text());
-        auto result = std::find_if(scriptList.begin(), scriptList.end(), [&filename](const auto& script){
-            return script.name == filename;
-        });
-        if(targetFileNames.contains(filename) == false){ targetFileNames.append(filename); }
+    auto result = this->setScriptTableItemCheck(item, item->checkState());
 
-        std::pair<size_t, size_t> rcPair = {row, col};
-        //MainComponentのinvokeAnalyzeと重複
-        //コンフィグの内容を変更
-        if(ignore)
-        {
-            if(result != scriptList.end()){
-                result->ignorePoint.emplace_back(rcPair);
-            }
-            else{
-                scriptList.emplace_back(
-                    settings::WriteProps::ScriptInfo{filename, {rcPair}, 0, false}
-                );
-            }
-        }
-        else
-        {
-            if(result != scriptList.end()){
-                auto rm_result = std::remove(result->ignorePoint.begin(), result->ignorePoint.end(), rcPair);
-                result->ignorePoint.erase(rm_result, result->ignorePoint.end());
-            }
-        }
-    };
-
-    auto selectItems = this->ui->tableWidget_script->selectedItems();
-    //選択アイテムでは無いアイテムをクリックした場合、クリック側のみを処理する。
-    QSet<int> rows;
-    for(auto* _item : selectItems){ rows.insert(_item->row()); }
-    if(rows.contains(item->row()) == false){
-        rows.clear();
-        rows.insert(item->row());
+    if(_suspendHistory){ return; }
+    this->history->beginMacro(tr("Change Script Table Check"));
+    for(auto* command : result){
+        this->history->push(command);
     }
-
-    bool ignore = item->checkState() == Qt::Unchecked;
-    this->ui->tableWidget_script->blockSignals(true);
-    for(int row : rows)
-    {
-        if(auto _item = this->scriptTableItem(row, ScriptTableCol::EnableCheck)){
-            changeIgnoreState(_item, ignore);
-            _item->setCheckState(item->checkState());
-        }
-    }
-    this->ui->tableWidget_script->blockSignals(false);
-
-    //同じスクリプトが全て無視されたかをチェック
-    auto checkState = Qt::Checked;
-    int enableCheckCount = 0;
-    int numFileItems = 0;
-    auto tableRows = this->ui->tableWidget_script->rowCount();
-    for(int i=0; i<tableRows; ++i)
-    {
-        auto checkItem = this->scriptTableItem(i, ScriptTableCol::EnableCheck);
-        auto textPItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
-        if(checkItem && textPItem)
-        {
-            auto [filename,r,c] = ::parseScriptNameWithRowCol(textPItem->text());
-            if(targetFileNames.contains(filename) == false){ continue; }
-            numFileItems++;
-
-            if(checkItem->checkState() == Qt::Checked){
-                enableCheckCount++;
-            }
-        }
-    }
-    if(numFileItems != enableCheckCount){
-        checkState = (enableCheckCount == 0) ? Qt::Unchecked : Qt::PartiallyChecked;
-    }
-
-    //ツリー側のチェック状態を変更
-    this->ui->treeWidget->blockSignals(true);
-    auto numItems = this->ui->treeWidget->topLevelItemCount();
-    for(int i=0; i<numItems; ++i){
-        auto parentItem = this->ui->treeWidget->topLevelItem(i);
-        const auto treeType = parentItem->data(0, Qt::UserRole);
-        if(treeType != TreeItemType::Script){ continue; }
-
-        auto numChilds = parentItem->childCount();
-        for(int c=0; c<numChilds; ++c){
-            auto childItem = parentItem->child(c);
-            auto text = childItem->text(1);
-            if(targetFileNames.filter(text).isEmpty()){
-                continue;
-            }
-            //スクリプトの無視が最強なので、それに合わせてチェック無しだと何も変更しないようにする。
-            if(childItem->checkState(0) != Qt::Unchecked){
-                childItem->setCheckState(0, checkState);
-            }
-            childItem->setForeground(1, checkState == Qt::Unchecked ? Qt::gray : Qt::white);
-            break;
-        }
-    }
-    this->ui->treeWidget->blockSignals(false);
-
+    this->history->endMacro();
 }
 
 void WriteModeComponent::setNormalCsvText(QString fileName)
 {
-    const auto translateFolder = this->common.obj->tempFileDirectoryPath();
+    const auto translateFolder = this->setting->tempFileDirectoryPath();
     auto csv = readCsv(translateFolder + fileName + ".csv");
     if(csv.empty()){ return; }
 
@@ -658,14 +432,14 @@ void WriteModeComponent::setScriptCsvText()
 {
     this->ui->tableWidget_script->blockSignals(true);
     this->ui->tableWidget_script->clear();
-    const auto tempFolder = this->common.obj->tempFileDirectoryPath();
+    const auto tempFolder = this->setting->tempFileDirectoryPath();
     auto csv = readCsv(tempFolder + "Scripts.csv");
     if(csv.empty()){
         this->ui->tableWidget_script->blockSignals(false);
         return;
     }
 
-    const auto& scriptList = this->common.obj->writeObj.ignoreScriptInfo;
+    const auto& scriptList = this->setting->writeObj.ignoreScriptInfo;
     const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
         auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
             return x.name == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
@@ -737,6 +511,258 @@ void WriteModeComponent::setScriptCsvText()
     this->ui->tableWidget_script->blockSignals(false);
 }
 
+std::vector<QUndoCommand *> WriteModeComponent::setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check)
+{
+    const bool ignore = check == Qt::Unchecked;
+    auto selectedItems = this->ui->treeWidget->selectedItems();
+    if(selectedItems.contains(_item) == false){
+        selectedItems.clear();
+        selectedItems.emplace_back(_item);
+    }
+    if(selectedItems.empty()){ return {}; }
+
+    std::vector<QUndoCommand *> result;
+    for(auto* item : selectedItems)
+    {
+        const auto treeType = item->parent()->data(0, Qt::UserRole);
+        if(treeType == TreeItemType::Main){ continue; }
+
+        item->setCheckState(0, check);
+
+        if(treeType == TreeItemType::Script)
+        {
+            writeToScriptList(item, ignore);
+
+            //テーブル側への反映
+            this->ui->tableWidget_script->blockSignals(true);
+            int row = this->ui->tableWidget_script->rowCount();
+            std::vector<int> targetItemRow;
+            auto fileName = item->data(1, Qt::UserRole).toString();
+            for(int i=0; i<row; ++i){
+                auto tableItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
+                auto text = tableItem ? tableItem->text() : "";
+                if(text.indexOf(fileName) == 0){
+                    targetItemRow.emplace_back(i);
+                }
+            }
+            const auto tableCol = this->ui->tableWidget_script->columnCount();
+            const auto setItemStatus = [&](QBrush textColor)
+            {
+                for(auto r : targetItemRow){
+                    for(int c=0; c<tableCol; ++c){
+                        if(auto i = this->scriptTableItem(r, c)){
+                            i->setForeground(textColor);
+                        }
+                    }
+                }
+            };
+            if(ignore){
+                setItemStatus(Qt::gray);
+            }
+            else{
+                setItemStatus(this->ui->tableWidget_script->palette().text());
+            }
+            this->ui->tableWidget_script->blockSignals(false);
+        }
+        else if(treeType == TreeItemType::Pictures){
+            writeToPictureList(item, ignore);
+        }
+        result.emplace_back(new TreeUndo(this, _item, check, ignore ? Qt::Checked : Qt::Unchecked));
+    }
+
+    this->update();
+
+    return result;
+}
+
+std::vector<QUndoCommand *> WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckState check)
+{
+    auto selectItems = this->ui->tableWidget_script->selectedItems();
+    //選択アイテムでは無いアイテムをクリックした場合、クリック側のみを処理する。
+    QSet<int> rows;
+    for(auto* _item : selectItems){ rows.insert(_item->row()); }
+    if(rows.contains(item->row()) == false){
+        rows.clear();
+        rows.insert(item->row());
+    }
+
+    //無視リストの操作
+    QStringList targetFileNames;
+    bool ignore = check == Qt::Unchecked;
+    this->ui->tableWidget_script->blockSignals(true);
+
+    std::vector<QUndoCommand *> result;
+    for(int row : rows)
+    {
+        if(auto _item = this->scriptTableItem(row, ScriptTableCol::EnableCheck))
+        {
+            result.emplace_back(new TableUndo(this, _item, check, ignore ? Qt::Checked : Qt::Unchecked));
+            writeToIgnoreScriptLine(_item, ignore, targetFileNames);
+            _item->setCheckState(item->checkState());
+        }
+    }
+    this->ui->tableWidget_script->blockSignals(false);
+
+    //同じスクリプトが全て無視されたかをチェック
+    auto treeCheckState = Qt::Checked;
+    int enableCheckCount = 0;
+    int numFileItems = 0;
+    auto tableRows = this->ui->tableWidget_script->rowCount();
+    for(int i=0; i<tableRows; ++i)
+    {
+        auto checkItem = this->scriptTableItem(i, ScriptTableCol::EnableCheck);
+        auto textPItem = this->scriptTableItem(i, ScriptTableCol::TextPoint);
+        if(checkItem && textPItem)
+        {
+            auto [fileName,r,c] = ::parseScriptNameWithRowCol(textPItem->text());
+            if(targetFileNames.contains(fileName) == false){ continue; }
+            numFileItems++;
+
+            if(checkItem->checkState() == Qt::Checked){
+                enableCheckCount++;
+            }
+        }
+    }
+    if(numFileItems != enableCheckCount){
+        treeCheckState = (enableCheckCount == 0) ? Qt::Unchecked : Qt::PartiallyChecked;
+    }
+
+    //ツリー側のチェック状態を変更
+    this->ui->treeWidget->blockSignals(true);
+    auto numItems = this->ui->treeWidget->topLevelItemCount();
+    for(int i=0; i<numItems; ++i){
+        auto parentItem = this->ui->treeWidget->topLevelItem(i);
+        const auto treeType = parentItem->data(0, Qt::UserRole);
+        if(treeType != TreeItemType::Script){ continue; }
+
+        auto numChilds = parentItem->childCount();
+        for(int c=0; c<numChilds; ++c){
+            auto childItem = parentItem->child(c);
+            auto text = childItem->text(1);
+            if(targetFileNames.filter(text).isEmpty()){
+                continue;
+            }
+            //スクリプトの無視が最強なので、それに合わせてチェック無しだと何も変更しないようにする。
+            if(childItem->checkState(0) != Qt::Unchecked){
+                childItem->setCheckState(0, treeCheckState);
+            }
+            childItem->setForeground(1, treeCheckState == Qt::Unchecked ? Qt::gray : Qt::white);
+            break;
+        }
+    }
+    this->ui->treeWidget->blockSignals(false);
+
+    this->update();
+
+    return result;
+
+}
+
+void WriteModeComponent::writeToScriptList(QTreeWidgetItem *item, bool ignore)
+{
+    auto fileName = item->data(1, Qt::UserRole).toString();
+    auto& scriptList = this->setting->writeObj.ignoreScriptInfo;
+    auto result = std::find_if(scriptList.begin(), scriptList.end(), [&fileName](const auto& script){
+        return script.name == fileName;
+    });
+    if(result != scriptList.end()){
+        result->ignore = ignore;
+    }
+    else{
+        scriptList.emplace_back(
+            settings::WriteProps::ScriptInfo{fileName, {}, 0, ignore}
+        );
+    }
+}
+
+void WriteModeComponent::writeToIgnoreScriptLine(QTableWidgetItem *item, bool ignore, QStringList& targetFileNames)
+{
+    auto& scriptList = this->setting->writeObj.ignoreScriptInfo;
+    auto fileNameItem = this->scriptTableItem(item->row(), ScriptTableCol::TextPoint);
+    if(fileNameItem == nullptr){ return; }
+    auto [fileName, row, col] = parseScriptNameWithRowCol(fileNameItem->text());
+    auto result = std::find_if(scriptList.begin(), scriptList.end(), [&fileName](const auto& script){
+        return script.name == fileName;
+    });
+    if(targetFileNames.contains(fileName) == false){ targetFileNames.append(fileName); }
+
+    std::pair<size_t, size_t> rcPair = {row, col};
+    //MainComponentのinvokeAnalyzeと重複
+    //コンフィグの内容を変更
+    if(ignore)
+    {
+        if(result != scriptList.end()){
+            result->ignorePoint.emplace_back(rcPair);
+        }
+        else{
+            scriptList.emplace_back(
+                settings::WriteProps::ScriptInfo{fileName, {rcPair}, 0, false}
+            );
+        }
+    }
+    else
+    {
+        if(result != scriptList.end()){
+            auto rm_result = std::remove(result->ignorePoint.begin(), result->ignorePoint.end(), rcPair);
+            result->ignorePoint.erase(rm_result, result->ignorePoint.end());
+        }
+    }
+}
+
+void WriteModeComponent::writeToPictureList(QTreeWidgetItem *item, bool ignore)
+{
+    auto filePath = item->data(1, Qt::UserRole).toString();
+    auto& picturePathList = this->setting->writeObj.ignorePicturePath;
+    auto result = std::find_if(picturePathList.begin(), picturePathList.end(), [&filePath](const auto& path){
+        return path == filePath;
+    });
+    if(result != picturePathList.end()){
+        if(ignore){
+            picturePathList.emplace_back(*result);
+        }
+        else {
+            picturePathList.erase(result);
+        }
+    }
+    else if(ignore){
+        picturePathList.emplace_back(filePath);
+    }
+}
+
 QTableWidgetItem *WriteModeComponent::scriptTableItem(int row, int col){
     return this->ui->tableWidget_script->item(row, col);
+}
+
+void WriteModeComponent::TableUndo::undo(){
+    this->setValue(oldValue);
+}
+
+void WriteModeComponent::TableUndo::redo(){
+    this->setValue(newValue);
+}
+
+void WriteModeComponent::TableUndo::setValue(ValueType value)
+{
+    this->parent->_suspendHistory = true;
+    auto result = this->parent->setScriptTableItemCheck(this->target, value ? Qt::Checked : Qt::Unchecked);
+    //親無しでnewしているので明示的に破棄
+    this->parent->discardCommand(std::move(result));
+    this->parent->_suspendHistory = true;
+}
+
+void WriteModeComponent::TreeUndo::undo(){
+    this->setValue(oldValue);
+}
+
+void WriteModeComponent::TreeUndo::redo(){
+    this->setValue(newValue);
+}
+
+void WriteModeComponent::TreeUndo::setValue(ValueType value)
+{
+    this->parent->_suspendHistory = true;
+    auto result = this->parent->setTreeItemCheck(this->target, value);
+    //親無しでnewしているので明示的に破棄
+    this->parent->discardCommand(std::move(result));
+    this->parent->_suspendHistory = true;
 }

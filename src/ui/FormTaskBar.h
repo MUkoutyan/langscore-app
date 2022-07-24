@@ -2,6 +2,7 @@
 #define FORMTASKBAR_H
 
 #include <QWidget>
+#include <QUndoStack>
 
 namespace Ui {
 class FormTaskBar;
@@ -12,7 +13,7 @@ class FormTaskBar : public QWidget
     Q_OBJECT
 
 public:
-    explicit FormTaskBar(QWidget *parent = nullptr);
+    explicit FormTaskBar(QUndoStack* history, QWidget *parent = nullptr);
     ~FormTaskBar();
 
 signals:
@@ -27,6 +28,9 @@ signals:
     void requestOpenProj(QString path);
     void quit();
 
+    void undo();
+    void redo();
+
     void dragging(QMouseEvent* event, QPoint delta);
 
 private:
@@ -39,6 +43,7 @@ private:
 
     bool pressLeftButton;
     QPoint beforeMousePos;
+    QUndoStack* history;
 };
 
 #endif // FORMTASKBAR_H

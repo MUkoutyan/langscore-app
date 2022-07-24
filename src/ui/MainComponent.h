@@ -14,7 +14,7 @@ class MainComponent : public QWidget, public ComponentBase
     Q_OBJECT
 
 public:
-    explicit MainComponent(Common::Type setting, QWidget *parent = nullptr);
+    explicit MainComponent(ComponentBase* setting, QWidget *parent = nullptr);
     ~MainComponent() override;
 
 signals:

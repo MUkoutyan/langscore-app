@@ -40,7 +40,7 @@ settings::Language &settings::fetchLanguage(QString bcp47Name)
         return *result;
     }
     this->languages.emplace_back(
-        settings::Language{ bcp47Name, settings::Font{ "", 22 } }
+        settings::Language{ bcp47Name, settings::Font{ "", 22 }, false }
     );
     return this->languages[this->languages.size() - 1];
 }
@@ -62,6 +62,7 @@ QByteArray settings::createJson()
         langObj["languageName"] = l.languageName;
         langObj["fontName"] = l.font.name;
         langObj["fontSize"] = int(l.font.size);
+        langObj["enable"] = bool(l.enable);
         langs.append(langObj);
     }
     root["Languages"] = langs;
@@ -147,7 +148,8 @@ void settings::load(QString path)
         {
             auto obj = l.toObject();
             auto data = Language{obj["languageName"].toString(),
-                                 Font{obj["fontName"].toString(), static_cast<uint32_t>(obj["fontSize"].toInt())}};
+                                 Font{obj["fontName"].toString(), static_cast<uint32_t>(obj["fontSize"].toInt())},
+                                 obj["enable"].toBool(false)};
             this->languages.emplace_back(data);
         }
     }

@@ -9,10 +9,11 @@
 #include <QDir>
 
 
-FormTaskBar::FormTaskBar(QWidget *parent)
+FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::FormTaskBar)
     , pressLeftButton(false)
+    , history(history)
 {
     ui->setupUi(this);
 
@@ -63,13 +64,14 @@ FormTaskBar::FormTaskBar(QWidget *parent)
 
     auto menuBar = new QMenuBar(this);
     this->ui->horizontalLayout_2->insertWidget(0, menuBar);
+    //File Menu
     auto fileMenu = menuBar->addMenu(tr("File"));
     auto openGameProj = fileMenu->addAction(tr("Open Game Project..."));
     auto saveProj     = fileMenu->addAction(tr("Save Langscore Project..."));
     //auto saveAsProj   = fileMenu->addAction(tr("Save as Langscore Project..."));
     auto recentProjMenu = fileMenu->addMenu(tr("Recent Project"));
 
-    auto&& settings = ComponentBase::getSettings();
+    auto&& settings = ComponentBase::getAppSettings();
     QVariantList recentFiles;
     auto recentProjs = settings.value("recentFiles", recentFiles).toList();
     for(auto& proj : recentProjs){
@@ -88,7 +90,21 @@ FormTaskBar::FormTaskBar(QWidget *parent)
 //    connect(saveAsProj,   &QAction::triggered, this, &FormTaskBar::saveAsProj);
     connect(quit,         &QAction::triggered, this, &FormTaskBar::quit);
 
+    //Edit Menu
+    auto editMenu = menuBar->addMenu(tr("Edit"));
+    auto undoAction = history->createUndoAction(this, tr("Undo"));
+    undoAction->setShortcut(Qt::CTRL|Qt::Key_Z);
+    editMenu->addAction(undoAction);
+    auto redoAction = history->createRedoAction(this, tr("Redo"));
+    redoAction->setShortcut(Qt::CTRL|Qt::SHIFT|Qt::Key_Z);
+    editMenu->addAction(redoAction);
+
+    connect(undoAction, &QAction::triggered, this, &FormTaskBar::undo);
+    connect(redoAction, &QAction::triggered, this, &FormTaskBar::redo);
+
+    //Help Menu
     auto helpMenu = menuBar->addMenu(tr("Help"));
+    helpMenu->addAction(tr("Version "));
 
     this->ui->horizontalLayout_2->setStretch(2, 1);
 
