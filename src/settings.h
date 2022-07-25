@@ -42,6 +42,8 @@ public:
     struct WriteProps
     {
         QString unisonCustomFuncComment = "";
+        QString exportDirectory;
+        bool exportByLanguage = false;
 
         struct ScriptInfo{
             QString name  = "";

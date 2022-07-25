@@ -80,6 +80,8 @@ QByteArray settings::createJson()
 
     QJsonObject write;
     write["UsCustomFuncComment"] = "Scripts/{0}#{1},{2}";
+    write["ExportDirectory"] = writeObj.exportDirectory;
+    write["ExportByLang"] = writeObj.exportByLanguage;
 
     QJsonArray ignoreScripts;
     for(const auto& info : writeObj.ignoreScriptInfo)
@@ -156,6 +158,9 @@ void settings::load(QString path)
     this->defaultLanguage = root["DefaultLanguage"].toString("ja");
 
     auto write = root["write"].toObject();
+
+    writeObj.exportDirectory = write["ExportDirectory"].toString("");
+    writeObj.exportByLanguage = write["ExportByLang"].toBool(false);
 
     auto jsonIgnoreScripts = write["RPGMakerIgnoreScripts"].toArray();
     for(auto jsonInfo : jsonIgnoreScripts)
