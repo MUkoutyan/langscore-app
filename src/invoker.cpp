@@ -1,6 +1,8 @@
 ﻿#include "invoker.h"
 #include <QApplication>
 #include <QFile>
+#include <QDialog>
+#include <QVBoxLayout>
 
 invoker::invoker(ComponentBase *setting)
     : ComponentBase(setting){
@@ -36,23 +38,28 @@ bool invoker::doProcess(QStringList option)
 
     process->start();
     if (!process->waitForStarted(-1)) {
-        qWarning() << process->errorString();
+        emit this->getStdOut(process->errorString());
     }
 
     process->waitForFinished(-1);
 
-    if(process->exitCode()!=0)
-    {
-        qDebug () << " Error " << process->exitCode() << process->errorString();
-        return false;
+    auto code = process->exitCode();
+    if(code == 0){
+        emit this->getStdOut(" Ok : " + QString(process->readAllStandardOutput()) + "\n" + process->errorString());
     }
     else
     {
-        qDebug () << " Ok " <<  QString(process->readAllStandardOutput()) <<  process->errorString();
+        emit this->getStdOut("Error.");
+        switch(code)
+        {
+        case -1:
+
+            break;
+        }
     }
 
-    qDebug() << QString(process->readAllStandardOutput());
+    emit this->getStdOut(QString(process->readAllStandardOutput()));
 
 
-    return true;
+    return code == 0;
 }

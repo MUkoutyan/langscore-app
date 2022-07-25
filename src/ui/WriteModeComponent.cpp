@@ -2,6 +2,7 @@
 #include "ui_WriteModeComponent.h"
 #include "MainComponent.h"
 #include "LanguageSelectComponent.h"
+#include "WriteDialog.h"
 #include "../graphics.hpp"
 #include "../invoker.h"
 #include "../csv.hpp"
@@ -55,11 +56,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, MainComponent *pa
     connect(this->ui->treeWidget, &QTreeWidget::itemChanged, this, &WriteModeComponent::treeItemChanged);
     connect(this->ui->tableWidget_script, &QTableWidget::itemSelectionChanged, this, &WriteModeComponent::scriptTableSelected);
     connect(this->ui->tableWidget_script, &QTableWidget::itemChanged, this, &WriteModeComponent::scriptTableItemChanged);
-    connect(this->ui->writeButton, &QPushButton::clicked, this, [this](){
-        invoker invoke(this);
-        invoke.write();
-        qDebug() << "Write Translate";
-    });
+    connect(this->ui->writeButton, &QPushButton::clicked, this, &WriteModeComponent::exportTranslateFiles);
 
     connect(this->ui->scriptFilterButton, &QToolButton::clicked, this->ui->scriptFilterButton, &QToolButton::showMenu);
 
@@ -445,6 +442,33 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
         }
         this->history->endMacro();
     }
+}
+
+void WriteModeComponent::exportTranslateFiles()
+{
+    if(this->setting->writeObj.exportDirectory.isEmpty()){
+        this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
+    }
+
+    WriteDialog dialog(this->setting, this);
+    if(dialog.exec() == QDialog::Rejected){ return; }
+
+    this->setting->writeObj.exportDirectory = dialog.outputPath();
+    this->setting->writeObj.exportByLanguage = dialog.writeByLanguage();
+
+    this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+
+    this->ui->logText->clear();
+    this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
+    invoker invoker(this);
+
+    connect(&invoker, &invoker::getStdOut, this, [this](QString text){
+        this->ui->logText->insertPlainText(text+"\n");
+        this->update();
+    });
+
+    invoker.write();
+    this->ui->logText->insertPlainText(tr("Done."));
 }
 
 void WriteModeComponent::setNormalCsvText(QString fileName)
