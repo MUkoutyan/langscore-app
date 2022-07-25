@@ -41,6 +41,9 @@ set(PROJECT_SOURCES
         src/settings.h
         src/settings.cpp
         src/graphics.hpp
+        src/ui/WriteDialog.h
+        src/ui/WriteDialog.cpp
+        src/ui/WriteDialog.ui
         resources.qrc
         ${TS_FILES}
 )
