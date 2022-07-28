@@ -7,11 +7,7 @@
 #include <QTextCharFormat>
 #include <QRegularExpression>
 
-QT_BEGIN_NAMESPACE
-class QTextDocument;
-QT_END_NAMESPACE
 
-//! [0]
 class Highlighter : public QSyntaxHighlighter
 {
     Q_OBJECT
@@ -40,7 +36,6 @@ private:
     QTextCharFormat quotationFormat;
     QTextCharFormat functionFormat;
 };
-//! [0]
 
 class ScriptViewer : public QPlainTextEdit
 {
@@ -52,9 +47,37 @@ public:
     void scrollWithHighlight(int row, int col, int length);
     QString GetCurrentFileName() const { return currentFileName; }
 
+    void drawLineArea(QPaintEvent* event);
+    int lineNumAreaWidth() const;
+
 private:
+
+    void resizeEvent(QResizeEvent* event) override;
+
+    void updateLineNumArea(const QRect& rect, int dy);
+    void updateLineNumAreaWidth();
+
+    QWidget* lineNumberArea;
     Highlighter* highlighter;
     QString currentFileName;
     QTextCursor highlightCursor;
+};
+
+
+class LineNumber : public QWidget {
+    Q_OBJECT
+public:
+    LineNumber(ScriptViewer* parent): QWidget(parent), parentEditor(parent){}
+
+    QSize sizeHint() const override { return QSize(parentEditor->lineNumAreaWidth(), 0); }
+
+protected:
+    void paintEvent(QPaintEvent* event) override{
+        parentEditor->drawLineArea(event);
+    }
+
+private:
+
+    ScriptViewer* parentEditor;
 };
 

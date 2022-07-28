@@ -93,11 +93,17 @@ void Highlighter::highlightBlock(const QString &text)
 
 ScriptViewer::ScriptViewer(QWidget *parent)
     : QPlainTextEdit(parent)
+    , lineNumberArea(new LineNumber(this))
     , highlighter(new Highlighter(this->document()))
     , currentFileName("")
 {
+
+    connect(this, &ScriptViewer::blockCountChanged, this, &ScriptViewer::updateLineNumAreaWidth);
+    connect(this, &ScriptViewer::updateRequest, this, &ScriptViewer::updateLineNumArea);
+
     this->ensureCursorVisible();
     this->setLineWrapMode(LineWrapMode::NoWrap);
+    this->updateLineNumAreaWidth();
 }
 
 void ScriptViewer::showFile(QString scriptFilePath)
@@ -122,10 +128,11 @@ void ScriptViewer::showFile(QString scriptFilePath)
 void ScriptViewer::scrollWithHighlight(int row, int col, int length)
 {
     QTextCharFormat fmt;
-    fmt.setBackground(QColor("#33ffffff"));
+    fmt.setBackground(QColor("#33f0f000"));
 
     highlightCursor.setCharFormat(QTextCharFormat());
-    highlightCursor = QTextCursor(this->document()->findBlockByLineNumber(qMax(0, row-1)));
+    auto textBlock = this->document()->findBlockByLineNumber(qMax(0, row-1));
+    highlightCursor = QTextCursor(textBlock);
     highlightCursor.setPosition(qMax(0, highlightCursor.position()+col-1),    QTextCursor::MoveAnchor);
     highlightCursor.setPosition(highlightCursor.position()+length, QTextCursor::KeepAnchor);
     highlightCursor.setCharFormat(fmt);
@@ -134,8 +141,89 @@ void ScriptViewer::scrollWithHighlight(int row, int col, int length)
     this->setTextCursor(highlightCursor);
 
     //カーソルの位置を基に表示箇所を中央へ移動
-    auto currentCursolHeight = this->cursorRect(highlightCursor);
+    //QPlainTextEditの場合、スクロールバーの値は行数準拠になる。
     auto vBar = this->verticalScrollBar();
-    vBar->setValue(vBar->value() + currentCursolHeight.top() - (this->rect().height()/2));
+    row -= lround(vBar->pageStep()/2);
+    vBar->setValue(qMax(0, qMin(row, vBar->maximum())));
 
+    //水平はフォントのピクセルサイズ準拠
+    auto hBar = this->horizontalScrollBar();
+    const auto fontWidth = fontMetrics().horizontalAdvance('A');
+    auto currentColPixel = col * fontWidth;
+    //表示位置がページを超過する場合のみ中央に移動させる。
+    if(currentColPixel <= hBar->pageStep()){
+        currentColPixel = 0;
+    }
+    else{
+        currentColPixel -= lround(hBar->pageStep()/2);
+    }
+    hBar->setValue(qMax(0, qMin(currentColPixel, hBar->maximum())));
+
+}
+
+void ScriptViewer::drawLineArea(QPaintEvent *event)
+{
+    QPainter painter(lineNumberArea);
+    auto drawRect = event->rect();
+    painter.fillRect(drawRect, QColor("#292929"));
+
+    auto textBlock = this->firstVisibleBlock();
+    auto blockNum = textBlock.blockNumber();
+    auto top = round(this->blockBoundingGeometry(textBlock).translated(this->contentOffset()).top());
+    auto bottom = top + round(this->blockBoundingRect(textBlock).height());
+    const auto fontHeight = fontMetrics().height();
+
+
+    while(textBlock.isValid())
+    {
+        if(drawRect.bottom() < top){ break; }
+
+        if(textBlock.isVisible() && drawRect.top() <= bottom){
+            painter.setPen(QColor("#a0a0a0"));
+            //widthを少し小さくしてマージンにする
+            painter.drawText(0, top, lineNumberArea->width()-6, fontHeight, Qt::AlignRight, QString::number(blockNum+1));
+        }
+
+        textBlock = textBlock.next();
+        top = bottom;
+        bottom = top + round(this->blockBoundingRect(textBlock).height());
+        ++blockNum;
+    }
+}
+
+int ScriptViewer::lineNumAreaWidth() const
+{
+    int lines = blockCount();
+    int digit = 1;
+    while(lines >= 10){
+        lines /= 10;
+        digit++;
+    }
+    const int margin = 16;
+    return fontMetrics().horizontalAdvance('0') * qMax(1, digit) + margin;
+}
+
+void ScriptViewer::resizeEvent(QResizeEvent *event)
+{
+    QPlainTextEdit::resizeEvent(event);
+    auto r = this->contentsRect();
+    lineNumberArea->setGeometry(QRect{r.left(), r.top(), lineNumAreaWidth(), r.height()});
+}
+
+void ScriptViewer::updateLineNumArea(const QRect& rect, int deltaY)
+{
+    if(deltaY){
+        lineNumberArea->scroll(0, deltaY);
+    }
+    else {
+        lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
+    }
+
+    if(rect.contains(this->viewport()->rect())){
+        updateLineNumAreaWidth();
+    }
+}
+
+void ScriptViewer::updateLineNumAreaWidth() {
+    setViewportMargins(lineNumAreaWidth(), 0, 0, 0);
 }
