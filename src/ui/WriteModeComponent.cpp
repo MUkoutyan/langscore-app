@@ -775,14 +775,22 @@ QTableWidgetItem *WriteModeComponent::scriptTableItem(int row, int col){
 
 void WriteModeComponent::TableUndo::undo(){
     this->setValue(oldValue);
-    auto textItem = this->parent->ui->tableWidget_script->item(this->target->row(), ScriptTableCol::Original);
-    this->setText(tr("Change Table State : %1").arg(textItem->text()));
+    if(auto textItem = this->parent->ui->tableWidget_script->item(this->target->row(), ScriptTableCol::Original)){
+        this->setText(tr("Change Table State : %1").arg(textItem->text()));
+    }
+    else{
+        this->setText(tr("Change Table State : Row %1").arg(this->target->row()));
+    }
 }
 
 void WriteModeComponent::TableUndo::redo(){
     this->setValue(newValue);
-    auto textItem = this->parent->ui->tableWidget_script->item(this->target->row(), ScriptTableCol::Original);
-    this->setText(tr("Change Table State : %1").arg(textItem->text()));
+    if(auto textItem = this->parent->ui->tableWidget_script->item(this->target->row(), ScriptTableCol::Original)){
+        this->setText(tr("Change Table State : %1").arg(textItem->text()));
+    }
+    else{
+        this->setText(tr("Change Table State : Row %1").arg(this->target->row()));
+    }
 }
 
 void WriteModeComponent::TableUndo::setValue(ValueType value){
