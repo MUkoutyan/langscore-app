@@ -5,6 +5,7 @@
         <file>resources/image/minimize.svg</file>
         <file>resources/image/normalize.svg</file>
         <file>resources/image/filter.svg</file>
+        <file>resources/image/warning.svg</file>
     </qresource>
     <qresource prefix="/flags">
         <file alias="ac.svg">flag-icons/flags/4x3/ac.svg</file>
