@@ -178,6 +178,7 @@ void MainComponent::invokeAnalyze()
 
     connect(&invoker, &invoker::getStdOut, this, [this](QString text){
         this->ui->invokeLog->insertPlainText(text);
+        this->update();
     });
 
     if(invoker.analyze() == false){ return; }
@@ -202,7 +203,7 @@ void MainComponent::invokeAnalyze()
     {
         auto [fileName, row, col] = parseScriptNameWithRowCol(script);
 
-        auto& scriptList = this->setting->writeObj.ignoreScriptInfo;
+        auto& scriptList = this->setting->writeObj.scriptInfo;
         const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
             auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
                 return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
@@ -210,9 +211,11 @@ void MainComponent::invokeAnalyze()
             return result != scriptList.cend();
         };
         if(IsIgnoreText(fileName, row, col)){
-            this->setting->writeObj.ignoreScriptInfo.emplace_back(
-                settings::WriteProps::ScriptInfo{fileName, {{size_t(row), size_t(col)}}, 0, false}
-            );
+            settings::TextPoint txtPos;
+            txtPos.row = row;
+            txtPos.col = col;
+            auto info = settings::ScriptInfo{{fileName, false, 0}, {txtPos}};
+            this->setting->writeObj.scriptInfo.emplace_back(std::move(info));
         }
     }
 

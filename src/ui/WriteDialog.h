@@ -22,5 +22,8 @@ public:
 
 private:
     Ui::WriteDialog *ui;
+
+private slots:
+    void changeOutputPath(const QString& path);
 };
 

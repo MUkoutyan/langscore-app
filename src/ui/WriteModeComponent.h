@@ -42,18 +42,24 @@ private:
     bool showAllScriptContents;
     bool _suspendHistory;
 
-    void setNormalCsvText(QString fileName);
-    void setScriptCsvText();
-    void showScriptFile(QString scriptFilePath);
+    void initializeScriptCsvText();
+    void initializeTree();
 
+    void showNormalCsvText(QString fileName);
     void setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
     void setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
 
-    void writeToScriptList(QTreeWidgetItem *item, bool ignore);
-    void writeToIgnoreScriptLine(QTableWidgetItem *item, bool ignore, QStringList& targetFileNames);
-    void writeToPictureList(QTreeWidgetItem *item, bool ignore);
+    void writeToScriptListSetting(QTreeWidgetItem *item, bool ignore);
+    void writeToIgnoreScriptLine(int row, bool ignore);
+    void writeToPictureListSetting(QTreeWidgetItem *item, bool ignore);
 
     QTableWidgetItem* scriptTableItem(int row, int col);
+
+    std::vector<int> fetchScriptTableSameFileRows(QString fileName);
+    QTreeWidgetItem* fetchScriptTreeSameFileItems(QString fileName);
+    void setTableItemTextColor(int row, QBrush color);
+
+    Qt::CheckState getTreeCheckStateBasedOnTable(QString itemFileName);
 
     struct TableUndo : QUndoCommand
     {
