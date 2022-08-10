@@ -64,9 +64,20 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     connect(this->ui->minimumButton, &QPushButton::clicked, this, &FormTaskBar::minimum);
 
     auto menuBar = new QMenuBar(this);
+    menuBar->setStyleSheet("QMenuBar{ border: none; spacing: 8px; }");
+    auto menuBarFont = menuBar->font();
+    menuBarFont.setPixelSize(16);
+    menuBar->setFont(menuBarFont);
     this->ui->horizontalLayout_2->insertWidget(0, menuBar);
+
+    const auto AddMenu = [menuBar](QString text){
+        auto menu = menuBar->addMenu(text);
+        menu->setContentsMargins(8,2,8,2);
+        return menu;
+    };
+
     //File Menu
-    auto fileMenu = menuBar->addMenu(tr("File"));
+    auto fileMenu = AddMenu(tr("File"));
     auto openGameProj = fileMenu->addAction(tr("Open Game Project..."));
     auto saveProj     = fileMenu->addAction(tr("Save Langscore Project..."));
     recentProjMenu = fileMenu->addMenu(tr("Recent Project"));
@@ -79,7 +90,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     connect(quit,         &QAction::triggered, this, &FormTaskBar::quit);
 
     //Edit Menu
-    auto editMenu = menuBar->addMenu(tr("Edit"));
+    auto editMenu = AddMenu(tr("Edit"));
     auto undoAction = history->createUndoAction(this, tr("Undo"));
     undoAction->setShortcut(Qt::CTRL|Qt::Key_Z);
     editMenu->addAction(undoAction);
@@ -94,7 +105,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     connect(undoView, &QAction::triggered, this, &FormTaskBar::showUndoView);
 
     //Help Menu
-    auto helpMenu = menuBar->addMenu(tr("Help"));
+    auto helpMenu = AddMenu(tr("Help"));
     helpMenu->addAction(tr("Version "));
 
     this->ui->horizontalLayout_2->setStretch(2, 1);
