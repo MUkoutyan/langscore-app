@@ -60,6 +60,8 @@ private:
     QPoint draggingStartPos;
     int borderWidth;
 
+    void receive(DispatchType type, const QVariantList& args) override;
+
 
 private slots:
     void createUndoView();

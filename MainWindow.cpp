@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setAttribute(Qt::WA_Hover);
     this->setAutoFillBackground(true);
+    this->dispatchComponentList.emplace_back(this);
     mainComponent->setContentsMargins(8,0,8,0);
 
     this->ui->verticalLayout->insertWidget(0, taskBar);
@@ -308,6 +309,15 @@ void MainWindow::calculateCursorPosition(const QPoint &pos, Edges &_edge)
     else {
         _edge = None;
     }
+}
+
+void MainWindow::receive(DispatchType type, const QVariantList &args)
+{
+    if(args.empty()){ return; }
+
+    auto mes = args[0].toString();
+    auto time = args.size()==2 ? args[1].toInt() : 0;
+    this->ui->statusBar->showMessage(mes, time);
 }
 
 void MainWindow::createUndoView()
