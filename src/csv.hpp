@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QString>
+#include <QStringList>
 #include <fstream>
 
 
@@ -84,6 +85,12 @@ static std::tuple<QString, size_t, size_t> parseScriptNameWithRowCol(QString scr
     auto fileName = script.remove(rowStart, script.size()-rowStart);
 
     return std::forward_as_tuple(fileName, row, col);
+}
+
+static std::tuple<size_t, size_t> parseScriptWithRowCol(QString script)
+{
+    auto list = script.split(":");
+    return std::forward_as_tuple(list[0].toUInt(), list[1].toUInt());
 }
 
 }
