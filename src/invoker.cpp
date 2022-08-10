@@ -10,16 +10,14 @@ invoker::invoker(ComponentBase *setting)
 
 bool invoker::analyze()
 {
-    auto path = this->setting->tempFileOutputDirectory+"/tmp.json";
+    auto path = this->setting->langscoreProjectDirectory+"/config.json";
     this->setting->write(path);
-    auto result = doProcess({"-c", path, "--analyze"});
-    QFile::remove(path);
-    return result;
+    return doProcess({"-c", path, "--analyze"});
 }
 
 bool invoker::write()
 {
-    auto path = this->setting->tempFileOutputDirectory+"/config.json";
+    auto path = this->setting->langscoreProjectDirectory+"/config.json";
     this->setting->write(path);
     return doProcess({"-c", path, "--write"});
 }

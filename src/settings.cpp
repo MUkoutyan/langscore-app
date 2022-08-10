@@ -85,26 +85,26 @@ settings::settings()
     , gameProjectPath("")
     , languages()
     , defaultLanguage("ja")
-    , tempFileOutputDirectory("")
+    , langscoreProjectDirectory("")
 {
 
 }
 
 QString settings::translateDirectoryPath() const {
-    return this->gameProjectPath + "/" + this->transFileOutputDirName + "/";
+    return this->gameProjectPath + "/" + this->transFileOutputDirName;
 }
 
 QString settings::tempFileDirectoryPath() const {
-    return this->tempFileOutputDirectory+"/tmp/";
+    return this->langscoreProjectDirectory+"/analyze";
 }
 
 QString settings::tempScriptFileDirectoryPath() const {
-    return this->tempFileDirectoryPath() + "Scripts/";
+    return this->tempFileDirectoryPath() + "/Scripts";
 }
 
 QString settings::tempGraphicsFileDirectoryPath() const
 {
-    return this->gameProjectPath + "/Graphics/Pictures/";
+    return this->gameProjectPath + "/Graphics";
 }
 
 settings::Language &settings::fetchLanguage(QString bcp47Name)
@@ -128,9 +128,7 @@ void settings::removeLanguage(QString bcp47Name)
 
 settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 {
-    if(fileName.contains(::scriptExt(projectType)) == false){
-        fileName.append(::scriptExt(projectType));
-    }
+    fileName = QFileInfo(fileName).completeBaseName() + ::scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
         return script.name == name;
@@ -148,9 +146,7 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 
 void settings::removeScriptInfoPoint(QString fileName, std::pair<size_t,size_t> point)
 {
-    if(fileName.contains(::scriptExt(projectType)) == false){
-        fileName.append(::scriptExt(projectType));
-    }
+    fileName = QFileInfo(fileName).completeBaseName() + ::scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
         return script.name == name;
@@ -176,25 +172,25 @@ QByteArray settings::createJson()
     }
     root[key(JsonKey::Languages)] = langs;
     root[key(JsonKey::DefaultLanguage)] = this->defaultLanguage;
-    root[key(JsonKey::Project)] = this->gameProjectPath;
+    root[key(JsonKey::Project)] = "./" + QDir(this->langscoreProjectDirectory).relativeFilePath(this->gameProjectPath);
 
     QJsonObject analyze;
-    analyze[key(JsonKey::TmpDir)] = this->tempFileDirectoryPath();
-    if(QFile::exists(this->tempFileOutputDirectory) == false){
-        QDir().mkdir(this->tempFileOutputDirectory);
+    auto tempPath = QDir(this->langscoreProjectDirectory).relativeFilePath(this->tempFileDirectoryPath());
+    analyze[key(JsonKey::TmpDir)] = "./" + tempPath;
+    if(QFile::exists(this->langscoreProjectDirectory) == false){
+        QDir().mkdir(this->langscoreProjectDirectory);
     }
-//    analyze["RPGMakerOutputPath"] = this->rpgMakerOutputPath;
 
     root[key(JsonKey::Analyze)] = analyze;
 
     QJsonObject write;
     write[key(JsonKey::UsCustomFuncComment)] = "Scripts/{0}#{1},{2}";
-    write[key(JsonKey::ExportDirectory)] = writeObj.exportDirectory;
+    write[key(JsonKey::ExportDirectory)] = QDir(this->langscoreProjectDirectory).relativeFilePath(writeObj.exportDirectory);
     write[key(JsonKey::ExportByLang)] = writeObj.exportByLanguage;
 
 
     QJsonArray basicDataList;
-    for(const auto& info : writeObj.scriptInfo)
+    for(const auto& info : writeObj.basicDataInfo)
     {
         QJsonObject script;
         script[key(JsonKey::Name)] = info.name;
@@ -234,7 +230,6 @@ QByteArray settings::createJson()
 
     root[key(JsonKey::Write)] = write;
 
-
     QJsonDocument doc(root);
     return doc.toJson();
 }
@@ -255,7 +250,7 @@ void settings::write(QString path)
 }
 
 void settings::saveForProject(){
-    write(this->tempFileOutputDirectory+"/config.json");
+    write(this->langscoreProjectDirectory+"/config.json");
 }
 
 void settings::load(QString path)

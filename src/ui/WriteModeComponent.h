@@ -39,11 +39,14 @@ private:
     MainComponent* _parent;
     QGraphicsScene* scene;
     std::vector<LanguageSelectComponent*> languageButtons;
+    std::vector<std::pair<QString, QString>> scriptFileNameMap;
+    int currentScriptWordCount;
     bool showAllScriptContents;
     bool _suspendHistory;
 
-    void initializeScriptCsvText();
-    void initializeTree();
+    void setup();
+    void setupScriptCsvText();
+    void setupTree();
 
     void showNormalCsvText(QString fileName);
     void setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
@@ -53,13 +56,18 @@ private:
     void writeToIgnoreScriptLine(int row, bool ignore);
     void writeToPictureListSetting(QTreeWidgetItem *item, bool ignore);
 
-    QTableWidgetItem* scriptTableItem(int row, int col);
-
-    std::vector<int> fetchScriptTableSameFileRows(QString fileName);
-    QTreeWidgetItem* fetchScriptTreeSameFileItems(QString fileName);
+    std::vector<int> fetchScriptTableSameFileRows(QString scriptName);
+    QTreeWidgetItem* fetchScriptTreeSameFileItems(QString scriptName);
     void setTableItemTextColor(int row, QBrush color);
 
-    Qt::CheckState getTreeCheckStateBasedOnTable(QString itemFileName);
+    Qt::CheckState getTreeCheckStateBasedOnTable(QString scriptName);
+
+    void updateScriptWordCount(QString text, Qt::CheckState state);
+
+    QTableWidgetItem* scriptTableItem(int row, int col);
+    QString getScriptName(QString fileName);
+    QString getScriptFileName(QString scriptName);
+    QString getScriptFileNameFromTable(int row);
 
     struct TableUndo : QUndoCommand
     {

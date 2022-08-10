@@ -116,26 +116,14 @@
          <item>
           <widget class="QLabel" name="label_2">
            <property name="text">
-            <string>OutputPath</string>
+            <string>LangscoreProjectPath</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="lineEdit"/>
-         </item>
-         <item>
-          <widget class="QPushButton" name="setOutputDirButton">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>24</width>
-             <height>24</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>...</string>
+          <widget class="QLineEdit" name="lineEdit">
+           <property name="readOnly">
+            <bool>true</bool>
            </property>
           </widget>
          </item>

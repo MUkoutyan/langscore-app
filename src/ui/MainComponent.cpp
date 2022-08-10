@@ -15,6 +15,8 @@
 #include <QFileInfo>
 #include <QFontDatabase>
 
+#include <filesystem>
+
 #include <QDebug>
 
 using namespace langscore;
@@ -37,11 +39,6 @@ MainComponent::MainComponent(ComponentBase *setting, QWidget *parent) :
     this->ui->base->addWidget(writeUi);
 
     connect(this->ui->analyzeButton, &QPushButton::clicked, this, &MainComponent::invokeAnalyze);
-
-    connect(this->ui->setOutputDirButton, &QPushButton::clicked, this, [this]()
-    {
-        this->setting->tempFileOutputDirectory = emit this->requestOpenOutputDir(this->setting->gameProjectPath);
-    });
 
     this->ui->invokeLog->setVisible(false);
 }
@@ -87,14 +84,23 @@ bool MainComponent::event(QEvent *event)
 void MainComponent::openFiles(std::pair<QString, settings::ProjectType> fileInfo)
 {
     this->history->clear();
+    this->writeUi->clear();
 
     auto path = fileInfo.first;
     this->setting->projectType = fileInfo.second;
     this->setting->gameProjectPath = path;
-    this->setting->tempFileOutputDirectory = path + "/langscore_proj";
+    path.replace("\\", "/");
+    //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
+    //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
+    auto folderName = path.sliced(path.lastIndexOf("/")+1);
+    auto gameProjPath = std::filesystem::path(path.toLocal8Bit().toStdString());
+    auto langscoreProj = gameProjPath / ".." / (folderName.toLocal8Bit().toStdString() + "_langscore");
+    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
+    this->setting->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});
+    this->setting->langscoreProjectDirectory.replace("\\", "/");
     if(QFile::exists(this->setting->tempFileDirectoryPath()))
     {
-        auto projFile = this->setting->tempFileOutputDirectory+"/config.json";
+        auto projFile = this->setting->langscoreProjectDirectory+"/config.json";
         if(QFile::exists(projFile))
         {
             this->setting->load(projFile);
@@ -136,9 +142,8 @@ std::pair<QString, settings::ProjectType> MainComponent::findGameProject(QList<Q
 void MainComponent::toAnalyzeMode()
 {
     this->ui->analyzeButton->setEnabled(true);
-    this->ui->setOutputDirButton->setEnabled(true);
     this->ui->label->setVisible(false);
-    this->ui->lineEdit->setText(this->setting->tempFileOutputDirectory);
+    this->ui->lineEdit->setText(this->setting->langscoreProjectDirectory);
     this->ui->lineEdit->setReadOnly(false);
     this->ui->invokeLog->setVisible(true);
 
@@ -183,13 +188,22 @@ void MainComponent::invokeAnalyze()
 
     if(invoker.analyze() == false){ return; }
 
-    if(QFile::exists(this->setting->tempFileDirectoryPath()) == false){ return; }
+    const auto& outputDirPath = this->setting->tempFileDirectoryPath();
+    auto outputDir = QDir(outputDirPath);
+    if(outputDir.exists() == false){ return; }
 
-    auto writedScripts = [this]()
+    auto basicFiles = outputDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
+    for(auto& file : basicFiles){
+        this->setting->writeObj.basicDataInfo.emplace_back(
+            settings::BasicData{file.completeBaseName(), false, 0}
+        );
+    }
+
+    auto writedScripts = [&outputDirPath]()
     {
-        const auto tempFolder = this->setting->tempFileDirectoryPath();
-        auto scriptCsv     = readCsv(tempFolder + "Scripts.csv");
+        auto scriptCsv     = readCsv(outputDirPath + "/Scripts.csv");
         QStringList result;
+        if(scriptCsv.empty()){ return result; }
         scriptCsv.erase(scriptCsv.begin()); //Headerを削除
         for(auto& line : scriptCsv){
             result.emplace_back(line[0]);

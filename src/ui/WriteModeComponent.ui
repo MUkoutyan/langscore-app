@@ -73,12 +73,19 @@ Unchecked text and images are excluded from translation.</string>
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Project</string>
+        <string>Game Project</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QLineEdit" name="lineEdit"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="updateButton">
+       <property name="text">
+        <string>Update</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -116,7 +123,7 @@ Unchecked text and images are excluded from translation.</string>
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>4</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="langTab">
         <attribute name="title">
@@ -160,6 +167,43 @@ Unchecked text and images are excluded from translation.</string>
          <property name="bottomMargin">
           <number>0</number>
          </property>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <property name="leftMargin">
+            <number>4</number>
+           </property>
+           <property name="rightMargin">
+            <number>4</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="mainFileName">
+             <property name="text">
+              <string>FileName</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="mainFileWordCount">
+             <property name="text">
+              <string>Word Count : %1</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
          <item>
           <widget class="QTableWidget" name="tableWidget">
            <property name="editTriggers">
@@ -223,8 +267,18 @@ Unchecked text and images are excluded from translation.</string>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout">
                <property name="spacing">
-                <number>0</number>
+                <number>6</number>
                </property>
+               <property name="leftMargin">
+                <number>8</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="scriptFileName">
+                 <property name="text">
+                  <string>ScriptName</string>
+                 </property>
+                </widget>
+               </item>
                <item>
                 <spacer name="horizontalSpacer">
                  <property name="orientation">
@@ -237,6 +291,13 @@ Unchecked text and images are excluded from translation.</string>
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="scriptFileWordCount">
+                 <property name="text">
+                  <string>Word Count : %1</string>
+                 </property>
+                </widget>
                </item>
                <item>
                 <widget class="QToolButton" name="scriptFilterButton">
@@ -314,7 +375,11 @@ Unchecked text and images are excluded from translation.</string>
           <number>0</number>
          </property>
          <item>
-          <widget class="QGraphicsView" name="graphicsView"/>
+          <widget class="QGraphicsView" name="graphicsView">
+           <property name="viewportUpdateMode">
+            <enum>QGraphicsView::SmartViewportUpdate</enum>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>

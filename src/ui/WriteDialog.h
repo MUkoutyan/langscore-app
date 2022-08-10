@@ -19,9 +19,11 @@ public:
     QString outputPath() const ;
 
     bool writeByLanguage() const;
+    int writeMode() const;
 
 private:
     Ui::WriteDialog *ui;
+    int _writeMode;
 
 private slots:
     void changeOutputPath(const QString& path);

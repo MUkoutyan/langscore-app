@@ -33,7 +33,7 @@ public:
     QString defaultLanguage;
 
     //Analyze
-    QString tempFileOutputDirectory;
+    QString langscoreProjectDirectory;
     QString transFileOutputDirName = "Translate";
 
     std::vector<int> fontIndexList;
@@ -68,6 +68,7 @@ public:
         QString exportDirectory;
         bool exportByLanguage = false;
         std::vector<ScriptInfo> scriptInfo;
+        std::vector<BasicData> basicDataInfo;
 
         std::vector<QString> ignorePicturePath;
     };

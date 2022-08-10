@@ -1,12 +1,17 @@
 ﻿#include "WriteDialog.h"
 #include "ui_WriteDialog.h"
 #include <QFileDialog>
+#include <QActionGroup>
 
 WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::WriteDialog)
+    ui(new Ui::WriteDialog),
+    _writeMode(0)
 {
     ui->setupUi(this);
+    this->setObjectName("writeDialog");
+    this->setWindowFlag(Qt::FramelessWindowHint);
+    this->setStyleSheet("#writeDialog{border: 2px solid #ececec;}");
 
     auto okButton = this->ui->buttonBox->button(QDialogButtonBox::Ok);
     okButton->setText(tr("Write"));
@@ -20,12 +25,18 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->ui->lineEdit->setText(path);
     });
 
-    connect(this->ui->lineEdit, &QLineEdit::textEdited, this, &WriteDialog::changeOutputPath);
+    this->ui->buttonGroup->setId(this->ui->overwriteMode, 1);
+    this->ui->buttonGroup->setId(this->ui->truncMode, 2);
 
+    connect(this->ui->buttonGroup, &QButtonGroup::idToggled, this, [this](int id, bool check){
+        this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+        this->_writeMode = id;
+    });
+
+    connect(this->ui->lineEdit, &QLineEdit::textChanged, this, &WriteDialog::changeOutputPath);
     this->setOutputPath(settings->writeObj.exportDirectory);
 
-    this->ui->overwriteWarning->setHidden(true);
-    this->ui->overwriteWarningPicture->setHidden(true);
+    this->update();
 }
 
 WriteDialog::~WriteDialog()
@@ -40,25 +51,35 @@ void WriteDialog::setOutputPath(QString directoryPath)
 
 QString WriteDialog::outputPath() const
 {
-    return this->ui->lineEdit->text();
+    auto result = this->ui->lineEdit->text();
+    if(result.last(1) == "/"){
+        result.chop(1);
+    }
+    return result;
 }
 
 bool WriteDialog::writeByLanguage() const {
-    return this->ui->checkBox->isChecked();
+    return this->ui->exportByLangCheck->isChecked();
+}
+
+int WriteDialog::writeMode() const
+{
+    return this->_writeMode;
 }
 
 void WriteDialog::changeOutputPath(const QString &text)
 {
+    this->ui->baseWidget->setHidden(true);
+    this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
     auto fileInfo = QFileInfo(text);
     if(fileInfo.exists() == false){
-        this->ui->overwriteWarning->setHidden(true);
-        this->ui->overwriteWarningPicture->setHidden(true);
         return;
     }
 
     if(fileInfo.isDir() == false){
-        this->ui->overwriteWarning->setVisible(true);
-        this->ui->overwriteWarningPicture->setVisible(true);
+        this->ui->baseWidget->setVisible(true);
+        this->ui->overwriteMode->setVisible(false);
+        this->ui->truncMode->setVisible(false);
         this->setToolTip(tr("The path must be a directory!"));
         return;
     }
@@ -67,13 +88,17 @@ void WriteDialog::changeOutputPath(const QString &text)
     for(const auto& info : fileInfoList){
         if(info.suffix() != "csv"){ continue; }
 
-        this->ui->overwriteWarning->setVisible(true);
-        this->ui->overwriteWarningPicture->setVisible(true);
+        this->ui->baseWidget->setVisible(true);
+        this->ui->overwriteMode->setVisible(true);
+        this->ui->truncMode->setVisible(true);
+
+        if(this->ui->buttonGroup->checkedButton() == nullptr){
+            this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+        }
+
         return;
     }
 
 
-    this->ui->overwriteWarning->setHidden(true);
-    this->ui->overwriteWarningPicture->setHidden(true);
 
 }

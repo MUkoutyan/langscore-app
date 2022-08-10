@@ -28,6 +28,9 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">border-color: rgb(236, 236, 236);</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -63,7 +66,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBox">
+    <widget class="QCheckBox" name="exportByLangCheck">
      <property name="text">
       <string>Export files by language</string>
      </property>
@@ -162,6 +165,9 @@
               <property name="text">
                <string extracomment="既存の翻訳を残して上書き">Leave and overwrite existing translations</string>
               </property>
+              <attribute name="buttonGroup">
+               <string notr="true">buttonGroup</string>
+              </attribute>
              </widget>
             </item>
             <item>
@@ -172,6 +178,9 @@
               <property name="text">
                <string extracomment="新しい内容で上書き(既存の内容は消されます)">Overwrite by New  (Translations already written will be erased.)</string>
               </property>
+              <attribute name="buttonGroup">
+               <string notr="true">buttonGroup</string>
+              </attribute>
              </widget>
             </item>
            </layout>
@@ -232,4 +241,7 @@
    </hints>
   </connection>
  </connections>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>
