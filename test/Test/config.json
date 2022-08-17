@@ -1,0 +1,380 @@
+{
+    "Analyze": {
+        "TmpDir": "./analyze"
+    },
+    "DefaultLanguage": "ja",
+    "Languages": [
+        {
+            "Enable": true,
+            "FontName": "VL Gothic",
+            "FontSize": 20,
+            "LanguageName": "en"
+        },
+        {
+            "Enable": false,
+            "FontName": "VL Gothic",
+            "FontSize": 22,
+            "LanguageName": "es"
+        },
+        {
+            "Enable": false,
+            "FontName": "VL Gothic",
+            "FontSize": 22,
+            "LanguageName": "de"
+        },
+        {
+            "Enable": false,
+            "FontName": "VL Gothic",
+            "FontSize": 22,
+            "LanguageName": "fr"
+        },
+        {
+            "Enable": false,
+            "FontName": "VL Gothic",
+            "FontSize": 22,
+            "LanguageName": "it"
+        },
+        {
+            "Enable": true,
+            "FontName": "KsoEikai",
+            "FontSize": 23,
+            "LanguageName": "ja"
+        },
+        {
+            "Enable": true,
+            "FontName": "Shippori Mincho Ryu Regular",
+            "FontSize": 22,
+            "LanguageName": "ko"
+        },
+        {
+            "Enable": false,
+            "FontName": "VL Gothic",
+            "FontSize": 22,
+            "LanguageName": "ru"
+        },
+        {
+            "Enable": true,
+            "FontName": "Source Han Sans HW HC",
+            "FontSize": 24,
+            "LanguageName": "zh-cn"
+        },
+        {
+            "Enable": true,
+            "FontName": "VL Gothic",
+            "FontSize": 24,
+            "LanguageName": "zh-tw"
+        }
+    ],
+    "Project": "./../Bestiol",
+    "Write": {
+        "ExportByLang": false,
+        "ExportDirectory": "../Bestiol/Translate",
+        "FontPath": {
+            "Global": [
+            ],
+            "Local": [
+                "KsoEikai.otf",
+                "ShipporiMinchoRyu-Regular.otf"
+            ]
+        },
+        "IgnorePictures": [
+            "./Battlebacks2/Cliff2.png",
+            "./Battlers/Max.png",
+            "./Battlers/Peter.png",
+            "./Characters/!$bestiol_door1.png",
+            "./Characters/!$bestiol_obj1.png",
+            "./Characters/!$bestiol_obj2.png",
+            "./Characters/$bestiol_chr1-2.png",
+            "./Characters/$bestiol_chr1.png",
+            "./Characters/$bestiol_chr5.png",
+            "./Characters/$bestiol_obj2.png",
+            "./Characters/bestiol_chr2.png",
+            "./Characters/bestiol_chr3.png",
+            "./Characters/bestiol_chr4.png",
+            "./Characters/bestiol_chr5.png",
+            "./Faces/face_bestiol.png",
+            "./Parallaxes/World.png",
+            "./Pictures/Book.png",
+            "./Pictures/chr_homura.png",
+            "./Pictures/chr_homura_l.png",
+            "./Pictures/chr_idel.png",
+            "./Pictures/chr_idel_2.png",
+            "./Pictures/chr_idel_3.png",
+            "./Pictures/chr_justin.png",
+            "./Pictures/chr_justin_l.png",
+            "./Pictures/chr_liese.png",
+            "./Pictures/chr_liese_2.png",
+            "./Pictures/chr_liese_l.png",
+            "./Pictures/chr_max.png",
+            "./Pictures/chr_max_l.png",
+            "./Pictures/chr_orpheus.png",
+            "./Pictures/chr_petero.png",
+            "./Pictures/chr_toto.png",
+            "./Pictures/chr_toto_l.png",
+            "./Pictures/fin.jpg",
+            "./Pictures/massage_l.png",
+            "./Pictures/massage_r.png",
+            "./Pictures/Night.png",
+            "./System/BattleStart.png",
+            "./System/Window.png",
+            "./Tilesets/bestiol_E.png"
+        ],
+        "RPGMakerBasicData": [
+        ],
+        "RPGMakerScripts": [
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "19266.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "57856563.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "65903110.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "49286102.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "7942831.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "72079642.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "79550171.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "34130116.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "27436183.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "42771828.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "19485474.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "20162964.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "96014404.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "45114136.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "73673298.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "5714190.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "6543332.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "36896300.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "92568056.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "42568350.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "85012817.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "2353947.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "92516995.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "30856323.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "77997554.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "82366943.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "26427732.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "37017876.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "42657471.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "81494140.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "50042725.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "42938232.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "77163696.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "74963379.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "12512207.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "11825317.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "83594603.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "70270804.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "74315432.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "29223633.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "29297389.rb"
+            },
+            {
+                "Ignore": true,
+                "IgnorePoints": [
+                ],
+                "Name": "44960761.rb"
+            }
+        ],
+        "UsCustomFuncComment": "Scripts/{0}#{1},{2}"
+    }
+}
