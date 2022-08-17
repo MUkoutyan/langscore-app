@@ -13,6 +13,13 @@ class FormTaskBar : public QWidget
     Q_OBJECT
 
 public:
+
+    enum Theme {
+        Dark,
+        Light,
+        System
+    };
+
     explicit FormTaskBar(QUndoStack* history, QWidget *parent = nullptr);
     ~FormTaskBar();
 
@@ -32,10 +39,13 @@ signals:
     void redo();
     void showUndoView();
 
+    void changeTheme(Theme);
+
     void dragging(QMouseEvent* event, QPoint delta);
 
 public slots:
     void updateRecentMenu();
+    void emitChangeTheme(Theme);
 
 private:
     Ui::FormTaskBar *ui;
@@ -44,6 +54,7 @@ private:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+
 
     bool pressLeftButton;
     QPoint beforeMousePos;

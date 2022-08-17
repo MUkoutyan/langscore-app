@@ -1,4 +1,5 @@
 ﻿#include "MainWindow.h"
+#include "application_config.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -9,6 +10,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     a.setStyle(QStyleFactory::create("Fusion"));
+    a.setApplicationVersion(PROJECT_VER);
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();

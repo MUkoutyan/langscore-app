@@ -1,6 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(langscore-app VERSION 0.1 LANGUAGES CXX)
+project(langscore-app VERSION 0.5 LANGUAGES CXX)
+configure_file(application_config.h.in application_config.h)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -36,6 +37,7 @@ set(PROJECT_SOURCES
         src/ui/ScriptViewer.h
         src/ui/ScriptViewer.cpp
         src/csv.hpp
+        src/utility.hpp
         src/invoker.h
         src/invoker.cpp
         src/settings.h

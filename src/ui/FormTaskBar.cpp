@@ -3,6 +3,7 @@
 #include "ComponentBase.h"
 #include "../graphics.hpp"
 
+#include <QActionGroup>
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QFile>
@@ -102,11 +103,35 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
 
     connect(undoAction, &QAction::triggered, this, &FormTaskBar::undo);
     connect(redoAction, &QAction::triggered, this, &FormTaskBar::redo);
-    connect(undoView, &QAction::triggered, this, &FormTaskBar::showUndoView);
+    connect(undoView,   &QAction::triggered, this, &FormTaskBar::showUndoView);
 
-    //Help Menu
-    auto helpMenu = AddMenu(tr("Help"));
-    helpMenu->addAction(tr("Version "));
+    //System Menu
+    auto systemMenu = AddMenu(tr("System"));
+    auto themeAction        = systemMenu->addMenu(tr("Theme"));
+    auto lightAction        = themeAction->addAction(tr("Light"));
+    auto darkAction         = themeAction->addAction(tr("Dark"));
+    auto systemThemeAction  = themeAction->addAction(tr("System"));
+    QActionGroup* themeGroup = new QActionGroup(this);
+    themeGroup->setExclusive(true);
+    themeGroup->addAction(lightAction);
+    themeGroup->addAction(darkAction);
+    themeGroup->addAction(systemThemeAction);
+    connect(lightAction,       &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::Light));
+    connect(darkAction,        &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::Dark));
+    connect(systemThemeAction, &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::System));
+    {
+        auto&& settings = ComponentBase::getAppSettings();
+        auto theme = (Theme)settings.value("appTheme", 2).toInt();
+        switch(theme){
+            case Theme::Dark:   darkAction->setChecked(true); break;
+            case Theme::Light:  lightAction->setChecked(true); break;
+            case Theme::System: systemThemeAction->setChecked(true); break;
+        }
+    }
+
+
+    auto versionAction = systemMenu->addAction(tr("Version : ") + qApp->applicationVersion());
+    versionAction->setEnabled(false);
 
     this->ui->horizontalLayout_2->setStretch(2, 1);
 
@@ -163,5 +188,12 @@ void FormTaskBar::mouseDoubleClickEvent(QMouseEvent *event)
 {
     QWidget::mouseDoubleClickEvent(event);
     emit this->doubleClick();
+}
+
+void FormTaskBar::emitChangeTheme(Theme theme)
+{
+    auto&& settings = ComponentBase::getAppSettings();
+    settings.setValue("appTheme", theme);
+    emit this->changeTheme(theme);
 }
 
