@@ -19,11 +19,7 @@ public:
     QFont currentFont();
     void attachButtonGroup(QButtonGroup* group);
 
-    void setFontList(std::vector<QFont> fonts, QFont defaultFont);
-
-protected:
-    void dropEvent(QDropEvent* event) override;
-    void dragEnterEvent(QDragEnterEvent *event) override;
+    void setFontList(std::vector<QFont> fonts, QString familyName);
 
 private:
     QLocale locale;
@@ -39,8 +35,6 @@ private:
     void setFont(QString fontFamily);
     void setFontSize(int size);
     void setupData();
-
-    QString getLowerBcp47Name() const;
 
     struct LanguageButtonUndo : QUndoCommand
     {

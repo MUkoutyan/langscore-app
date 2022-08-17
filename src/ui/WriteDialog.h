@@ -20,6 +20,7 @@ public:
 
     bool writeByLanguage() const;
     int writeMode() const;
+    bool backup() const;
 
 private:
     Ui::WriteDialog *ui;
@@ -27,5 +28,9 @@ private:
 
 private slots:
     void changeOutputPath(const QString& path);
+
+#if defined(LANGSCORE_GUIAPP_TEST)
+    friend class LangscoreAppTest;
+#endif
 };
 

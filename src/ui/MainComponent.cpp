@@ -13,7 +13,6 @@
 #include <QUrl>
 #include <QDir>
 #include <QFileInfo>
-#include <QFontDatabase>
 
 #include <filesystem>
 
@@ -88,16 +87,7 @@ void MainComponent::openFiles(std::pair<QString, settings::ProjectType> fileInfo
 
     auto path = fileInfo.first;
     this->setting->projectType = fileInfo.second;
-    this->setting->gameProjectPath = path;
-    path.replace("\\", "/");
-    //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
-    //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
-    auto folderName = path.sliced(path.lastIndexOf("/")+1);
-    auto gameProjPath = std::filesystem::path(path.toLocal8Bit().toStdString());
-    auto langscoreProj = gameProjPath / ".." / (folderName.toLocal8Bit().toStdString() + "_langscore");
-    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
-    this->setting->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});
-    this->setting->langscoreProjectDirectory.replace("\\", "/");
+    this->setting->setGameProjectPath(path);
     if(QFile::exists(this->setting->tempFileDirectoryPath()))
     {
         auto projFile = this->setting->langscoreProjectDirectory+"/config.json";
@@ -179,6 +169,8 @@ void MainComponent::toWriteMode()
 
 void MainComponent::invokeAnalyze()
 {
+    this->dispatch(DispatchType::SaveProject,{});
+
     invoker invoker(this);
 
     connect(&invoker, &invoker::getStdOut, this, [this](QString text){
@@ -233,5 +225,12 @@ void MainComponent::invokeAnalyze()
         }
     }
 
+    this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
+    for(auto& lang : this->setting->languages)
+    {
+        if(lang.languageName == QLocale::system().bcp47Name()){
+            lang.enable = true;
+        }
+    }
     this->toWriteMode();
 }

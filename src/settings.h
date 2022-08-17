@@ -1,11 +1,13 @@
 ﻿#pragma once
 #include <QStringList>
+#include <QLocale>
 #include <QMap>
 
 class settings
 {
 public:
     settings();
+    void setGameProjectPath(QString absolutePath);
 
     //Common
     enum ProjectType{
@@ -19,9 +21,9 @@ public:
         std::uint32_t size = 22;
     };
     struct Language{
-        QString languageName;
+        QString languageName = "";
         Font font;
-        bool enable;
+        bool enable = false;
         bool operator==(QString langName) const {
             return this->languageName == langName;
         }
@@ -35,8 +37,6 @@ public:
     //Analyze
     QString langscoreProjectDirectory;
     QString transFileOutputDirName = "Translate";
-
-    std::vector<int> fontIndexList;
 
     //Write
     struct BasicData
@@ -62,6 +62,11 @@ public:
         std::vector<TextPoint> ignorePoint;
     };
 
+    enum FontType {
+        Global,
+        Local
+    };
+
     struct WriteProps
     {
         QString unisonCustomFuncComment = "";
@@ -73,6 +78,7 @@ public:
         std::vector<QString> ignorePicturePath;
     };
     WriteProps writeObj;
+    std::vector<std::tuple<FontType, int, QString>> fontIndexList;
 
     QString translateDirectoryPath() const;
     QString tempFileDirectoryPath() const;
@@ -84,6 +90,8 @@ public:
 
     ScriptInfo &fetchScriptInfo(QString fileName);
     void removeScriptInfoPoint(QString fileName, std::pair<size_t, size_t> point);
+
+    static QString getLowerBcp47Name(QLocale locale);
 
     QByteArray createJson();
     void write(QString path);

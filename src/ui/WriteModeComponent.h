@@ -57,17 +57,23 @@ private:
     void writeToPictureListSetting(QTreeWidgetItem *item, bool ignore);
 
     std::vector<int> fetchScriptTableSameFileRows(QString scriptName);
-    QTreeWidgetItem* fetchScriptTreeSameFileItems(QString scriptName);
+    QTreeWidgetItem* fetchScriptTreeSameFileItem(QString scriptName);
     void setTableItemTextColor(int row, QBrush color);
 
     Qt::CheckState getTreeCheckStateBasedOnTable(QString scriptName);
 
     void updateScriptWordCount(QString text, Qt::CheckState state);
+    void backup();
 
     QTableWidgetItem* scriptTableItem(int row, int col);
     QString getScriptName(QString fileName);
     QString getScriptFileName(QString scriptName);
     QString getScriptFileNameFromTable(int row);
+
+    void setFontList(std::vector<QString> fontPaths);
+
+    void dropEvent(QDropEvent* event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
 
     struct TableUndo : QUndoCommand
     {
@@ -110,6 +116,11 @@ private:
 
         void setValue(ValueType value);
     };
+
+
+#if defined(LANGSCORE_GUIAPP_TEST)
+    friend class LangscoreAppTest;
+#endif
 
 };
 

@@ -10,7 +10,8 @@
 #include <QGraphicsDropShadowEffect>
 #include <QFileDialog>
 #include <QPalette>
-
+#include <QFontDatabase>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -27,13 +28,14 @@ MainWindow::MainWindow(QWidget *parent)
     , cursorChanged(false)
     , draggingStartPos()
     , borderWidth(2)
+    , lastSavedHistoryIndex(0)
 {
     ui->setupUi(this);
     this->setObjectName("mainWindow");
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setAttribute(Qt::WA_Hover);
     this->setAutoFillBackground(true);
-    this->dispatchComponentList.emplace_back(this);
+    this->dispatchComponentList->emplace_back(this);
     mainComponent->setContentsMargins(8,0,8,0);
 
     this->ui->verticalLayout->insertWidget(0, taskBar);
@@ -47,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->taskBar, &FormTaskBar::doubleClick, this, &MainWindow::changeMaximumState);
     connect(this->taskBar, &FormTaskBar::minimum,     this, &QMainWindow::showMinimized);
 
-    connect(this->taskBar, &FormTaskBar::dragging, this, [this](QMouseEvent* event, QPoint delta)
+    connect(this->taskBar, &FormTaskBar::dragging, this, [this](QMouseEvent*, QPoint delta)
     {
         if(mousePressEdge == Edges::None){
             auto pos = this->pos() + delta;
@@ -69,45 +71,24 @@ MainWindow::MainWindow(QWidget *parent)
         this->openGameProject(openPath.toString());
     });
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
-        this->setting->saveForProject();
-        this->ui->statusBar->showMessage(tr("Save Projet."), 5000);
+        this->receive(SaveProject, {});
+        this->receive(StatusMessage, {tr("Save Projet."), 5000});
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, &MainWindow::openGameProject);
-    connect(this->taskBar, &FormTaskBar::quit,            this, [](){
-        qApp->exit(0);
+    connect(this->taskBar, &FormTaskBar::quit,            this, &MainWindow::close);
+
+    connect(this->history, &QUndoStack::indexChanged, this, [this](int idx){
+        if(this->lastSavedHistoryIndex != idx){
+            this->setWindowTitle("Langscore " + tr("Edited"));
+        }else{
+            this->setWindowTitle("Langscore");
+        }
     });
 
-#ifdef Q_OS_WIN
-    QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
-    if(settings.value("AppsUseLightTheme")==0){
-        QPalette darkPalette;
-        QColor darkColor = QColor(45,45,45);
-        QColor disabledColor = QColor(127,127,127);
-        darkPalette.setColor(QPalette::Window, darkColor);
-        darkPalette.setColor(QPalette::WindowText, Qt::white);
-        darkPalette.setColor(QPalette::Base, QColor(18,18,18));
-        darkPalette.setColor(QPalette::AlternateBase, darkColor);
-        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
-        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
-        darkPalette.setColor(QPalette::Text, Qt::white);
-        darkPalette.setColor(QPalette::Disabled, QPalette::Text, disabledColor);
-        darkPalette.setColor(QPalette::Button, darkColor);
-        darkPalette.setColor(QPalette::ButtonText, Qt::white);
-        darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
-        darkPalette.setColor(QPalette::BrightText, Qt::red);
-        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+    connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
 
-        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
-        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
-        darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
+    attachTheme(FormTaskBar::Theme::System);
 
-        qApp->setPalette(darkPalette);
-
-        qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #2a82da; border: 1px solid white; }");
-
-        this->setStyleSheet("#mainWindow{ border: 2px solid #0f0f0f; }");
-    }
-#endif
 }
 
 MainWindow::~MainWindow()
@@ -164,7 +145,7 @@ void MainWindow::mouseHover(QHoverEvent *e) {
     updateCursorShape(e->globalPosition().toPoint());
 }
 
-void MainWindow::mouseLeave(QEvent *e) {
+void MainWindow::mouseLeave(QEvent*) {
     if (!leftButtonPressed) {
         this->unsetCursor();
     }
@@ -247,6 +228,23 @@ void MainWindow::mouseMove(QMouseEvent *e)
     this->update();
 }
 
+void MainWindow::closeEvent(QCloseEvent* e)
+{
+    auto button = this->askCloseProject();
+    if(button == QMessageBox::Cancel){
+        e->ignore();
+        return;
+    }
+    else if(button == QMessageBox::Discard){
+        e->accept();
+    }
+    else if(button == QMessageBox::Save){
+        this->setting->saveForProject();
+        e->accept();
+    }
+    QMainWindow::closeEvent(e);
+}
+
 void MainWindow::updateCursorShape(const QPoint &pos)
 {
     if (this->isFullScreen() || this->isMaximized()) {
@@ -313,11 +311,83 @@ void MainWindow::calculateCursorPosition(const QPoint &pos, Edges &_edge)
 
 void MainWindow::receive(DispatchType type, const QVariantList &args)
 {
-    if(args.empty()){ return; }
+    if(type == DispatchType::StatusMessage){
+        if(args.empty()){ return; }
+        auto mes = args[0].toString();
+        auto time = args.size()==2 ? args[1].toInt() : 0;
+        this->ui->statusBar->showMessage(mes, time);
+    }
+    else if(type == DispatchType::SaveProject)
+    {
+        this->setting->saveForProject();
+        lastSavedHistoryIndex = this->history->index();
+    }
+}
 
-    auto mes = args[0].toString();
-    auto time = args.size()==2 ? args[1].toInt() : 0;
-    this->ui->statusBar->showMessage(mes, time);
+int MainWindow::askCloseProject()
+{
+    if(this->history->index() == this->lastSavedHistoryIndex){
+        return QMessageBox::Discard;
+    }
+    //ファイルを閉じようとしています。
+    //プロジェクト加えた変更を保存しますか？
+    auto button = QMessageBox::question(this, tr("Trying to close a project."), tr("Do you want to save the changes you made to the project?\nIf not, the changes will be discarded."), QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Cancel);
+    return (int)button;
+}
+
+void MainWindow::attachTheme(FormTaskBar::Theme theme)
+{
+    bool darkTheme = false;
+    bool lightTheme = false;
+    switch(theme)
+    {
+    case FormTaskBar::Theme::Dark:
+        darkTheme = true;
+        break;
+    case FormTaskBar::Theme::Light:
+        lightTheme = true;
+        break;
+    case FormTaskBar::Theme::System:
+#ifdef Q_OS_WIN
+        QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
+        if(settings.value("AppsUseLightTheme")==1){
+            lightTheme = true;
+        }
+        else{
+            darkTheme = true;
+        }
+#endif
+        break;
+    }
+
+    if(darkTheme){
+        QPalette darkPalette;
+        QColor darkColor = QColor(45,45,45);
+        QColor disabledColor = QColor(127,127,127);
+        darkPalette.setColor(QPalette::Window, darkColor);
+        darkPalette.setColor(QPalette::WindowText, Qt::white);
+        darkPalette.setColor(QPalette::Base, QColor(18,18,18));
+        darkPalette.setColor(QPalette::AlternateBase, darkColor);
+        darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+        darkPalette.setColor(QPalette::ToolTipText, Qt::white);
+        darkPalette.setColor(QPalette::Text, Qt::white);
+        darkPalette.setColor(QPalette::Disabled, QPalette::Text, disabledColor);
+        darkPalette.setColor(QPalette::Button, darkColor);
+        darkPalette.setColor(QPalette::ButtonText, Qt::white);
+        darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
+        darkPalette.setColor(QPalette::BrightText, Qt::red);
+        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+
+        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+        darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
+
+        qApp->setPalette(darkPalette);
+
+        qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #2a82da; border: 1px solid white; }");
+
+        this->setStyleSheet("#mainWindow{ border: 2px solid #0f0f0f; }");
+    }
 }
 
 void MainWindow::createUndoView()

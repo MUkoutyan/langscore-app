@@ -5,12 +5,12 @@
 #include <QUndoView>
 #include "src/ui/ComponentBase.h"
 #include "src/settings.h"
+#include "src/ui/FormTaskBar.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class FormTaskBar;
 class MainComponent;
 class MainWindow : public QMainWindow, public ComponentBase
 {
@@ -21,6 +21,7 @@ public:
     ~MainWindow();
 
 protected:
+
     //reference : https://stackoverflow.com/questions/5752408/qt-resize-borderless-widget/37507341#37507341
     enum Edges {
         None        = 0x0,
@@ -40,6 +41,7 @@ protected:
     void mousePress(QMouseEvent*);
     void mouseRealese(QMouseEvent*);
     void mouseMove(QMouseEvent*);
+    void closeEvent(QCloseEvent*);
     void updateCursorShape(const QPoint &);
     void calculateCursorPosition(const QPoint &, Edges &);
 
@@ -59,14 +61,22 @@ private:
     bool cursorChanged;
     QPoint draggingStartPos;
     int borderWidth;
+    int lastSavedHistoryIndex;
 
     void receive(DispatchType type, const QVariantList& args) override;
+    int askCloseProject();
 
+    void attachTheme(FormTaskBar::Theme theme);
 
 private slots:
     void createUndoView();
     bool changeMaximumState();
     QString openOutputProjectDir(QString root);
     void openGameProject(QString path);
+
+
+#if defined(LANGSCORE_GUIAPP_TEST)
+    friend class LangscoreAppTest;
+#endif
 };
 #endif // MAINWINDOW_H

@@ -73,6 +73,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="backupCheck">
+     <property name="text">
+      <string>Back up affected files</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QWidget" name="baseWidget" native="true">
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <property name="spacing">

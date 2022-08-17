@@ -42,5 +42,10 @@ private:
 
 private slots:
     void invokeAnalyze();
+
+
+#if defined(LANGSCORE_GUIAPP_TEST)
+    friend class LangscoreAppTest;
+#endif
 };
 

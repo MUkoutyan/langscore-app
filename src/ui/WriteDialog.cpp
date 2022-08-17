@@ -34,7 +34,16 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     });
 
     connect(this->ui->lineEdit, &QLineEdit::textChanged, this, &WriteDialog::changeOutputPath);
-    this->setOutputPath(settings->writeObj.exportDirectory);
+    QFileInfo outputDirInfo(settings->writeObj.exportDirectory);
+    if(outputDirInfo.isRelative()){
+        //langscoreのフォルダからの相対パスと解釈する。
+        auto lsProjDir = QDir(settings->langscoreProjectDirectory);
+        auto absPath = lsProjDir.absoluteFilePath(settings->writeObj.exportDirectory);
+        absPath = lsProjDir.cleanPath(absPath);
+        this->setOutputPath(absPath);
+    } else {
+        this->setOutputPath(outputDirInfo.absoluteFilePath());
+    }
 
     this->update();
 }
@@ -67,6 +76,11 @@ int WriteDialog::writeMode() const
     return this->_writeMode;
 }
 
+bool WriteDialog::backup() const
+{
+    return this->ui->backupCheck->isChecked();
+}
+
 void WriteDialog::changeOutputPath(const QString &text)
 {
     this->ui->baseWidget->setHidden(true);
@@ -84,7 +98,7 @@ void WriteDialog::changeOutputPath(const QString &text)
         return;
     }
     auto dir = QDir(text);
-    auto fileInfoList = dir.entryInfoList(QDir::Filter::Files);
+    auto fileInfoList = dir.entryInfoList(QDir::Filter::Files | QDir::Filter::NoDotAndDotDot);
     for(const auto& info : fileInfoList){
         if(info.suffix() != "csv"){ continue; }
 

@@ -10,16 +10,12 @@ invoker::invoker(ComponentBase *setting)
 
 bool invoker::analyze()
 {
-    auto path = this->setting->langscoreProjectDirectory+"/config.json";
-    this->setting->write(path);
-    return doProcess({"-c", path, "--analyze"});
+    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--analyze"});
 }
 
 bool invoker::write()
 {
-    auto path = this->setting->langscoreProjectDirectory+"/config.json";
-    this->setting->write(path);
-    return doProcess({"-c", path, "--write"});
+    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--write"});
 }
 
 bool invoker::doProcess(QStringList option)

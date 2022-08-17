@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QDir>
 #include <QFile>
+#include <QFontDatabase>
 
 #define MAKE_KEYVALUE(k) {JsonKey::k, #k}
 
@@ -16,6 +17,9 @@ enum class JsonKey : size_t
     Disable,
     FontName,
     FontSize,
+    FontPath,
+    Global,
+    Local,
     Project,
     Analyze,
     Write,
@@ -46,6 +50,9 @@ static const std::map<JsonKey, const char*> jsonKeys = {
     MAKE_KEYVALUE(Disable),
     MAKE_KEYVALUE(FontName),
     MAKE_KEYVALUE(FontSize),
+    MAKE_KEYVALUE(FontPath),
+    MAKE_KEYVALUE(Global),
+    MAKE_KEYVALUE(Local),
     MAKE_KEYVALUE(Project),
     MAKE_KEYVALUE(Analyze),
     MAKE_KEYVALUE(Write),
@@ -87,23 +94,52 @@ settings::settings()
     , defaultLanguage("ja")
     , langscoreProjectDirectory("")
 {
-
 }
 
-QString settings::translateDirectoryPath() const {
-    return this->gameProjectPath + "/" + this->transFileOutputDirName;
+void settings::setGameProjectPath(QString absolutePath)
+{
+    absolutePath.replace("\\", "/");
+    this->gameProjectPath = absolutePath;
+
+    //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
+    //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
+    auto folderName = absolutePath.sliced(absolutePath.lastIndexOf("/")+1);
+    auto gameProjPath = std::filesystem::path(absolutePath.toLocal8Bit().toStdString());
+    auto langscoreProj = gameProjPath / ".." / (folderName.toLocal8Bit().toStdString() + "_langscore");
+    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
+    this->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});;
+    this->langscoreProjectDirectory.replace("\\", "/");
+}
+
+QString settings::translateDirectoryPath() const
+{
+    if(projectType == ProjectType::VXAce){
+        return this->gameProjectPath + "/Data/" + this->transFileOutputDirName;
+    }
+    else if(projectType == ProjectType::MV || projectType == ProjectType::MZ){
+        return this->gameProjectPath + "/data/" + this->transFileOutputDirName;
+    }
+
+    return this->gameProjectPath + "/data/" + this->transFileOutputDirName;
 }
 
 QString settings::tempFileDirectoryPath() const {
     return this->langscoreProjectDirectory+"/analyze";
 }
 
-QString settings::tempScriptFileDirectoryPath() const {
+QString settings::tempScriptFileDirectoryPath() const
+{
     return this->tempFileDirectoryPath() + "/Scripts";
 }
 
 QString settings::tempGraphicsFileDirectoryPath() const
 {
+    if(projectType == ProjectType::VXAce){
+        return this->gameProjectPath + "/Graphics";
+    }
+    else if(projectType == ProjectType::MV || projectType == ProjectType::MZ){
+        return this->gameProjectPath + "/img";
+    }
     return this->gameProjectPath + "/Graphics";
 }
 
@@ -155,6 +191,13 @@ void settings::removeScriptInfoPoint(QString fileName, std::pair<size_t,size_t> 
         auto rm_result = std::remove(result->ignorePoint.begin(), result->ignorePoint.end(), point);
         result->ignorePoint.erase(rm_result, result->ignorePoint.end());
     }
+}
+
+QString settings::getLowerBcp47Name(QLocale locale)
+{
+    auto bcp47Name = locale.bcp47Name().toLower();
+    if(bcp47Name == "zh"){ bcp47Name = "zh-cn"; }
+    return bcp47Name;
 }
 
 QByteArray settings::createJson()
@@ -228,6 +271,44 @@ QByteArray settings::createJson()
     }
     write[key(JsonKey::IgnorePictures)] = ignorePictures;
 
+    std::vector<QString> copyGlobalFontPathList;
+    std::vector<QString> copyLocalFontPathList;
+    for(const auto& fontInfo : this->fontIndexList)
+    {
+        auto [type, index, path] = fontInfo;
+        auto familyList = QFontDatabase::applicationFontFamilies(index);
+        for(const auto& family : familyList)
+        {
+            auto familyName = family.toLower();
+            if(projectType == settings::VXAce && familyName.contains("vl gothic")){
+                continue;
+            }
+            else if((projectType == settings::MV || projectType == settings::MZ) && familyName.contains("m+ 1m")) {
+                continue;
+            }
+
+            auto result = std::find_if(this->languages.cbegin(), this->languages.cend(), [&familyName](const auto& x){
+                return x.enable && x.font.name.toLower() == familyName;
+            });
+            if(result != this->languages.cend()){
+                if(type == settings::Global){
+                    copyGlobalFontPathList.emplace_back(path);
+                } else if(type == settings::Local){
+                    copyLocalFontPathList.emplace_back(path);
+                }
+                break;
+            }
+        }
+    }
+    QJsonArray copyGlobalFonts;
+    QJsonArray copyLocalFonts;
+    for(const auto& path : copyGlobalFontPathList){ copyGlobalFonts.append(path); }
+    for(const auto& path : copyLocalFontPathList){ copyLocalFonts.append(path); }
+    QJsonObject copyFonts;
+    copyFonts[key(JsonKey::Global)] = copyGlobalFonts;
+    copyFonts[key(JsonKey::Local)] = copyLocalFonts;
+    write[key(JsonKey::FontPath)] = copyFonts;
+
     root[key(JsonKey::Write)] = write;
 
     QJsonDocument doc(root);
@@ -268,7 +349,9 @@ void settings::load(QString path)
         {
             auto obj = l.toObject();
             auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
-                                 Font{obj[key(JsonKey::FontName)].toString(), static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())},
+                                 Font{ obj[key(JsonKey::FontName)].toString(),
+                                       static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
+                                 },
                                  obj[key(JsonKey::Enable)].toBool(false)};
             this->languages.emplace_back(data);
         }
