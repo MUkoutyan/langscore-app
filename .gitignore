@@ -77,3 +77,4 @@ CMakeLists.txt.user
 CMakeSettings.json
 resources/fonts
 test/build-Test-Debug
+test/build-Test-Release
