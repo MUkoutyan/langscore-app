@@ -362,11 +362,11 @@ void MainWindow::attachTheme(FormTaskBar::Theme theme)
 
     if(darkTheme){
         QPalette darkPalette;
-        QColor darkColor = QColor(45,45,45);
+        QColor darkColor = QColor(28, 28, 28);
         QColor disabledColor = QColor(127,127,127);
         darkPalette.setColor(QPalette::Window, darkColor);
         darkPalette.setColor(QPalette::WindowText, Qt::white);
-        darkPalette.setColor(QPalette::Base, QColor(18,18,18));
+        darkPalette.setColor(QPalette::Base, QColor(52, 52, 52));
         darkPalette.setColor(QPalette::AlternateBase, darkColor);
         darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
         darkPalette.setColor(QPalette::ToolTipText, Qt::white);
@@ -375,10 +375,10 @@ void MainWindow::attachTheme(FormTaskBar::Theme theme)
         darkPalette.setColor(QPalette::Button, darkColor);
         darkPalette.setColor(QPalette::ButtonText, Qt::white);
         darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
-        darkPalette.setColor(QPalette::BrightText, Qt::red);
-        darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::BrightText, QColor(139, 25, 40));
+        darkPalette.setColor(QPalette::Link, QColor(74, 124, 149));
 
-        darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+        darkPalette.setColor(QPalette::Highlight, QColor(74, 124, 149));
         darkPalette.setColor(QPalette::HighlightedText, Qt::black);
         darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
 
@@ -386,7 +386,7 @@ void MainWindow::attachTheme(FormTaskBar::Theme theme)
 
         qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #2a82da; border: 1px solid white; }");
 
-        this->setStyleSheet("#mainWindow{ border: 2px solid #0f0f0f; }");
+        this->setStyleSheet("#mainWindow{ border: 2px solid #323232; }");
     }
 }
 
