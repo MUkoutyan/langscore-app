@@ -49,10 +49,13 @@ private slots:
     void analyzeMode_findGameProject();
 
     void editMode_validLoad();
-    void editMode_changeTreeCheckState();
+    void editMode_changeTreeScriptCheckState();
+    void editMode_changeTreeGraphicsCheckState();
     void editMode_fetchScriptItemMethod();
     void editMode_changeTableCheckState();
     void editMode_hideScriptTable();
+
+    void checkConfig_pictures();
 
 private:
     std::shared_ptr<settings> settings;
@@ -151,15 +154,15 @@ void LangscoreAppTest::setting_load()
     const auto lsProjPath = basePath+"/GameProj_langscore";
 
     setting.setGameProjectPath(QDir("./GameProj").absolutePath());
-    QVERIFY(setting.gameProjectPath == gameProjPath);
+    QCOMPARE(setting.gameProjectPath, gameProjPath);
 
-    QVERIFY(setting.translateDirectoryPath() == gameProjPath+"/Data/Translate");
-    QVERIFY(setting.tempGraphicsFileDirectoryPath() == gameProjPath+"/Graphics");
-    QVERIFY(setting.tempFileDirectoryPath() == lsProjPath+"/analyze");
-    QVERIFY(setting.tempScriptFileDirectoryPath() == lsProjPath+"/analyze/Scripts");
+    QCOMPARE(setting.translateDirectoryPath(), gameProjPath+"/Data/Translate");
+    QCOMPARE(setting.tempGraphicsFileDirectoryPath(), gameProjPath+"/Graphics");
+    QCOMPARE(setting.tempFileDirectoryPath(), lsProjPath+"/analyze");
+    QCOMPARE(setting.tempScriptFileDirectoryPath(), lsProjPath+"/analyze/Scripts");
 
-    QVERIFY(setting.defaultLanguage == "ja");
-    QVERIFY(setting.languages.size() == 10);
+    QCOMPARE(setting.defaultLanguage, "ja");
+    QCOMPARE(setting.languages.size(), 10);
     for(const auto& lang : setting.languages){
         if(lang.languageName == "en"){
             QVERIFY(lang.enable);
@@ -352,7 +355,7 @@ void LangscoreAppTest::editMode_fetchScriptItemMethod()
     QCOMPARE(treeItem->text(1), scriptName);
 }
 
-void LangscoreAppTest::editMode_changeTreeCheckState()
+void LangscoreAppTest::editMode_changeTreeScriptCheckState()
 {
     MainWindow window;
     MainComponent mainComponent(&window);
@@ -393,6 +396,41 @@ void LangscoreAppTest::editMode_changeTreeCheckState()
     }
 
     QVERIFY(findScript);
+}
+
+void LangscoreAppTest::editMode_changeTreeGraphicsCheckState()
+{
+    MainWindow window;
+    MainComponent mainComponent(&window);
+    WriteModeComponent component(&window, &mainComponent);
+
+    if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
+        QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
+    }
+
+    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
+    mainComponent.openFiles(mainComponent.findGameProject({url}));
+    window.show();
+    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
+    component.show();
+
+    auto graphicsItem = component.ui->treeWidget->topLevelItem(2);
+
+    auto numFolder = graphicsItem->childCount();
+    for(int i=0; i<numFolder; ++i){
+        auto folderItem = graphicsItem->child(i);
+        if(folderItem->childCount() == 1){
+            auto pictureItem = folderItem->child(0);
+            pictureItem->setCheckState(0, Qt::Unchecked);
+            QVERIFY(folderItem->checkState(0) == Qt::Unchecked);
+        }
+        else if(1 < folderItem->childCount())
+        {
+            auto pictureItem = folderItem->child(0);
+            pictureItem->setCheckState(0, Qt::Unchecked);
+            QVERIFY(folderItem->checkState(0) == Qt::PartiallyChecked);
+        }
+    }
 }
 
 void LangscoreAppTest::editMode_changeTableCheckState()
@@ -469,6 +507,74 @@ void LangscoreAppTest::editMode_hideScriptTable()
         QVERIFY(scriptNameItem != nullptr);
         auto scriptName = scriptNameItem->text();
         QCOMPARE(scriptName, targetScriptName);
+    }
+}
+
+void LangscoreAppTest::checkConfig_pictures()
+{
+    {
+        MainWindow window;
+        MainComponent mainComponent(&window);
+        WriteModeComponent component(&window, &mainComponent);
+
+        if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
+            QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
+        }
+
+        auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
+        mainComponent.openFiles(mainComponent.findGameProject({url}));
+        window.show();
+        QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
+        component.show();
+
+        auto graphicsItem = component.ui->treeWidget->topLevelItem(2);
+        auto numFolder = graphicsItem->childCount();
+        for(int i=0; i<numFolder; ++i)
+        {
+            auto folderItem = graphicsItem->child(i);
+            if(folderItem->text(1) != "Pictures"){ continue; }
+
+            folderItem->setCheckState(0, Qt::Unchecked);
+            break;
+        }
+
+        auto& ignorePicturePath = window.setting->writeObj.ignorePicturePath;
+        QCOMPARE(ignorePicturePath.size(), 2);
+        QVERIFY(std::find(ignorePicturePath.cbegin(), ignorePicturePath.cend(), "Pictures/nantoka8.jpg") != ignorePicturePath.cend());
+        QVERIFY(std::find(ignorePicturePath.cbegin(), ignorePicturePath.cend(), "Pictures/nantoka10.jpg") != ignorePicturePath.cend());
+    }
+
+    {
+        MainWindow window;
+        MainComponent mainComponent(&window);
+        WriteModeComponent component(&window, &mainComponent);
+
+        if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
+            QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
+        }
+
+        auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
+        mainComponent.openFiles(mainComponent.findGameProject({url}));
+        window.show();
+        QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
+        component.show();
+
+        auto graphicsItem = component.ui->treeWidget->topLevelItem(2);
+        auto numFolder = graphicsItem->childCount();
+        for(int i=0; i<numFolder; ++i)
+        {
+            auto folderItem = graphicsItem->child(i);
+            if(folderItem->text(1) != "Pictures"){ continue; }
+
+            QCOMPARE(folderItem->childCount(), 2);
+
+            folderItem->child(1)->setCheckState(0, Qt::Unchecked);
+            break;
+        }
+
+        auto& ignorePicturePath = window.setting->writeObj.ignorePicturePath;
+        QCOMPARE(ignorePicturePath.size(), 1);
+        QVERIFY(std::find(ignorePicturePath.cbegin(), ignorePicturePath.cend(), "Pictures/nantoka8.jpg") != ignorePicturePath.cend());
     }
 }
 
