@@ -47,7 +47,6 @@ set(PROJECT_SOURCES
         src/ui/WriteDialog.cpp
         src/ui/WriteDialog.ui
         resources.qrc
-        ${TS_FILES}
 )
 
 include_directories(
@@ -59,6 +58,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
+    qt_add_translations(langscore-app TS_FILES ${TS_FILES} SOURCES ${PROJECT_SOURCES})
 # App bundles on macOS have an .app suffix
 if(APPLE)
     set(executable_path "$<TARGET_FILE_NAME:langscore-app>.app")
@@ -70,7 +70,6 @@ endif()
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
     if(ANDROID)
         add_library(langscore-app SHARED

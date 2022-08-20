@@ -279,4 +279,7 @@
         <file alias="1m_reg">resources/fonts/mplus-1m-regular.ttf</file>
         <file alias="VLGothic">resources/fonts/VL-Gothic-Regular.ttf</file>
     </qresource>
+    <qresource prefix="/i18n">
+        <file>langscore-app_ja_JP.qm</file>
+    </qresource>
 </RCC>
