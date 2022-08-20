@@ -19,6 +19,8 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
 {
     ui->setupUi(this);
 
+
+
     this->ui->closeButton->setStyleSheet(R"(
         #closeButton{
             border: none;

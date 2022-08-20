@@ -239,6 +239,9 @@ void WriteModeComponent::treeItemSelected()
     }
     else if(treeType == TreeItemType::Pictures)
     {
+        if(item == topLevelItem){ return; }
+        if(item->parent() == topLevelItem){ return; }
+
         auto path = ::getFileName(item);
         if(path.isEmpty()){ return; }
         scene->clear();
@@ -279,6 +282,7 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
             this->discardCommand(std::move(result));
             return;
         }
+        const QSignalBlocker blocker(this->ui->treeWidget);
         if(result.size() == 1){
             this->history->push(result[0]);
         }
@@ -318,44 +322,46 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
     }
     else if(treeType == TreeItemType::Pictures)
     {
-        std::vector<QTreeWidgetItem*> folderItems;
+        std::vector<QTreeWidgetItem*> checkItems;
         for(auto item : selectedItems)
         {
             //画像アイテムの親が選択されていたら、そちらを優先する。
             if(item->parent() == topLevelItem){
-                folderItems.emplace_back(item);
+                checkItems.emplace_back(item);
             }
         }
 
-        std::vector<QUndoCommand *> result;
-        for(auto* item : selectedItems)
+        for(auto item : selectedItems)
         {
-            auto sameFolder = std::find_if(folderItems.begin(), folderItems.end(), [item](const auto* x){
-                return x == item;
-            });
-            auto parentFolder = std::find_if(folderItems.begin(), folderItems.end(), [item](const auto* x){
-                return x == item->parent();
-            });
-            QTreeWidgetItem* folderItem = nullptr;
-            if(sameFolder != folderItems.end()){ folderItem = *sameFolder; }
-            else if(parentFolder != folderItems.end()){ folderItem = *sameFolder; }
+            if(std::find(checkItems.cbegin(), checkItems.cend(), item) != checkItems.cend()){
+                continue;
+            }
+            if(std::find(checkItems.cbegin(), checkItems.cend(), item->parent()) != checkItems.cend()){
+                continue;
+            }
+            checkItems.emplace_back(item);
+        }
 
-            if(folderItem)
+        this->ui->treeWidget->blockSignals(true);
+        std::vector<QUndoCommand *> result;
+        for(auto* item : checkItems)
+        {
+            result.emplace_back(new TreeUndo(this, item, newCheckVal, item->checkState(0)));
+            //フォルダーのチェックを変更
+            if(item->parent() == topLevelItem)
             {
                 //親が選択されていた場合、親優先でチェック状態を変更する。
                 //この時、子のチェック状態も合わせて変更する。
-                result.emplace_back(new TreeUndo(this, item, newCheckVal, item->checkState(0)));
-                auto numChilds = folderItem->childCount();
+                auto numChilds = item->childCount();
                 for(int i=0; i<numChilds; ++i){
-                    auto childItem = folderItem->child(i);
+                    auto childItem = item->child(i);
                     result.emplace_back(new TreeUndo(this, childItem, newCheckVal, childItem->checkState(0)));
                 }
             }
-            else{
-                result.emplace_back(new TreeUndo(this, item, newCheckVal, item->checkState(0)));
-
+            else
+            {
                 //同階層のオブジェクトチェック
-                folderItem = item->parent();
+                auto folderItem = item->parent();
                 const auto numChilds = folderItem->childCount();
                 int numChecked = 0;
                 for(int i=0; i<numChilds; ++i){
@@ -374,6 +380,7 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
                 folderItem->setCheckState(0, parentFolderCheckState);
             }
         }
+        this->ui->treeWidget->blockSignals(false);
 
         NotifyTreeUndoCommand(std::move(result), tr("Graphics Tree Change Enable State"));
 
@@ -437,6 +444,7 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
         return;
     }
 
+    const QSignalBlocker blocker(this->ui->tableWidget_script);
     if(result.size() == 1){
         this->history->push(result[0]);
     }
@@ -548,6 +556,8 @@ void WriteModeComponent::setup()
 
 void WriteModeComponent::setupTree()
 {
+    const auto topLevelItemBGColor = QColor(166, 121, 8);
+    const auto graphicFolderBGColor = QColor(172, 141, 4);
     const auto translateFolder = this->setting->tempFileDirectoryPath();
     //Main
     {
@@ -557,6 +567,9 @@ void WriteModeComponent::setupTree()
         auto mainItem = new QTreeWidgetItem();
         mainItem->setText(0, "Main");
         mainItem->setData(0, Qt::UserRole, TreeItemType::Main);
+        mainItem->setBackground(0, topLevelItemBGColor);
+        mainItem->setBackground(1, topLevelItemBGColor);
+        mainItem->setForeground(0, Qt::black);
         this->ui->treeWidget->addTopLevelItem(mainItem);
         for(const auto& file : files)
         {
@@ -601,6 +614,9 @@ void WriteModeComponent::setupTree()
         auto scriptItem    = new QTreeWidgetItem();
         scriptItem->setText(0, "Script");
         scriptItem->setData(0, Qt::UserRole, TreeItemType::Script);
+        scriptItem->setBackground(0, topLevelItemBGColor);
+        scriptItem->setBackground(1, topLevelItemBGColor);
+        scriptItem->setForeground(0, Qt::black);
         this->ui->treeWidget->addTopLevelItem(scriptItem);
         auto scriptFolder  = this->setting->tempScriptFileDirectoryPath();
         auto scriptFiles   = readCsv(scriptFolder + "/_list.csv");
@@ -654,6 +670,9 @@ void WriteModeComponent::setupTree()
         auto graphicsRootItem    = new QTreeWidgetItem();
         graphicsRootItem->setText(0, "Graphics");
         graphicsRootItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
+        graphicsRootItem->setBackground(0, topLevelItemBGColor);
+        graphicsRootItem->setBackground(1, topLevelItemBGColor);
+        graphicsRootItem->setForeground(0, Qt::black);
         this->ui->treeWidget->addTopLevelItem(graphicsRootItem);
 
         QDir graphicsFolder(this->setting->tempGraphicsFileDirectoryPath());
@@ -662,8 +681,10 @@ void WriteModeComponent::setupTree()
         for(const auto& graphFolder : graphFolders)
         {
             auto folderRoot = new QTreeWidgetItem();
-            folderRoot->setData(0, Qt::CheckStateRole, true);
             folderRoot->setText(1, graphFolder.baseName());
+            folderRoot->setBackground(0, graphicFolderBGColor);
+            folderRoot->setBackground(1, graphicFolderBGColor);
+            folderRoot->setForeground(1, Qt::black);
             graphicsRootItem->addChild(folderRoot);
             QDir childFolder(graphFolder.absoluteFilePath());
             QFileInfoList files = childFolder.entryInfoList(QStringList() << "*.*", QDir::Files);
@@ -698,9 +719,12 @@ void WriteModeComponent::setupTree()
                 folderRoot->addChild(child);
             }
 
-            if(ignorePictures == 0){ folderRoot->setCheckState(0, Qt::Checked); }
-            else if(ignorePictures < numPictures){ folderRoot->setCheckState(0, Qt::PartiallyChecked); }
-            else{ folderRoot->setCheckState(0, Qt::Unchecked); }
+            if(0 < numPictures){
+                folderRoot->setData(0, Qt::CheckStateRole, true);
+                if(ignorePictures == 0){ folderRoot->setCheckState(0, Qt::Checked); }
+                else if(ignorePictures < numPictures){ folderRoot->setCheckState(0, Qt::PartiallyChecked); }
+                else{ folderRoot->setCheckState(0, Qt::Unchecked); }
+            }
         }
     }
 }
@@ -887,16 +911,16 @@ void WriteModeComponent::setTreeItemCheck(QTreeWidgetItem *item, Qt::CheckState 
 void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckState check)
 {
     //無視リストの操作
-    this->ui->tableWidget_script->blockSignals(true);
     const int row = item->row();
-    auto baseCheckItem = this->scriptTableItem(row, ScriptTableCol::EnableCheck);
-    if(baseCheckItem)
     {
-        writeToIgnoreScriptLine(row, check == Qt::Unchecked);
-        baseCheckItem->setCheckState(check);
+        const QSignalBlocker scriptTableBlocker(this->ui->tableWidget_script);
+        auto baseCheckItem = this->scriptTableItem(row, ScriptTableCol::EnableCheck);
+        if(baseCheckItem)
+        {
+            writeToIgnoreScriptLine(row, check == Qt::Unchecked);
+            baseCheckItem->setCheckState(check);
+        }
     }
-
-    this->ui->tableWidget_script->blockSignals(false);
 
     auto scriptItem = this->scriptTableItem(row, ScriptTableCol::ScriptName);
     QString scriptName = scriptItem ? scriptItem->text() : "";
@@ -904,6 +928,8 @@ void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::Che
     //チェックしたアイテムに関連している、テーブル側のアイテムの色を変える
     auto rows     = fetchScriptTableSameFileRows(scriptName);
     auto treeItem = fetchScriptTreeSameFileItem(scriptName);
+
+    const QSignalBlocker scriptTableBlocker(this->ui->treeWidget);
     if(treeItem && treeItem->checkState(0) == Qt::Unchecked)
     {
         for(auto row : rows){
@@ -921,7 +947,6 @@ void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::Che
     }
 
     //ツリー側のチェック状態を変更
-    this->ui->treeWidget->blockSignals(true);
     if(treeItem)
     {
         //同じスクリプトが全て無視されたかをチェック
@@ -932,7 +957,6 @@ void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::Che
         }
         treeItem->setForeground(1, tableTextColorForState[treeCheckState]);
     }
-    this->ui->treeWidget->blockSignals(false);
 
     this->update();
 }

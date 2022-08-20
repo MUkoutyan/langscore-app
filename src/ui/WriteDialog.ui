@@ -75,7 +75,7 @@
    <item>
     <widget class="QCheckBox" name="backupCheck">
      <property name="text">
-      <string>Back up affected files</string>
+      <string>Backup affected files</string>
      </property>
      <property name="checked">
       <bool>true</bool>
