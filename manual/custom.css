@@ -1,0 +1,12 @@
+html {
+  --content-line-height: 24px;
+}
+
+h1 {
+  border-left: 8px solid #999;
+  padding-left: 8px;
+}
+
+h2 {
+  border-bottom: 1px solid #999;
+}
