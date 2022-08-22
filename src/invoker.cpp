@@ -8,17 +8,17 @@ invoker::invoker(ComponentBase *setting)
     : ComponentBase(setting){
 }
 
-bool invoker::analyze()
+int invoker::analyze()
 {
     return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--analyze"});
 }
 
-bool invoker::write()
+int invoker::write()
 {
     return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--write"});
 }
 
-bool invoker::doProcess(QStringList option)
+int invoker::doProcess(QStringList option)
 {
     process = new QProcess(this);
     connect(process, &QProcess::readyReadStandardOutput, this, [this](){
@@ -43,7 +43,7 @@ bool invoker::doProcess(QStringList option)
     }
     else
     {
-        emit this->getStdOut("Error.");
+        emit this->getStdOut("Error. code " + QString::number(code));
         switch(code)
         {
         case -1:
@@ -55,5 +55,5 @@ bool invoker::doProcess(QStringList option)
     emit this->getStdOut(QString(process->readAllStandardOutput()));
 
 
-    return code == 0;
+    return code;
 }

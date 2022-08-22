@@ -14,16 +14,18 @@ public:
         VZ
     };
 
+    static constexpr int SUCCESS = 0;
+
     invoker(ComponentBase* setting);
 
-    bool analyze();
-    bool write();
+    int analyze();
+    int write();
 
 signals:
     void getStdOut(QString);
 
 private:
-    bool doProcess(QStringList option);
+    int doProcess(QStringList option);
     QProcess* process;
 };
 

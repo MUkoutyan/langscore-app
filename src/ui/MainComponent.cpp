@@ -6,6 +6,7 @@
 
 #include "../csv.hpp"
 
+#include <QScrollBar>
 #include <QPaintEvent>
 #include <QDropEvent>
 #include <QDragEnterEvent>
@@ -169,16 +170,29 @@ void MainComponent::toWriteMode()
 
 void MainComponent::invokeAnalyze()
 {
+    class Switcher {
+    public:
+        Switcher(MainComponent* p) : p(p){
+            this->p->ui->analyzeButton->setEnabled(false);
+        }
+        ~Switcher(){
+            this->p->ui->analyzeButton->setEnabled(true);
+        }
+        MainComponent* p;
+    };
+    Switcher _switcher(this);
+
     this->dispatch(DispatchType::SaveProject,{});
 
     invoker invoker(this);
 
     connect(&invoker, &invoker::getStdOut, this, [this](QString text){
+        text.replace("\r\n", "\n");
         this->ui->invokeLog->insertPlainText(text);
         this->update();
     });
 
-    if(invoker.analyze() == false){ return; }
+    if(invoker.analyze() != invoker::SUCCESS){ return; }
 
     const auto& outputDirPath = this->setting->tempFileDirectoryPath();
     auto outputDir = QDir(outputDirPath);

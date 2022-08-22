@@ -32,7 +32,7 @@ public slots:
     void scriptTableSelected();
     void scriptTableItemChanged(QTableWidgetItem *item);
 
-    void exportTranslateFiles();
+    bool exportTranslateFiles();
 
 private:
     Ui::WriteModeComponent* ui;

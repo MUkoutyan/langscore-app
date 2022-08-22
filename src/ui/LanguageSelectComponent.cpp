@@ -177,9 +177,6 @@ void LanguageSelectComponent::setupData()
     auto bcp47Name = settings::getLowerBcp47Name(this->locale);
     auto& langList = this->setting->languages;
     auto langData = std::find(langList.begin(), langList.end(), bcp47Name);
-    if(this->setting->defaultLanguage == bcp47Name){
-        this->setDefault(true);
-    }
 
     settings::Language attachInfo;
     if(langData != langList.end()){
@@ -222,7 +219,13 @@ void LanguageSelectComponent::setupData()
 
     this->fontPreview->setText(locale.nativeLanguageName());
 
-    this->setUseLang(attachInfo.enable);
+    if(this->setting->defaultLanguage == bcp47Name){
+        this->setDefault(true);
+        this->setUseLang(true);
+    }
+    else{
+        this->setUseLang(attachInfo.enable);
+    }
     this->setFontList(fontList, attachInfo.font.name);
     this->setFontSize(attachInfo.font.size);
 }

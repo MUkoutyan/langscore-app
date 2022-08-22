@@ -64,5 +64,9 @@ private:
 
         void setValue(Type t, const ValueType& value);
     };
+
+#ifdef LANGSCORE_GUIAPP_TEST
+    friend class LangscoreAppTest;
+#endif
 };
 

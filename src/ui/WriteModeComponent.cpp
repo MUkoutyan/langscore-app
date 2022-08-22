@@ -143,7 +143,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, MainComponent *pa
         this->dispatch(StatusMessage, {baseMessage});
         this->dispatch(SaveProject,{});
         invoker invoke(this);
-        if(invoke.analyze() == false){ return; }
+        if(invoke.analyze() != invoker::SUCCESS){ return; }
         this->clear();
         this->setup();
         this->dispatch(StatusMessage, {baseMessage+tr(" Complete."), 3000});
@@ -458,14 +458,32 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
     }
 }
 
-void WriteModeComponent::exportTranslateFiles()
+bool WriteModeComponent::exportTranslateFiles()
 {
+    class Switcher {
+    public:
+        Switcher(WriteModeComponent* p) : p(p){
+            this->p->ui->treeWidget->setEnabled(false);
+            this->p->ui->tableWidget_script->setEnabled(false);
+            this->p->ui->writeButton->setEnabled(false);
+            this->p->ui->updateButton->setEnabled(false);
+        }
+        ~Switcher(){
+            this->p->ui->treeWidget->setEnabled(true);
+            this->p->ui->tableWidget_script->setEnabled(true);
+            this->p->ui->writeButton->setEnabled(true);
+            this->p->ui->updateButton->setEnabled(true);
+        }
+        WriteModeComponent* p;
+    };
+    Switcher _switcher(this);
+
     if(this->setting->writeObj.exportDirectory.isEmpty()){
         this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
     }
 
     WriteDialog dialog(this->setting, this);
-    if(dialog.exec() == QDialog::Rejected){ return; }
+    if(dialog.exec() == QDialog::Rejected){ return true; }
 
     QDir lsProjDir(this->setting->langscoreProjectDirectory);
     auto relativePath = lsProjDir.relativeFilePath(dialog.outputPath());
@@ -481,15 +499,17 @@ void WriteModeComponent::exportTranslateFiles()
     invoker invoker(this);
 
     connect(&invoker, &invoker::getStdOut, this, [this](QString text){
+        text.replace("\r\n", "\n");
         this->ui->logText->insertPlainText(text+"\n");
         this->update();
     });
 
     this->dispatch(SaveProject,{});
-    if(invoker.write() == false){
-        return;
+    if(invoker.write() != invoker::SUCCESS){
+        return false;
     }
     this->ui->logText->insertPlainText(tr("Done."));
+    return true;
 }
 
 void WriteModeComponent::setup()
