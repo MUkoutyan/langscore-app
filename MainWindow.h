@@ -41,7 +41,7 @@ protected:
     void mousePress(QMouseEvent*);
     void mouseRealese(QMouseEvent*);
     void mouseMove(QMouseEvent*);
-    void closeEvent(QCloseEvent*);
+    void closeEvent(QCloseEvent*) override;
     void updateCursorShape(const QPoint &);
     void calculateCursorPosition(const QPoint &, Edges &);
 
