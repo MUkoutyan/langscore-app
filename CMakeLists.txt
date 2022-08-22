@@ -115,9 +115,12 @@ install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
 install(SCRIPT ${deploy_script})    # Add its runtime dependencies
 
 file(COPY ${PROJECT_SOURCE_DIR}/../langscore-divisi/rvcnv/rvcnv.exe
-          DESTINATION ${PROJECT_BINARY_DIR}/bin)
+            DESTINATION ${PROJECT_BINARY_DIR}/bin)
 file(COPY ${PROJECT_SOURCE_DIR}/../langscore-divisi/bin/divisi.exe
-          DESTINATION ${PROJECT_BINARY_DIR}/bin)
+            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+file(COPY ${PROJECT_SOURCE_DIR}/../langscore-divisi/resource
+            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+file(COPY ${PROJECT_SOURCE_DIR}/resources/fonts DESTINATION ${PROJECT_BINARY_DIR}/resources)
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(langscore-app)
