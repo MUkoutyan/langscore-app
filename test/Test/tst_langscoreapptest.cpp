@@ -1,11 +1,13 @@
 ﻿#include <QtTest>
 #include <QCoreApplication>
+#include "invoker.h"
 #include "src/settings.h"
 #include "src/ui/WriteDialog.h"
 #include "ui_WriteDialog.h"
 #include "MainWindow.h"
 #include "MainComponent.h"
 #include "ui_MainComponent.h"
+#include "src/ui/LanguageSelectComponent.h"
 #include "src/ui/WriteModeComponent.h"
 #include "src/utility.hpp"
 #include "ui_WriteModeComponent.h"
@@ -46,6 +48,8 @@ private slots:
 
     void setting_load();
 
+    void langselect_followDefault();
+
     void analyzeMode_findGameProject();
 
     void editMode_validLoad();
@@ -54,6 +58,7 @@ private slots:
     void editMode_fetchScriptItemMethod();
     void editMode_changeTableCheckState();
     void editMode_hideScriptTable();
+    void editMode_exportFile();
 
     void checkConfig_pictures();
 
@@ -225,6 +230,20 @@ void LangscoreAppTest::setting_load()
     gameProjDir.rmpath(gameProjDir.absolutePath());
 }
 
+void LangscoreAppTest::langselect_followDefault()
+{
+    MainWindow window;
+    MainComponent mainComponent(&window);
+    WriteModeComponent component(&window, &mainComponent);
+
+    mainComponent.setting->defaultLanguage = "en";
+    LanguageSelectComponent langComponents(QLocale(QLocale::Japanese), &component, &component);
+
+    langComponents.setDefault(true);
+    QVERIFY(langComponents.button->isChecked());
+
+}
+
 void LangscoreAppTest::analyzeMode_findGameProject()
 {
     MainWindow window;
@@ -265,7 +284,7 @@ void LangscoreAppTest::editMode_validLoad()
             QCOMPARE(text, "Main");
             break;
         case 1:
-            QCOMPARE(topLevelItem->childCount(), 44);
+            QCOMPARE(topLevelItem->childCount(), 31);
             QCOMPARE(text, "Script");
             break;
         case 2:
@@ -508,6 +527,29 @@ void LangscoreAppTest::editMode_hideScriptTable()
         auto scriptName = scriptNameItem->text();
         QCOMPARE(scriptName, targetScriptName);
     }
+}
+
+void LangscoreAppTest::editMode_exportFile()
+{
+    MainWindow window;
+    MainComponent mainComponent(&window);
+    WriteModeComponent component(&window, &mainComponent);
+
+    if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
+        QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
+    }
+
+    if(QDir(qApp->applicationDirPath()+"/Project1/Data/Translate").exists()){
+        QDir(qApp->applicationDirPath()+"/Project1/Data/Translate").removeRecursively();
+    }
+
+    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
+    mainComponent.openFiles(mainComponent.findGameProject({url}));
+    window.show();
+    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
+
+    invoker invoker(&component);
+    QCOMPARE(invoker.write(), 0);
 }
 
 void LangscoreAppTest::checkConfig_pictures()
