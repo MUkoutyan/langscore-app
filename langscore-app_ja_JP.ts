@@ -88,9 +88,13 @@
 <context>
     <name>LanguageSelectComponent</name>
     <message>
-        <location filename="src/ui/LanguageSelectComponent.cpp" line="27"/>
         <source>Default</source>
-        <translation>デフォルト</translation>
+        <translation type="vanished">デフォルト</translation>
+    </message>
+    <message>
+        <location filename="src/ui/LanguageSelectComponent.cpp" line="27"/>
+        <source>Original Language</source>
+        <translation>原文の言語</translation>
     </message>
 </context>
 <context>
@@ -173,6 +177,14 @@ If not, the changes will be discarded.</source>
     </message>
 </context>
 <context>
+    <name>QObject</name>
+    <message>
+        <location filename="main.cpp" line="25"/>
+        <source>The required file does not exist. Reinstall the application.</source>
+        <translation>必要なファイルが存在しません。 アプリケーションを再インストールしてみてください。</translation>
+    </message>
+</context>
+<context>
     <name>WriteDialog</name>
     <message>
         <location filename="src/ui/WriteDialog.ui" line="29"/>
@@ -217,17 +229,17 @@ If not, the changes will be discarded.</source>
         <translation>新しい内容で上書き(既存の内容は消されます)</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.cpp" line="17"/>
+        <location filename="src/ui/WriteDialog.cpp" line="21"/>
         <source>Write</source>
         <translation>書き出し</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.cpp" line="23"/>
+        <location filename="src/ui/WriteDialog.cpp" line="27"/>
         <source>Select Export Directory</source>
         <translation>出力先ディレクトリを選択</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.cpp" line="97"/>
+        <location filename="src/ui/WriteDialog.cpp" line="101"/>
         <source>The path must be a directory!</source>
         <translation>パスはディレクトリである必要があります！</translation>
     </message>
@@ -290,7 +302,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="src/ui/WriteModeComponent.ui" line="266"/>
         <location filename="src/ui/WriteModeComponent.ui" line="363"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="874"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="951"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
@@ -320,79 +332,84 @@ Unchecked text and images are excluded from translation.</source>
         <translation>翻訳CSVの書き出し</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="118"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="127"/>
         <source>Show All Contents</source>
         <translation>全ての内容を表示</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="122"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="131"/>
         <source>Hide Ignore Contents</source>
         <translation>無視にした内容を非表示</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="142"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="151"/>
         <source>Update to the latest content...</source>
         <translation>最新の内容に更新中...</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="149"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="158"/>
         <source> Complete.</source>
         <translation> 完了。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="320"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="317"/>
+        <source>Main Tree Change Enable State</source>
+        <translation>メインツリーのチェックを変更</translation>
+    </message>
+    <message>
+        <location filename="src/ui/WriteModeComponent.cpp" line="341"/>
         <source>Script Tree Change Enable State</source>
         <translation>スクリプトツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="384"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="405"/>
         <source>Graphics Tree Change Enable State</source>
         <translation>画像ツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="451"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="473"/>
         <source>Change Script Table Check</source>
         <translation>スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="478"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="518"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
 </translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="490"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="531"/>
         <source>Done.</source>
         <translation>完了。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="640"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="700"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="713"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="773"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="839"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1188"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="915"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1275"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1243"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1253"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1330"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1340"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1246"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1256"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1333"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1343"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1266"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1271"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1353"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1358"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>

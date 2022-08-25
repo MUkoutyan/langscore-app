@@ -24,7 +24,7 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
     , ComponentBase(component)
     , locale(std::move(locale))
     , button(new QPushButton("", this))
-    , defaultCheck(new QCheckBox(tr("Default"), this))
+    , defaultCheck(new QCheckBox(tr("Original Language"), this))
     , fontList(new QComboBox(this))
     , fontSize(new QSpinBox(this))
     , fontPreview(new QLineEdit("", this))

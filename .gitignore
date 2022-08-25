@@ -78,3 +78,5 @@ CMakeSettings.json
 resources/fonts
 test/build-Test-Debug
 test/build-Test-Release
+manual/output
+manual/doxygen-awesome-css
