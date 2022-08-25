@@ -1,6 +1,6 @@
-# 基本的な使い方 {#basic_usage}
+# おおまなか流れ {#basic_usage}
 
-とりあえず翻訳ファイルを出力したい
+とりあえず翻訳ファイルを出力するまでの流れを説明します。
 
 ## ゲームプロジェクトを解析する
 
@@ -41,11 +41,11 @@ Langscore.exeを開いて、ゲームプロジェクトの *フォルダ* をド
 
 ### VX Aceの場合
 
-スクリプト中のLangscore.changeLanguage(lang)を、言語文字列を指定して呼び出してください。
+スクリプト中のLangscore.changeLanguage(lang)関数に、言語文字列を指定して呼び出してください。
 
 ```
 Langscore.changeLanguage("ja")  #日本語の場合
 ```
 
-また、言語選択メニュークラス"Scene_Language"を用意しています。
+また、メニュー等から言語を選択させたい時用に、言語選択メニュークラス"Scene_Language"を用意しています。
 こちらも用途に応じてご利用ください。
