@@ -9,6 +9,10 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     _writeMode(0)
 {
     ui->setupUi(this);
+
+    //無効機能
+    this->ui->exportByLangCheck->setHidden(true);
+
     this->setObjectName("writeDialog");
     this->setWindowFlag(Qt::FramelessWindowHint);
     this->setStyleSheet("#writeDialog{border: 2px solid #ececec;}");

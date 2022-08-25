@@ -155,7 +155,7 @@ Unchecked text and images are excluded from translation.</string>
     </spacer>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,2">
      <item>
       <widget class="QTreeWidget" name="treeWidget">
        <property name="alternatingRowColors">

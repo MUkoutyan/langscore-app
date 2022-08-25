@@ -88,6 +88,7 @@ public:
     Language& fetchLanguage(QString bcp47Name);
     void removeLanguage(QString bcp47Name);
 
+    BasicData &fetchBasicDataInfo(QString fileName);
     ScriptInfo &fetchScriptInfo(QString fileName);
     void removeScriptInfoPoint(QString fileName, std::pair<size_t, size_t> point);
 

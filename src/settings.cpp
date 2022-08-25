@@ -162,6 +162,24 @@ void settings::removeLanguage(QString bcp47Name)
     this->languages.erase(result);
 }
 
+settings::BasicData &settings::fetchBasicDataInfo(QString fileName)
+{
+    fileName = QFileInfo(fileName).completeBaseName() + ".json";
+    auto& list = writeObj.basicDataInfo;
+    auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x){
+        return x.name == name;
+    });
+
+    if(result != list.end()){
+        return *result;
+    }
+
+    list.emplace_back(
+        settings::BasicData{fileName, false, 0}
+    );
+    return list[list.size() - 1];
+}
+
 settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 {
     fileName = QFileInfo(fileName).completeBaseName() + ::scriptExt(projectType);
@@ -362,6 +380,16 @@ void settings::load(QString path)
 
     writeObj.exportDirectory = write[key(JsonKey::ExportDirectory)].toString("");
     writeObj.exportByLanguage = write[key(JsonKey::ExportByLang)].toBool(false);
+
+    auto basicScripts = write[key(JsonKey::RPGMakerBasicData)].toArray();
+    for(auto jsonInfo : basicScripts)
+    {
+        auto jsonScript = jsonInfo.toObject();
+        BasicData info;
+        info.name = jsonScript[key(JsonKey::Name)].toString();
+        info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
+        this->writeObj.basicDataInfo.emplace_back(std::move(info));
+    }
 
     auto jsonScripts = write[key(JsonKey::RPGMakerScripts)].toArray();
     for(auto jsonInfo : jsonScripts)

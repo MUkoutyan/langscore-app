@@ -30,6 +30,11 @@ enum TreeItemType{
     Pictures
 };
 
+enum TreeColIndex{
+    CheckBox = 0,
+    Name
+};
+
 enum ScriptTableCol : int {
     EnableCheck = 0,
     ScriptName,
@@ -66,7 +71,7 @@ QTreeWidgetItem* getTopLevelItem(QTreeWidgetItem* item){
 
 QString getFileName(QTreeWidgetItem* item){
     assert(1 < item->columnCount());
-    return item->data(1, Qt::UserRole).toString();
+    return item->data(TreeColIndex::Name, Qt::UserRole).toString();
 }
 QString getFileName(QTableWidgetItem* item){
     assert(item->column() == ScriptTableCol::ScriptName);
@@ -75,7 +80,7 @@ QString getFileName(QTableWidgetItem* item){
 
 QString getScriptName(QTreeWidgetItem* item){
     assert(1 < item->columnCount());
-    return item->text(1);
+    return item->text(TreeColIndex::Name);
 }
 QString getScriptName(QTableWidgetItem* item){
     assert(item->column() == ScriptTableCol::ScriptName);
@@ -95,9 +100,13 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, MainComponent *pa
     , showAllScriptContents(true)
     , _suspendHistory(false)
 {
+
     ui->setupUi(this);
     this->ui->modeDesc->hide();
     this->setAcceptDrops(true);
+
+    //無効機能
+    this->ui->updateButton->setHidden(true);
 
     {
         auto icon = this->ui->scriptFilterButton->icon();
@@ -208,11 +217,11 @@ void WriteModeComponent::treeItemSelected()
     auto topLevelItem = getTopLevelItem(item);
     if(topLevelItem == nullptr){ return; }
 
-    const auto treeType = topLevelItem->data(0, Qt::UserRole);
+    const auto treeType = topLevelItem->data(TreeColIndex::CheckBox, Qt::UserRole);
     if(treeType == TreeItemType::Main){
-        auto fileName = item->data(0, Qt::UserRole).toString();
+        auto fileName = item->data(TreeColIndex::Name, Qt::UserRole).toString();
         this->ui->tabWidget->setCurrentIndex(1);
-        showNormalCsvText(fileName);
+        showNormalCsvText(item->text(TreeColIndex::Name), fileName);
     }
     else if(treeType == TreeItemType::Script)
     {
@@ -264,15 +273,13 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
     if(topLevelItem == nullptr){ return; }
     if(column != 0){ return; }
 
-    const auto treeType = topLevelItem->data(0, Qt::UserRole);
-    if(treeType == TreeItemType::Main){ return; }
+    const auto treeType = topLevelItem->data(TreeColIndex::CheckBox, Qt::UserRole);
 
     auto selectedItems = this->ui->treeWidget->selectedItems();
     if(selectedItems.contains(_item) == false){
         selectedItems.clear();
         selectedItems.emplace_back(_item);
     }
-
     auto newCheckVal = _item->checkState(0);
 
     const auto NotifyTreeUndoCommand = [this](std::vector<QUndoCommand *> result, QString groupName){
@@ -296,7 +303,20 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
         }
     };
 
-    if(treeType == TreeItemType::Script)
+    if(treeType == TreeItemType::Main)
+    {
+        auto fileName = ::getFileName(_item);
+        const auto& basicData = this->setting->fetchBasicDataInfo(fileName);
+        auto treeCheckState = basicData.ignore ? Qt::Unchecked : Qt::Checked;
+        std::vector<QUndoCommand *> result;
+        for(auto item : selectedItems){
+            if(newCheckVal == treeCheckState){ continue; }
+            result.emplace_back(new TreeUndo(this, item, newCheckVal, treeCheckState));
+        }
+
+        NotifyTreeUndoCommand(std::move(result), tr("Main Tree Change Enable State"));
+    }
+    else if(treeType == TreeItemType::Script)
     {
         auto fileName = ::getFileName(_item);
         const auto& scriptList = this->setting->fetchScriptInfo(fileName);
@@ -581,6 +601,7 @@ void WriteModeComponent::setupTree()
     const auto translateFolder = this->setting->tempFileDirectoryPath();
     //Main
     {
+        auto mapInfosCsv = readCsv(translateFolder + "/MapInfos.csv");
         QDir sourceDir(this->setting->tempFileDirectoryPath());
         auto files = sourceDir.entryInfoList();
 
@@ -595,17 +616,47 @@ void WriteModeComponent::setupTree()
         {
             if(file.suffix() != "json"){ continue; }
 
-            auto fileName = file.completeBaseName();
-            if(fileName == "config"){ continue; }
-            else if(fileName == "Scripts"){ continue; }
-            else if(fileName == "Graphics"){ continue; }
+            auto fileViewName = file.completeBaseName();
+            if(fileViewName == "config"){ continue; }
+            else if(fileViewName == "Scripts"){ continue; }
+            else if(fileViewName == "Graphics"){ continue; }
 
-            if(QFile::exists(translateFolder + "/" + fileName + ".csv") == false){
+            if(QFile::exists(translateFolder + "/" + fileViewName + ".csv") == false){
                 continue;
             }
+            int mapID = -1;
+            if(QRegularExpression("Map\\d\\d\\d").match(fileViewName).hasMatch())
+            {
+                auto fileID = fileViewName;
+                fileID.remove("Map");
+                bool isOK = false;
+                mapID = fileID.toInt(&isOK);
+                if(isOK == false){
+                    mapID = -1;
+                }
+                else{
+                    auto result = std::find_if(mapInfosCsv.cbegin(), mapInfosCsv.cend(), [mapID](const auto& x){
+                        return x[0].toInt() == mapID;
+                    });
+                    if(result != mapInfosCsv.cend()){
+                        fileViewName += "("+ (*result)[2] +")";
+                    }
+                }
+            }
             auto child = new QTreeWidgetItem();
-            child->setText(0, fileName);
-            child->setData(0, Qt::UserRole, fileName);
+            child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
+            child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
+            child->setText(TreeColIndex::Name, fileViewName);
+            child->setData(TreeColIndex::Name, Qt::UserRole, file.fileName());
+
+            const auto& basicDataInfo = this->setting->writeObj.basicDataInfo;
+            auto result = std::find_if(basicDataInfo.cbegin(), basicDataInfo.cend(), [fileName = file.fileName()](const auto& x){
+                return x.name.contains(fileName);
+            });
+            if(result != basicDataInfo.cend()){
+                child->setCheckState(TreeColIndex::CheckBox, result->ignore ? Qt::Unchecked : Qt::Checked);
+            }
+
             mainItem->addChild(child);
         }
     }
@@ -657,12 +708,12 @@ void WriteModeComponent::setupTree()
                 continue;
             }
             auto child = new QTreeWidgetItem();
-            child->setData(0, Qt::CheckStateRole, true);
+            child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
             //チェックを外すとこのスクリプトを翻訳から除外します。
-            child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
-            child->setText(1, scriptName);
-            child->setData(1, Qt::UserRole, withoutExtension(file.fileName()));
-            child->setCheckState(0, Qt::Checked);
+            child->setToolTip(TreeColIndex::CheckBox, tr("Unchecking the box excludes this script from translation."));
+            child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
+            child->setText(TreeColIndex::Name, scriptName);
+            child->setData(TreeColIndex::Name, Qt::UserRole, withoutExtension(file.fileName()));
 
             const auto& scriptList = this->setting->writeObj.scriptInfo;
             auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&scriptFileName](const auto& script){
@@ -671,13 +722,13 @@ void WriteModeComponent::setupTree()
             if(result != scriptList.cend())
             {
                 if(result->ignore){
-                    child->setCheckState(0, Qt::Unchecked);
+                    child->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
                 }
                 else if(result->ignorePoint.empty() == false){
-                    child->setCheckState(0, Qt::PartiallyChecked);
+                    child->setCheckState(TreeColIndex::CheckBox, Qt::PartiallyChecked);
                 }
                 else{
-                    child->setCheckState(0, Qt::Checked);
+                    child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
                 }
             }
 
@@ -717,33 +768,33 @@ void WriteModeComponent::setupTree()
 
                 auto pictureFileName = pict.completeBaseName();
                 auto child = new QTreeWidgetItem();
-                child->setData(0, Qt::CheckStateRole, true);
+                child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
                 //チェックを外すとこのスクリプトを翻訳から除外します。
                 child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
-                child->setText(1, pictureFileName);
-                child->setData(1, Qt::UserRole, graphicsFolder.relativeFilePath(pict.absoluteFilePath()));
-                child->setCheckState(0, Qt::Checked);
+                child->setText(TreeColIndex::Name, pictureFileName);
+                child->setData(TreeColIndex::Name, Qt::UserRole, graphicsFolder.relativeFilePath(pict.absoluteFilePath()));
+                child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
 
                 auto& pixtureList = this->setting->writeObj.ignorePicturePath;
                 auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&pictureFileName](const auto& pic){
                     return QFileInfo(pic).completeBaseName() == pictureFileName;
                 });
                 if(result != pixtureList.end()){
-                    child->setCheckState(0, Qt::Unchecked);
+                    child->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
                     ignorePictures++;
                 }
                 else {
-                    child->setCheckState(0, Qt::Checked);
+                    child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
                 }
 
                 folderRoot->addChild(child);
             }
 
             if(0 < numPictures){
-                folderRoot->setData(0, Qt::CheckStateRole, true);
-                if(ignorePictures == 0){ folderRoot->setCheckState(0, Qt::Checked); }
-                else if(ignorePictures < numPictures){ folderRoot->setCheckState(0, Qt::PartiallyChecked); }
-                else{ folderRoot->setCheckState(0, Qt::Unchecked); }
+                folderRoot->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
+                if(ignorePictures == 0){ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Checked); }
+                else if(ignorePictures < numPictures){ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::PartiallyChecked); }
+                else{ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked); }
             }
         }
     }
@@ -826,6 +877,7 @@ void WriteModeComponent::setupScriptCsvText()
         {
             auto* item = new QTableWidgetItem(originalText);
             item->setForeground(textColor);
+            item->setFlags(Qt::ItemIsEnabled);
             targetTable->setItem(r, ScriptTableCol::Original, item);
 
             checkItem->setData(Qt::CheckStateRole, IsIgnoreText(lineParsedResult) ? Qt::Unchecked : Qt::Checked);
@@ -842,6 +894,7 @@ void WriteModeComponent::setupScriptCsvText()
             auto scriptName = getScriptName(fileName);
             auto* item = new QTableWidgetItem(scriptName);
             item->setForeground(textColor);
+            item->setFlags(Qt::ItemIsEnabled);
             item->setData(Qt::UserRole, withoutExtension(fileName));
             targetTable->setItem(r, ScriptTableCol::ScriptName, item);
         }
@@ -849,6 +902,7 @@ void WriteModeComponent::setupScriptCsvText()
         {
             auto* item = new QTableWidgetItem(QString("%1:%2").arg(row).arg(col));
             item->setForeground(textColor);
+            item->setFlags(Qt::ItemIsEnabled);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
         }
     }
@@ -862,20 +916,21 @@ void WriteModeComponent::setupScriptCsvText()
 }
 
 
-void WriteModeComponent::showNormalCsvText(QString fileName)
+void WriteModeComponent::showNormalCsvText(QString treeItemName, QString fileName)
 {
     const auto translateFolder = this->setting->tempFileDirectoryPath();
-    auto csv = readCsv(translateFolder + "/" + fileName + ".csv");
+    auto csv = readCsv(translateFolder + "/" + withoutExtension(fileName) + ".csv");
     if(csv.empty()){ return; }
 
-    this->ui->mainFileName->setText(fileName);
+    this->ui->mainFileName->setText(treeItemName);
 
     const auto& header = csv[0];
+    auto numTableItems = csv.size()-1;
     QTableWidget *targetTable = this->ui->tableWidget;
     targetTable->clear();
     targetTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    targetTable->setRowCount(csv.size());
+    targetTable->setRowCount(numTableItems);
     targetTable->setColumnCount(header.size());
     for(int c=0; c<header.size(); ++c){
         auto* item = new QTableWidgetItem(header[c]);
@@ -883,7 +938,7 @@ void WriteModeComponent::showNormalCsvText(QString fileName)
     }
 
     size_t wordCount = 0;
-    for(int r=0; r<csv.size()-1; ++r)
+    for(int r=0; r<numTableItems; ++r)
     {
         const auto& line = csv[r+1];
         for(int c=0; c<line.size(); ++c){
@@ -902,11 +957,14 @@ void WriteModeComponent::setTreeItemCheck(QTreeWidgetItem *item, Qt::CheckState 
     const bool ignore = check == Qt::Unchecked;
     auto topLevelItem = getTopLevelItem(item);
     if(topLevelItem == nullptr){ return; }
-    const auto treeType = topLevelItem->data(0, Qt::UserRole);
-    if(treeType == TreeItemType::Main){ return; }
-
+    const auto treeType = topLevelItem->data(TreeColIndex::CheckBox, Qt::UserRole);
     item->setCheckState(0, check);
-    if(treeType == TreeItemType::Pictures){
+    if(treeType == TreeItemType::Main){
+        writeToBasicDataListSetting(item, ignore);
+        this->update();
+        return;
+    }
+    else if(treeType == TreeItemType::Pictures){
         writeToPictureListSetting(item, ignore);
         this->update();
         return;
@@ -979,6 +1037,13 @@ void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::Che
     }
 
     this->update();
+}
+
+void WriteModeComponent::writeToBasicDataListSetting(QTreeWidgetItem *item, bool ignore)
+{
+    auto fileName = ::getFileName(item);
+    auto& info = this->setting->fetchBasicDataInfo(fileName);
+    info.ignore = ignore;
 }
 
 void WriteModeComponent::writeToScriptListSetting(QTreeWidgetItem *item, bool ignore)
@@ -1156,7 +1221,7 @@ QTreeWidgetItem* WriteModeComponent::fetchScriptTreeSameFileItem(QString scriptN
     for(int i=0; i<numItems; ++i)
     {
         auto parentItem = this->ui->treeWidget->topLevelItem(i);
-        const auto treeType = parentItem->data(0, Qt::UserRole);
+        const auto treeType = parentItem->data(TreeColIndex::CheckBox, Qt::UserRole);
         if(treeType != TreeItemType::Script){ continue; }
 
         auto numChilds = parentItem->childCount();

@@ -48,10 +48,11 @@ private:
     void setupScriptCsvText();
     void setupTree();
 
-    void showNormalCsvText(QString fileName);
+    void showNormalCsvText(QString treeItemName, QString fileName);
     void setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
     void setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
 
+    void writeToBasicDataListSetting(QTreeWidgetItem *item, bool ignore);
     void writeToScriptListSetting(QTreeWidgetItem *item, bool ignore);
     void writeToIgnoreScriptLine(int row, bool ignore);
     void writeToPictureListSetting(QTreeWidgetItem *item, bool ignore);
