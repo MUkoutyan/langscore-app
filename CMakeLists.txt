@@ -50,7 +50,7 @@ set(PROJECT_SOURCES
 )
 
 include_directories(
-        "../langscore-divisi/include"
+        "${DIVISI_PATH}/include"
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -114,11 +114,11 @@ install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
 )
 install(SCRIPT ${deploy_script})    # Add its runtime dependencies
 
-file(COPY ${PROJECT_SOURCE_DIR}/../langscore-divisi/rvcnv/rvcnv.exe
+file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/rvcnv/rvcnv.exe
             DESTINATION ${PROJECT_BINARY_DIR}/bin)
-file(COPY ${PROJECT_SOURCE_DIR}/../langscore-divisi/bin/divisi.exe
+file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe
             DESTINATION ${PROJECT_BINARY_DIR}/bin)
-file(COPY ${PROJECT_SOURCE_DIR}/../langscore-divisi/resource
+file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/resource
             DESTINATION ${PROJECT_BINARY_DIR}/bin)
 file(COPY ${PROJECT_SOURCE_DIR}/resources/fonts DESTINATION ${PROJECT_BINARY_DIR}/resources)
 
