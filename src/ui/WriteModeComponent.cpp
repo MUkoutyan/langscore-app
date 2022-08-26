@@ -873,11 +873,12 @@ void WriteModeComponent::setupScriptCsvText()
         checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEditable | Qt::ItemIsEnabled);
         targetTable->setItem(r, ScriptTableCol::EnableCheck, checkItem);
 
+        const auto scriptTableItemFlags = Qt::ItemIsEnabled|Qt::ItemIsSelectable;
         //名前
         {
             auto* item = new QTableWidgetItem(originalText);
             item->setForeground(textColor);
-            item->setFlags(Qt::ItemIsEnabled);
+            item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::Original, item);
 
             checkItem->setData(Qt::CheckStateRole, IsIgnoreText(lineParsedResult) ? Qt::Unchecked : Qt::Checked);
@@ -894,7 +895,7 @@ void WriteModeComponent::setupScriptCsvText()
             auto scriptName = getScriptName(fileName);
             auto* item = new QTableWidgetItem(scriptName);
             item->setForeground(textColor);
-            item->setFlags(Qt::ItemIsEnabled);
+            item->setFlags(scriptTableItemFlags);
             item->setData(Qt::UserRole, withoutExtension(fileName));
             targetTable->setItem(r, ScriptTableCol::ScriptName, item);
         }
@@ -902,7 +903,7 @@ void WriteModeComponent::setupScriptCsvText()
         {
             auto* item = new QTableWidgetItem(QString("%1:%2").arg(row).arg(col));
             item->setForeground(textColor);
-            item->setFlags(Qt::ItemIsEnabled);
+            item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
         }
     }
