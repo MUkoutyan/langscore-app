@@ -10,6 +10,3 @@ Langscore内部で使用しているrvcnv.exeが、トロイの木馬として�
 
 Powershellやハッシュ値比較ソフトでMD5の比較を行う際に利用してください。
 
-* Langscore.exe : LANGSCORE_HASH
-* divisi.exe : DIVISI_HASH
-* rvcnv.exe : RVCNV_HASH
