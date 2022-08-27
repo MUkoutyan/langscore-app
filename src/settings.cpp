@@ -383,8 +383,9 @@ void settings::load(QString path)
 
     writeObj.exportDirectory = write[key(JsonKey::ExportDirectory)].toString("");
     writeObj.exportByLanguage = write[key(JsonKey::ExportByLang)].toBool(false);
-    writeObj.overwriteLangscore = write[key(JsonKey::OverwriteLangscore)].toBool(true);
-    writeObj.overwriteLangscoreCustom = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(true);
+    //保存したいようなフラグではないため、設定値を読み込まない
+//    writeObj.overwriteLangscore = write[key(JsonKey::OverwriteLangscore)].toBool(false);
+//    writeObj.overwriteLangscoreCustom = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
 
     auto basicScripts = write[key(JsonKey::RPGMakerBasicData)].toArray();
     for(auto jsonInfo : basicScripts)

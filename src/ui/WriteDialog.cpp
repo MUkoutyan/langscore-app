@@ -22,7 +22,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     okButton->setText(tr("Write"));
 
     auto scriptList = langscore::readCsv(settings->tempScriptFileDirectoryPath()+"/_list.csv");
-    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) != scriptList.cend()){
+    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) == scriptList.cend()){
         this->ui->updateLsScript->setEnabled(false);
         //langscore_customスクリプトファイルがまだ追加されていません。
         this->ui->updateLsCustomScript->setToolTip(tr("The langscore script file has not yet been added."));
@@ -34,7 +34,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         });
     }
 
-    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) != scriptList.cend()){
+    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) == scriptList.cend()){
         this->ui->updateLsCustomScript->setEnabled(false);
         //langscore_customスクリプトファイルがまだ追加されていません。
         this->ui->updateLsCustomScript->setToolTip(tr("The langscore_custom script file has not yet been added."));
