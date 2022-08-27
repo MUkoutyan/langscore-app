@@ -74,6 +74,8 @@ static const std::map<JsonKey, const char*> jsonKeys = {
     MAKE_KEYVALUE(RPGMakerOutputPath),
     MAKE_KEYVALUE(RPGMakerBasicData),
     MAKE_KEYVALUE(RPGMakerScripts),
+    MAKE_KEYVALUE(OverwriteLangscore),
+    MAKE_KEYVALUE(OverwriteLangscoreCustom),
 };
 
 inline const char* key(JsonKey key)
