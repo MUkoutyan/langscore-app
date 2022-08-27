@@ -1,5 +1,6 @@
 ﻿#include "WriteDialog.h"
 #include "ui_WriteDialog.h"
+#include "../csv.hpp"
 #include <QFileDialog>
 #include <QActionGroup>
 
@@ -19,6 +20,31 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
 
     auto okButton = this->ui->buttonBox->button(QDialogButtonBox::Ok);
     okButton->setText(tr("Write"));
+
+    auto scriptList = langscore::readCsv(settings->tempScriptFileDirectoryPath()+"/_list.csv");
+    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) != scriptList.cend()){
+        this->ui->updateLsScript->setEnabled(false);
+        //langscore_customスクリプトファイルがまだ追加されていません。
+        this->ui->updateLsCustomScript->setToolTip(tr("The langscore script file has not yet been added."));
+    }
+    else{
+        this->ui->updateLsScript->setChecked(settings->writeObj.overwriteLangscore);
+        connect(this->ui->updateLsScript, &QCheckBox::clicked, this, [setting = settings](bool check){
+            setting->writeObj.overwriteLangscore = check;
+        });
+    }
+
+    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) != scriptList.cend()){
+        this->ui->updateLsCustomScript->setEnabled(false);
+        //langscore_customスクリプトファイルがまだ追加されていません。
+        this->ui->updateLsCustomScript->setToolTip(tr("The langscore_custom script file has not yet been added."));
+    }
+    else{
+        this->ui->updateLsCustomScript->setChecked(settings->writeObj.overwriteLangscoreCustom);
+        connect(this->ui->updateLsCustomScript, &QCheckBox::clicked, this, [setting = settings](bool check){
+            setting->writeObj.overwriteLangscoreCustom = check;
+        });
+    }
 
     connect(this->ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(this->ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::rejected);

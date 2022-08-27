@@ -202,44 +202,66 @@ If not, the changes will be discarded.</source>
         <translation>...</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.ui" line="71"/>
+        <location filename="src/ui/WriteDialog.ui" line="87"/>
         <source>Export files by language</source>
         <translation>言語ごとに書き出す</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.ui" line="78"/>
+        <location filename="src/ui/WriteDialog.ui" line="94"/>
         <source>Backup affected files</source>
         <translation>影響のあるファイルをバックアップする</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.ui" line="147"/>
+        <location filename="src/ui/WriteDialog.ui" line="104"/>
+        <source>Overwrite langscore Script</source>
+        <oldsource>Update langscore Script</oldsource>
+        <translation>langscoreスクリプトを上書き</translation>
+    </message>
+    <message>
+        <location filename="src/ui/WriteDialog.ui" line="111"/>
+        <source>Overwrite langscore_custom Script</source>
+        <oldsource>Update langscore_custom Script</oldsource>
+        <translation>langscore_customスクリプトを上書き</translation>
+    </message>
+    <message>
+        <location filename="src/ui/WriteDialog.ui" line="190"/>
         <source>The file already exists!</source>
         <translation>既にファイルが存在しています！</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.ui" line="176"/>
+        <location filename="src/ui/WriteDialog.ui" line="219"/>
         <source>Leave and overwrite existing translations</source>
         <extracomment>既存の翻訳を残して上書き</extracomment>
         <translation>既存の翻訳を残して上書き</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.ui" line="189"/>
+        <location filename="src/ui/WriteDialog.ui" line="232"/>
         <source>Overwrite by New  (Translations already written will be erased.)</source>
         <extracomment>新しい内容で上書き(既存の内容は消されます)</extracomment>
         <translation>新しい内容で上書き(既存の内容は消されます)</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.cpp" line="21"/>
+        <location filename="src/ui/WriteDialog.cpp" line="22"/>
         <source>Write</source>
         <translation>書き出し</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.cpp" line="27"/>
+        <location filename="src/ui/WriteDialog.cpp" line="28"/>
+        <source>The langscore script file has not yet been added.</source>
+        <translation>langscoreスクリプトファイルがまだ追加されていません。</translation>
+    </message>
+    <message>
+        <location filename="src/ui/WriteDialog.cpp" line="40"/>
+        <source>The langscore_custom script file has not yet been added.</source>
+        <translation>langscore_customスクリプトファイルがまだ追加されていません。</translation>
+    </message>
+    <message>
+        <location filename="src/ui/WriteDialog.cpp" line="53"/>
         <source>Select Export Directory</source>
         <translation>出力先ディレクトリを選択</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteDialog.cpp" line="101"/>
+        <location filename="src/ui/WriteDialog.cpp" line="127"/>
         <source>The path must be a directory!</source>
         <translation>パスはディレクトリである必要があります！</translation>
     </message>
@@ -252,12 +274,12 @@ If not, the changes will be discarded.</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="31"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="28"/>
         <source>Create Translate File Mode</source>
         <translation>翻訳ファイル作成モード</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="44"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="41"/>
         <source>View the translation files and choose which text and images to include in your translation. *Cannot be edited.*
 Unchecked text and images are excluded from translation.</source>
         <extracomment>翻訳ファイルの閲覧や、翻訳にどのテキストや画像を含めるかなどを選択することが出来ます。※編集は出来ません。チェックを外したテキスト・画像は、翻訳対象から外れます。</extracomment>
@@ -265,69 +287,69 @@ Unchecked text and images are excluded from translation.</source>
 チェックを外したテキスト・画像は、翻訳対象から外れます。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="91"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="88"/>
         <source>Game Project</source>
         <translation>ゲームプロジェクト</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="121"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="118"/>
         <source>Langscore Project</source>
         <translation>Langscoreプロジェクト</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="135"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="132"/>
         <source>Reanalyze</source>
         <translation>再解析</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="183"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="182"/>
         <source>2</source>
         <translation>2</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="195"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="192"/>
         <source>Language</source>
         <translation>言語</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="217"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="214"/>
         <source>Main</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="246"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="243"/>
         <source>FileName</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="266"/>
-        <location filename="src/ui/WriteModeComponent.ui" line="363"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="951"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="263"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="360"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="952"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="304"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="301"/>
         <source>Scripts</source>
         <translation>スクリプト</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="343"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="340"/>
         <source>ScriptName</source>
         <translation>スクリプト名</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="424"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="421"/>
         <source>Graphic</source>
         <translation>画像</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="453"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="450"/>
         <source>Log</source>
         <translation>ログ</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.ui" line="495"/>
+        <location filename="src/ui/WriteModeComponent.ui" line="491"/>
         <source>Write Translate CSV</source>
         <translation>翻訳CSVの書き出し</translation>
     </message>
@@ -390,26 +412,26 @@ Unchecked text and images are excluded from translation.</source>
         <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="915"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1275"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="916"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1276"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1330"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1340"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1331"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1341"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1333"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1343"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1334"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1344"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1353"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1358"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1354"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1359"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>

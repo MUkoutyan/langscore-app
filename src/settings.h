@@ -72,6 +72,8 @@ public:
         QString unisonCustomFuncComment = "";
         QString exportDirectory;
         bool exportByLanguage = false;
+        bool overwriteLangscore = true;
+        bool overwriteLangscoreCustom = true;
         std::vector<ScriptInfo> scriptInfo;
         std::vector<BasicData> basicDataInfo;
 

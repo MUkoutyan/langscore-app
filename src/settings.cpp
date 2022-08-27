@@ -39,6 +39,8 @@ enum class JsonKey : size_t
     RPGMakerOutputPath,
     RPGMakerBasicData,
     RPGMakerScripts,
+    OverwriteLangscore,
+    OverwriteLangscoreCustom,
 
     NumKeys,
 };
@@ -248,7 +250,8 @@ QByteArray settings::createJson()
     write[key(JsonKey::UsCustomFuncComment)] = "Scripts/{0}#{1},{2}";
     write[key(JsonKey::ExportDirectory)] = QDir(this->langscoreProjectDirectory).relativeFilePath(writeObj.exportDirectory);
     write[key(JsonKey::ExportByLang)] = writeObj.exportByLanguage;
-
+    write[key(JsonKey::OverwriteLangscore)] = writeObj.overwriteLangscore;
+    write[key(JsonKey::OverwriteLangscoreCustom)] = writeObj.overwriteLangscoreCustom;
 
     QJsonArray basicDataList;
     for(const auto& info : writeObj.basicDataInfo)
@@ -380,6 +383,8 @@ void settings::load(QString path)
 
     writeObj.exportDirectory = write[key(JsonKey::ExportDirectory)].toString("");
     writeObj.exportByLanguage = write[key(JsonKey::ExportByLang)].toBool(false);
+    writeObj.overwriteLangscore = write[key(JsonKey::OverwriteLangscore)].toBool(true);
+    writeObj.overwriteLangscoreCustom = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(true);
 
     auto basicScripts = write[key(JsonKey::RPGMakerBasicData)].toArray();
     for(auto jsonInfo : basicScripts)
