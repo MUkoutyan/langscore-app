@@ -1,4 +1,6 @@
 ﻿#include "settings.h"
+#include "utility.hpp"
+#include "csv.hpp"
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QJsonObject>
@@ -400,11 +402,27 @@ void settings::load(QString path)
     }
 
     auto jsonScripts = write[key(JsonKey::RPGMakerScripts)].toArray();
+    auto scriptList = langscore::readCsv(this->tempScriptFileDirectoryPath()+"/_list.csv");
     for(auto jsonInfo : jsonScripts)
     {
         auto jsonScript = jsonInfo.toObject();
-        ScriptInfo info;
-        info.name = jsonScript[key(JsonKey::Name)].toString();
+        auto fileName = jsonScript[key(JsonKey::Name)].toString();
+
+        fileName = langscore::withoutExtension(fileName);
+
+        ScriptInfo& info = this->fetchScriptInfo(fileName);
+        if(std::count_if(fileName.cbegin(), fileName.cend(), [](const auto c){
+            return c < '0' || '9' < c;
+        }) > 0){
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&fileName](const auto& x){ return x[1] == fileName; });
+            if(result != scriptList.cend()){
+                info.name = (*result)[0];
+            }
+        }
+        else {
+            info.name = fileName;
+        }
+
         info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
 
         auto jsonIgnorePoints = jsonScript[key(JsonKey::IgnorePoints)].toArray();
@@ -419,7 +437,7 @@ void settings::load(QString path)
                         };
             info.ignorePoint.emplace_back(std::move(pair));
         }
-        this->writeObj.scriptInfo.emplace_back(std::move(info));
+//        this->writeObj.scriptInfo.emplace_back(std::move(info));
     }
 
     auto jsonIgnorePictures = write[key(JsonKey::IgnorePictures)].toArray();
