@@ -1,6 +1,5 @@
 ﻿#include "WriteModeComponent.h"
 #include "ui_WriteModeComponent.h"
-#include "MainComponent.h"
 #include "LanguageSelectComponent.h"
 #include "WriteDialog.h"
 #include "../utility.hpp"
@@ -18,6 +17,7 @@
 #include <QActionGroup>
 #include <QScrollBar>
 #include <QMimeData>
+#include <QGraphicsBlurEffect>
 
 #include <functional>
 #include <unordered_map>
@@ -89,11 +89,10 @@ QString getScriptName(QTableWidgetItem* item){
 
 } //namespace {
 
-WriteModeComponent::WriteModeComponent(ComponentBase* setting, MainComponent *parent)
+WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     : QWidget{parent}
     , ComponentBase(setting)
     , ui(new Ui::WriteModeComponent)
-    , _parent(parent)
     , scene(new QGraphicsScene(this))
     , languageButtons()
     , currentScriptWordCount(0)
@@ -423,7 +422,8 @@ void WriteModeComponent::scriptTableSelected()
     auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + "/" + fileName + GetScriptExtension(this->setting->projectType);
     this->ui->scriptViewer->showFile(scriptFilePath);
 
-    this->ui->scriptFileName->setText(fileName);
+    auto scriptName = ::getScriptName(scriptNameItem);
+    this->ui->scriptFileName->setText(scriptName + "(" + fileName + ")");
 
     //スクリプトのスクロール
     int textLen = 0;
@@ -487,12 +487,14 @@ bool WriteModeComponent::exportTranslateFiles()
             this->p->ui->tableWidget_script->setEnabled(false);
             this->p->ui->writeButton->setEnabled(false);
             this->p->ui->updateButton->setEnabled(false);
+            p->setGraphicsEffect(new QGraphicsBlurEffect);
         }
         ~Switcher(){
             this->p->ui->treeWidget->setEnabled(true);
             this->p->ui->tableWidget_script->setEnabled(true);
             this->p->ui->writeButton->setEnabled(true);
             this->p->ui->updateButton->setEnabled(true);
+            p->setGraphicsEffect({});
         }
         WriteModeComponent* p;
     };
@@ -523,6 +525,7 @@ bool WriteModeComponent::exportTranslateFiles()
         this->ui->logText->insertPlainText(text+"\n");
         this->update();
     });
+    connect(&invoker, &invoker::update, this, [this](){ this->update(); });
 
     this->dispatch(SaveProject,{});
     if(invoker.write() != invoker::SUCCESS){
@@ -1127,7 +1130,7 @@ QString WriteModeComponent::getScriptFileName(QString scriptName)
 QString WriteModeComponent::getScriptFileNameFromTable(int row)
 {
     if(auto scriptNameItem = this->scriptTableItem(row, ScriptTableCol::ScriptName)){
-        return ::getScriptName(scriptNameItem);
+        return ::getFileName(scriptNameItem);
     }
     return "";
 }

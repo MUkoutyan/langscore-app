@@ -28,15 +28,16 @@ const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
 };
 
 MainComponent::MainComponent(ComponentBase *setting, QWidget *parent) :
-    QWidget(parent),
+    QDialog(parent),
     ComponentBase(setting),
-    ui(new Ui::MainComponent()),
-    writeUi(new WriteModeComponent(setting, this))
+    ui(new Ui::AnalyzeDialog())
 {
-    this->setAcceptDrops(true); //D&D許可
-
     this->ui->setupUi(this);
-    this->ui->base->addWidget(writeUi);
+    this->setAcceptDrops(true); //D&D許可
+    this->setWindowFlag(Qt::FramelessWindowHint);
+
+    this->setObjectName("analyzeDialog");
+    this->setStyleSheet("#analyzeDialog{border: 2px solid #3f3f3f;}");
 
     connect(this->ui->analyzeButton, &QPushButton::clicked, this, &MainComponent::invokeAnalyze);
 
@@ -84,7 +85,6 @@ bool MainComponent::event(QEvent *event)
 void MainComponent::openFiles(std::pair<QString, settings::ProjectType> fileInfo)
 {
     this->history->clear();
-    this->writeUi->clear();
 
     auto path = fileInfo.first;
     this->setting->projectType = fileInfo.second;
@@ -96,7 +96,7 @@ void MainComponent::openFiles(std::pair<QString, settings::ProjectType> fileInfo
         {
             this->setting->load(projFile);
         }
-        toWriteMode();
+        emit this->toWriteMode();
     }
     else{
         toAnalyzeMode();
@@ -137,35 +137,6 @@ void MainComponent::toAnalyzeMode()
     this->ui->lineEdit->setText(this->setting->langscoreProjectDirectory);
     this->ui->lineEdit->setReadOnly(false);
     this->ui->invokeLog->setVisible(true);
-
-    this->ui->base->setCurrentIndex(0);
-}
-
-void MainComponent::toWriteMode()
-{
-    auto&& settings = ComponentBase::getAppSettings();
-    auto projDir = this->setting->gameProjectPath;
-    QVariantList recentFiles;
-    auto recentList = settings.value("recentFiles", recentFiles).toList();
-    if(recentList.size() >= 8){
-        recentList.remove(7, qMin(1, recentList.size()-7));
-    }
-    int index = 0;
-    for(auto& obj : recentList){
-        if(obj.toString() == projDir){
-            recentList.removeAt(index);
-            break;
-        }
-        ++index;
-    }
-    recentList.insert(0, QVariant(projDir));
-    settings.setValue("recentFiles", recentList);
-    settings.sync();
-
-    this->writeUi->show();
-    this->ui->base->setCurrentIndex(1);
-
-    emit this->openProject();
 }
 
 void MainComponent::invokeAnalyze()
@@ -191,6 +162,7 @@ void MainComponent::invokeAnalyze()
         this->ui->invokeLog->insertPlainText(text);
         this->update();
     });
+    connect(&invoker, &invoker::update, this, [this](){ this->update(); });
 
     if(invoker.analyze() != invoker::SUCCESS){ return; }
 
@@ -246,5 +218,5 @@ void MainComponent::invokeAnalyze()
             lang.enable = true;
         }
     }
-    this->toWriteMode();
+    emit this->toWriteMode();
 }

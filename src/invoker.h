@@ -23,6 +23,7 @@ public:
 
 signals:
     void getStdOut(QString);
+    void update();
 
 private:
     int doProcess(QStringList option);

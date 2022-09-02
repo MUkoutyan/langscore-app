@@ -4,6 +4,10 @@
 #include <QTreeWidgetItem>
 #include <QTableWidget>
 #include <QGraphicsPixmapItem>
+
+#include <QPainter>
+#include <QResizeEvent>
+
 #include "ComponentBase.h"
 
 #include <variant>
@@ -13,12 +17,11 @@ class WriteModeComponent;
 }
 
 class LanguageSelectComponent;
-class MainComponent;
 class WriteModeComponent : public QWidget, public ComponentBase
 {
     Q_OBJECT
 public:
-    explicit WriteModeComponent(ComponentBase* setting, MainComponent *parent);
+    explicit WriteModeComponent(ComponentBase* setting, QWidget *parent);
     ~WriteModeComponent() override;
 
     void show();
@@ -36,7 +39,6 @@ public slots:
 
 private:
     Ui::WriteModeComponent* ui;
-    MainComponent* _parent;
     QGraphicsScene* scene;
     std::vector<LanguageSelectComponent*> languageButtons;
     std::vector<std::pair<QString, QString>> scriptFileNameMap;

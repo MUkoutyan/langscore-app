@@ -2,6 +2,7 @@
 #include "./ui_MainWindow.h"
 #include "./src/ui/FormTaskBar.h"
 #include "./src/ui/MainComponent.h"
+#include "./src/ui/WriteModeComponent.h"
 
 #include <QStandardPaths>
 #include <QMouseEvent>
@@ -19,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , taskBar(new FormTaskBar(this->history, this))
     , mainComponent(new MainComponent(this, this))
+    , writeUi(new WriteModeComponent(this, this))
     , undoView(nullptr)
     , mousePressEdge(Edges::None)
     , mouseMoveEdge(Edges::None)
@@ -36,11 +38,17 @@ MainWindow::MainWindow(QWidget *parent)
     this->setAttribute(Qt::WA_Hover);
     this->setAutoFillBackground(true);
     this->dispatchComponentList->emplace_back(this);
-    mainComponent->setContentsMargins(8,0,8,0);
 
     this->ui->verticalLayout->insertWidget(0, taskBar);
-    this->ui->verticalLayout->insertWidget(1, mainComponent);
+    this->ui->verticalLayout->insertWidget(1, writeUi);
     this->ui->verticalLayout->setStretch(1,1);
+
+    mainComponent->setContentsMargins(8,0,8,0);
+    mainComponent->show();
+
+    writeUi->setEnabled(false);
+    writeUi->setGraphicsEffect(new QGraphicsBlurEffect);
+
 
     connect(this->taskBar, &FormTaskBar::showUndoView, this, &MainWindow::createUndoView);
 
@@ -58,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(this->mainComponent, &MainComponent::requestOpenOutputDir, this, &MainWindow::openOutputProjectDir);
-    connect(this->mainComponent, &MainComponent::openProject, this->taskBar, &FormTaskBar::updateRecentMenu);
+    connect(this->mainComponent, &MainComponent::toWriteMode, this, &MainWindow::showWriteMode);
 
     connect(this->taskBar, &FormTaskBar::openGameProj, this, [this]()
     {
@@ -96,8 +104,36 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::openGameProject(QString path) {
+void MainWindow::openGameProject(QString path)
+{
+    this->writeUi->setEnabled(true);
+    this->writeUi->setGraphicsEffect({});
     this->mainComponent->openGameProject(path);
+    this->mainComponent->hide();
+}
+
+void MainWindow::showWriteMode()
+{
+    auto&& settings = this->getAppSettings();
+    auto projDir = this->setting->gameProjectPath;
+    QVariantList recentFiles;
+    auto recentList = settings.value("recentFiles", recentFiles).toList();
+    if(recentList.size() >= 8){
+        recentList.remove(7, qMin(1, recentList.size()-7));
+    }
+    int index = 0;
+    for(auto& obj : recentList){
+        if(obj.toString() == projDir){
+            recentList.removeAt(index);
+            break;
+        }
+        ++index;
+    }
+    recentList.insert(0, QVariant(projDir));
+    settings.setValue("recentFiles", recentList);
+    settings.sync();
+
+    this->taskBar->updateRecentMenu();
 }
 
 bool MainWindow::changeMaximumState()

@@ -8,9 +8,13 @@
 #include "src/ui/FormTaskBar.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+class WriteModeComponent;
+}
 QT_END_NAMESPACE
 
+class WriteModeComponent;
 class MainComponent;
 class MainWindow : public QMainWindow, public ComponentBase
 {
@@ -49,6 +53,7 @@ private:
     Ui::MainWindow *ui;
     FormTaskBar* taskBar;
     MainComponent* mainComponent;
+    WriteModeComponent* writeUi;
     QUndoView* undoView;
 
     Edges mousePressEdge;
@@ -73,6 +78,7 @@ private slots:
     bool changeMaximumState();
     QString openOutputProjectDir(QString root);
     void openGameProject(QString path);
+    void showWriteMode();
 
 
 #if defined(LANGSCORE_GUIAPP_TEST)

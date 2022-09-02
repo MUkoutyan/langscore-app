@@ -35,7 +35,10 @@ int invoker::doProcess(QStringList option)
         emit this->getStdOut(process->errorString());
     }
 
-    process->waitForFinished(-1);
+    while(process->waitForFinished(200)){
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        emit this->update();
+    }
 
     auto code = process->exitCode();
     if(code == 0){

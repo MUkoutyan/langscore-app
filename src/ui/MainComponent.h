@@ -1,15 +1,13 @@
 ﻿#pragma once
 
-#include <QWidget>
+#include <QDialog>
 #include "ComponentBase.h"
 
 namespace Ui {
-class MainComponent;
-class WriteModeComponent;
+class AnalyzeDialog;
 }
 
-class WriteModeComponent;
-class MainComponent : public QWidget, public ComponentBase
+class MainComponent : public QDialog, public ComponentBase
 {
     Q_OBJECT
 
@@ -19,7 +17,7 @@ public:
 
 signals:
     QString requestOpenOutputDir(QString root);
-    void openProject();
+    void toWriteMode();
 
 public slots:
     void openGameProject(QString path);
@@ -31,14 +29,11 @@ protected:
     bool event(QEvent* event) override;
 
 private:
-    friend WriteModeComponent;
-    Ui::MainComponent *ui;
-    WriteModeComponent* writeUi;
+    Ui::AnalyzeDialog *ui;
 
     void openFiles(std::pair<QString, settings::ProjectType> path);
     std::pair<QString, settings::ProjectType> findGameProject(QList<QUrl> urlList);
     void toAnalyzeMode();
-    void toWriteMode();
 
 private slots:
     void invokeAnalyze();
