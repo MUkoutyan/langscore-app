@@ -5,15 +5,14 @@
 #include "src/ui/WriteDialog.h"
 #include "ui_WriteDialog.h"
 #include "MainWindow.h"
-#include "MainComponent.h"
-#include "ui_MainComponent.h"
+#include "AnalyzeDialog.h"
+#include "ui_AnalyzeDialog.h"
 #include "src/ui/LanguageSelectComponent.h"
 #include "src/ui/WriteModeComponent.h"
 #include "src/utility.hpp"
 #include "ui_WriteModeComponent.h"
 #include "csv.hpp"
 
-#include "src/ui/LanguageSelectComponent.h"
 
 // add necessary includes here
 
@@ -50,7 +49,7 @@ private slots:
 
     void langselect_followDefault();
 
-    void analyzeMode_findGameProject();
+    void analyzeMode_getProjectType();
 
     void editMode_validLoad();
     void editMode_changeTreeScriptCheckState();
@@ -69,6 +68,9 @@ private:
 LangscoreAppTest::LangscoreAppTest()
     : settings(new class settings())
 {
+    if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
+        QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
+    }
 }
 
 LangscoreAppTest::~LangscoreAppTest()
@@ -99,11 +101,11 @@ void LangscoreAppTest::writeDialog_outputPath()
     auto lsProjDir = QDir(settings->langscoreProjectDirectory);
     auto writePath = lsProjDir.cleanPath(lsProjDir.absoluteFilePath(settings->writeObj.exportDirectory));
 
-    QVERIFY(dialog.ui->lineEdit->text() == writePath);
+    QCOMPARE(dialog.ui->lineEdit->text(), writePath);
 
     auto dialogOutPath = dialog.outputPath();
     QVERIFY(QFileInfo(dialogOutPath).isAbsolute());
-    QVERIFY(dialogOutPath == writePath);
+    QCOMPARE(dialogOutPath, writePath);
 }
 
 void LangscoreAppTest::writeDialog_duplicate()
@@ -158,7 +160,10 @@ void LangscoreAppTest::setting_load()
     const auto gameProjPath = basePath+"/GameProj";
     const auto lsProjPath = basePath+"/GameProj_langscore";
 
-    setting.setGameProjectPath(QDir("./GameProj").absolutePath());
+//    setting.setGameProjectPath(QDir("./GameProj").absolutePath());
+    setting.gameProjectPath = QDir("./GameProj").absolutePath();
+    setting.projectType = settings::ProjectType::VXAce;
+    setting.updateLangscoreProjectPath();
     QCOMPARE(setting.gameProjectPath, gameProjPath);
 
     QCOMPARE(setting.translateDirectoryPath(), gameProjPath+"/Data/Translate");
@@ -171,61 +176,61 @@ void LangscoreAppTest::setting_load()
     for(const auto& lang : setting.languages){
         if(lang.languageName == "en"){
             QVERIFY(lang.enable);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 20);
+            QCOMPARE(lang.font.name,  "VL Gothic");
+            QCOMPARE(lang.font.size,  20);
         }
         else if(lang.languageName == "es"){
             QVERIFY(lang.enable == false);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 22);
+            QCOMPARE(lang.font.name,  "VL Gothic");
+            QCOMPARE(lang.font.size,  22);
         }
         else if(lang.languageName == "de"){
             QVERIFY(lang.enable == false);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 22);
+            QCOMPARE(lang.font.name,  "VL Gothic");
+            QCOMPARE(lang.font.size,  22);
         }
         else if(lang.languageName == "fr"){
             QVERIFY(lang.enable == false);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 22);
+            QCOMPARE(lang.font.name,  "VL Gothic");
+            QCOMPARE(lang.font.size,  22);
         }
         else if(lang.languageName == "it"){
             QVERIFY(lang.enable == false);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 22);
+            QCOMPARE(lang.font.name,  "VL Gothic");
+            QCOMPARE(lang.font.size,  22);
         }
         else if(lang.languageName == "ja"){
             QVERIFY(lang.enable);
-            QVERIFY(lang.font.name == "KsoEikai");
-            QVERIFY(lang.font.size == 23);
+            QCOMPARE(lang.font.name,  "KsoEikai");
+            QCOMPARE(lang.font.size,  23);
         }
         else if(lang.languageName == "ko"){
             QVERIFY(lang.enable);
-            QVERIFY(lang.font.name == "Shippori Mincho Ryu Regular");
-            QVERIFY(lang.font.size == 22);
+            QCOMPARE(lang.font.name,  "Shippori Mincho Ryu Regular");
+            QCOMPARE(lang.font.size,  22);
         }
         else if(lang.languageName == "ru"){
             QVERIFY(lang.enable == false);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 22);
+            QCOMPARE(lang.font.name,  "VL Gothic");
+            QCOMPARE(lang.font.size,  22);
         }
         else if(lang.languageName == "zh-cn"){
             QVERIFY(lang.enable);
-            QVERIFY(lang.font.name == "Source Han Sans HW HC");
-            QVERIFY(lang.font.size == 24);
+            QCOMPARE(lang.font.name,  "Source Han Sans HW HC");
+            QCOMPARE(lang.font.size,  24);
         }
         else if(lang.languageName == "zh-tw"){
             QVERIFY(lang.enable);
-            QVERIFY(lang.font.name == "VL Gothic");
-            QVERIFY(lang.font.size == 24);
+            QCOMPARE(lang.font.name, "VL Gothic");
+            QCOMPARE(lang.font.size, 24);
         }
     } //for(const auto& lang : setting.languages)
 
-    QVERIFY(setting.writeObj.exportByLanguage == false);
-    QVERIFY(setting.writeObj.exportDirectory == "../GameProj/Translate");
+    QCOMPARE(setting.writeObj.exportByLanguage, false);
+    QCOMPARE(setting.writeObj.exportDirectory, "../GameProj/Translate");
     auto path = QDir(lsProjPath).absoluteFilePath(setting.writeObj.exportDirectory);
     path = QDir().cleanPath(path);
-    QVERIFY(path == gameProjPath+"/Translate");
+    QCOMPARE(path, gameProjPath+"/Translate");
 
     gameProjDir.rmpath(gameProjDir.absolutePath());
 }
@@ -233,75 +238,75 @@ void LangscoreAppTest::setting_load()
 void LangscoreAppTest::langselect_followDefault()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
-    mainComponent.setting->defaultLanguage = "en";
-    LanguageSelectComponent langComponents(QLocale(QLocale::Japanese), &component, &component);
+    analyzeDialog->setting->defaultLanguage = "en";
+    LanguageSelectComponent langComponents(QLocale(QLocale::Japanese), component, component);
 
     langComponents.setDefault(true);
     QVERIFY(langComponents.button->isChecked());
 
 }
 
-void LangscoreAppTest::analyzeMode_findGameProject()
+void LangscoreAppTest::analyzeMode_getProjectType()
 {
-    MainWindow window;
-    MainComponent mainComponent(&window);
-
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    auto result = mainComponent.findGameProject({url});
-    qDebug() << result.first;
-    QVERIFY(result.first.contains(qApp->applicationDirPath()+"/Project1"));
-    QVERIFY(result.second == settings::VXAce);
+    auto result = settings::getProjectType(qApp->applicationDirPath()+"/Project1");
+    QCOMPARE(result, settings::VXAce);
+    result = settings::getProjectType(qApp->applicationDirPath()+"/DummyProject");
+    QCOMPARE(result, settings::None);
 }
 
 void LangscoreAppTest::editMode_validLoad()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
     window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-    component.show();
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
 
+    QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
 
-    const auto numTopLevelItems = component.ui->treeWidget->topLevelItemCount();
-    QVERIFY(numTopLevelItems == 3);
+    const auto numTopLevelItems = component->ui->treeWidget->topLevelItemCount();
+    QCOMPARE(numTopLevelItems, 3);
     for(int i=0; i<numTopLevelItems; ++i){
-        auto topLevelItem = component.ui->treeWidget->topLevelItem(i);
+        auto topLevelItem = component->ui->treeWidget->topLevelItem(i);
         auto text = topLevelItem->text(0);
         switch(i){
         case 0:
-            QCOMPARE(topLevelItem->childCount(), 13);
             QCOMPARE(text, "Main");
+            QCOMPARE(topLevelItem->childCount(), 11);
             break;
         case 1:
-            QCOMPARE(topLevelItem->childCount(), 31);
             QCOMPARE(text, "Script");
+            QCOMPARE(topLevelItem->childCount(), 31);
             break;
         case 2:
-            QCOMPARE(topLevelItem->childCount(), 12);
             QCOMPARE(text, "Graphics");
+            QCOMPARE(topLevelItem->childCount(), 12);
             break;
         }
     }
 
-    const auto numScriptTable = component.ui->tableWidget_script->rowCount();
+    const auto numScriptTable = component->ui->tableWidget_script->rowCount();
     QVERIFY(0 < numScriptTable);
 
     QStringList scriptNameList;
     QStringList scriptFileNameList;
     for(int i=0; i<numScriptTable; ++i)
     {
-        if(auto item = component.ui->tableWidget_script->item(i, 1)){
+        if(auto item = component->ui->tableWidget_script->item(i, 1)){
             if(scriptNameList.contains(item->text()) == false){
                 scriptNameList.emplace_back(item->text());
                 scriptFileNameList.emplace_back(item->data(Qt::UserRole).toString());
@@ -329,7 +334,7 @@ void LangscoreAppTest::editMode_validLoad()
         }
     }
 
-    auto graphItem = component.ui->treeWidget->topLevelItem(2);
+    auto graphItem = component->ui->treeWidget->topLevelItem(2);
     for(int i=0; i<graphItem->childCount(); ++i)
     {
         auto folder = graphItem->child(i);
@@ -345,53 +350,63 @@ void LangscoreAppTest::editMode_validLoad()
 void LangscoreAppTest::editMode_fetchScriptItemMethod()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
     window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-    component.show();
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+    QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
 
     QString scriptName = "Cache";
-    auto rows = component.fetchScriptTableSameFileRows(scriptName);
+    auto rows = component->fetchScriptTableSameFileRows(scriptName);
     QCOMPARE(rows.size(), 12);
     for(auto r : rows)
     {
-        auto item = component.ui->tableWidget_script->item(r, 1);
+        auto item = component->ui->tableWidget_script->item(r, 1);
         QVERIFY(item != nullptr);
         QCOMPARE(item->text(), scriptName);
     }
 
-    auto treeItem = component.fetchScriptTreeSameFileItem(scriptName);
+    auto treeItem = component->fetchScriptTreeSameFileItem(scriptName);
     QVERIFY(treeItem != nullptr);
-    QVERIFY(treeItem->parent() == component.ui->treeWidget->topLevelItem(1));
+    QCOMPARE(treeItem->parent(), component->ui->treeWidget->topLevelItem(1));
     QCOMPARE(treeItem->text(1), scriptName);
 }
 
 void LangscoreAppTest::editMode_changeTreeScriptCheckState()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
+    analyzeDialog->invokeAnalyze();
     window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-    component.show();
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
 
-    auto scriptItem = component.ui->treeWidget->topLevelItem(1);
+    auto scriptItem = component->ui->treeWidget->topLevelItem(1);
+    QCOMPARE(scriptItem->childCount(), 31);
     auto vocabItem = scriptItem->child(0);
+    QVERIFY(vocabItem);
     auto beginNumHistory = window.history->count();
     vocabItem->setCheckState(0, Qt::Unchecked);
     auto afterNumHistory = window.history->count();
@@ -400,13 +415,13 @@ void LangscoreAppTest::editMode_changeTreeScriptCheckState()
     auto fileName = vocabItem->data(1, Qt::UserRole).toString();
     QCOMPARE(fileName, "97506006");
 
-    const auto numScriptTable = component.ui->tableWidget_script->rowCount();
+    const auto numScriptTable = component->ui->tableWidget_script->rowCount();
     QVERIFY(0 < numScriptTable);
 
     bool findScript = false;
     for(int i=0; i<numScriptTable; ++i)
     {
-        auto item = component.ui->tableWidget_script->item(i, 1);
+        auto item = component->ui->tableWidget_script->item(i, 1);
         if(item == nullptr){ continue; }
         if(item->data(Qt::UserRole).toString() != fileName){ continue; }
 
@@ -420,20 +435,25 @@ void LangscoreAppTest::editMode_changeTreeScriptCheckState()
 void LangscoreAppTest::editMode_changeTreeGraphicsCheckState()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
     window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-    component.show();
 
-    auto graphicsItem = component.ui->treeWidget->topLevelItem(2);
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+    QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
+
+    auto graphicsItem = component->ui->treeWidget->topLevelItem(2);
 
     auto numFolder = graphicsItem->childCount();
     for(int i=0; i<numFolder; ++i){
@@ -455,53 +475,71 @@ void LangscoreAppTest::editMode_changeTreeGraphicsCheckState()
 void LangscoreAppTest::editMode_changeTableCheckState()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
+
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
     window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-    component.show();
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+    QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
 
     auto scriptName = "Cache";
-    auto treeItem = component.fetchScriptTreeSameFileItem(scriptName);
-    auto rows = component.fetchScriptTableSameFileRows(scriptName);
+    auto treeItem = component->fetchScriptTreeSameFileItem(scriptName);
+    auto rows = component->fetchScriptTableSameFileRows(scriptName);
 
-    auto checkItem = component.ui->tableWidget_script->item(rows[1], 0);
+    QVERIFY(rows.empty() == false);
+
+    auto scriptNameItem = component->ui->tableWidget_script->item(rows[1], 1);
+    QCOMPARE(scriptNameItem->text(), scriptName);
+    auto checkItem = component->ui->tableWidget_script->item(rows[1], 0);
     checkItem->setCheckState(Qt::Unchecked);
 
     QVERIFY(treeItem->checkState(0) == Qt::PartiallyChecked);
 
+    const auto scriptInfo = window.setting->fetchScriptInfo(scriptNameItem->data(Qt::UserRole).toString());
+    QCOMPARE(scriptInfo.ignorePoint.size(), 1);
+
     for(auto r : rows){
-        auto i = component.ui->tableWidget_script->item(r, 0);
+        auto i = component->ui->tableWidget_script->item(r, 0);
         i->setCheckState(Qt::Unchecked);
     }
     QVERIFY(treeItem->checkState(0) == Qt::Unchecked);
+    QVERIFY(scriptInfo.ignore);
 
 }
 
 void LangscoreAppTest::editMode_hideScriptTable()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
-    window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-    component.show();
 
-    auto scriptTreeItem = component.ui->treeWidget->topLevelItem(1);
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
+    window.show();
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+    QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
+
+    auto scriptTreeItem = component->ui->treeWidget->topLevelItem(1);
     //一旦全部無効
     for(int i=0; i<scriptTreeItem->childCount(); ++i)
     {
@@ -510,18 +548,18 @@ void LangscoreAppTest::editMode_hideScriptTable()
     }
     //特定のアイテム1つをチェック
     const auto targetScriptName = "Cache";
-    auto targetTreeItem = component.fetchScriptTreeSameFileItem(targetScriptName);
+    auto targetTreeItem = component->fetchScriptTreeSameFileItem(targetScriptName);
     targetTreeItem->setCheckState(0, Qt::Checked);
 
-    auto actions = component.ui->scriptFilterButton->actions();
+    auto actions = component->ui->scriptFilterButton->actions();
     actions[1]->trigger();
 
-    QVERIFY(component.showAllScriptContents == false);
+    QVERIFY(component->showAllScriptContents == false);
 
-    auto numRow = component.ui->tableWidget_script->rowCount();
+    auto numRow = component->ui->tableWidget_script->rowCount();
     for(int i=0; i<numRow; ++i)
     {
-        auto scriptNameItem = component.ui->tableWidget_script->item(i, 1);
+        auto scriptNameItem = component->ui->tableWidget_script->item(i, 1);
         //ここでnullになる場合はテーブルの要素数にcsvのヘッダーを混ぜている可能性がある。
         QVERIFY(scriptNameItem != nullptr);
         auto scriptName = scriptNameItem->text();
@@ -532,8 +570,8 @@ void LangscoreAppTest::editMode_hideScriptTable()
 void LangscoreAppTest::editMode_exportFile()
 {
     MainWindow window;
-    MainComponent mainComponent(&window);
-    WriteModeComponent component(&window, &mainComponent);
+    auto* analyzeDialog = window.analyzeDialog;
+    auto* component = window.writeUi;
 
     if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
         QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
@@ -543,33 +581,60 @@ void LangscoreAppTest::editMode_exportFile()
         QDir(qApp->applicationDirPath()+"/Project1/Data/Translate").removeRecursively();
     }
 
-    auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-    mainComponent.openFiles(mainComponent.findGameProject({url}));
-    window.show();
-    QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
 
-    invoker invoker(&component);
-    QCOMPARE(invoker.write(), 0);
+    analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
+    window.show();
+    bool finished = false;
+    connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+    QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+    while(finished == false){
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        qApp->processEvents();
+    }
+
+    QDir lsProjDir(window.setting->langscoreProjectDirectory);
+    auto relativePath = lsProjDir.relativeFilePath(qApp->applicationDirPath()+"/Project1/Data/Translate");
+    window.setting->writeObj.exportDirectory = relativePath;
+
+    invoker invoker(component);
+    finished = false;
+    int exitCode = 0;
+    connect(&invoker, &invoker::finish, this, [&finished, &exitCode](int _exitCode){
+        finished = true;
+        exitCode = _exitCode;
+        if(exitCode != 0){
+            QFile(qApp->applicationDirPath()+"/editMode_exportFile_failed.json").remove();
+            QFile(qApp->applicationDirPath()+"/Project1_langscore/config.json").copy(qApp->applicationDirPath()+"/editMode_exportFile_failed.json");
+            QFAIL("Failed Exit Code");
+        }
+    });
+    invoker.write(true);
+
 }
 
 void LangscoreAppTest::checkConfig_pictures()
 {
     {
         MainWindow window;
-        MainComponent mainComponent(&window);
-        WriteModeComponent component(&window, &mainComponent);
+        auto* analyzeDialog = window.analyzeDialog;
+        auto* component = window.writeUi;
 
         if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
             QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
         }
 
-        auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-        mainComponent.openFiles(mainComponent.findGameProject({url}));
-        window.show();
-        QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-        component.show();
 
-        auto graphicsItem = component.ui->treeWidget->topLevelItem(2);
+        analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
+        window.show();
+        bool finished = false;
+        connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+        QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+        while(finished == false){
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            qApp->processEvents();
+        }
+
+        auto graphicsItem = component->ui->treeWidget->topLevelItem(2);
         auto numFolder = graphicsItem->childCount();
         for(int i=0; i<numFolder; ++i)
         {
@@ -588,20 +653,25 @@ void LangscoreAppTest::checkConfig_pictures()
 
     {
         MainWindow window;
-        MainComponent mainComponent(&window);
-        WriteModeComponent component(&window, &mainComponent);
+        auto* analyzeDialog = window.analyzeDialog;
+        auto* component = window.writeUi;
 
         if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
             QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
         }
 
-        auto url = QUrl::fromLocalFile(qApp->applicationDirPath()+"/Project1");
-        mainComponent.openFiles(mainComponent.findGameProject({url}));
-        window.show();
-        QTest::mouseClick(mainComponent.ui->analyzeButton, Qt::LeftButton);
-        component.show();
 
-        auto graphicsItem = component.ui->treeWidget->topLevelItem(2);
+        analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
+        window.show();
+        bool finished = false;
+        connect(analyzeDialog, &AnalyzeDialog::toWriteMode, this, [&finished](QString){ finished = true; });
+        QTest::mouseClick(analyzeDialog->ui->analyzeButton, Qt::LeftButton);
+        while(finished == false){
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            qApp->processEvents();
+        }
+
+        auto graphicsItem = component->ui->treeWidget->topLevelItem(2);
         auto numFolder = graphicsItem->childCount();
         for(int i=0; i<numFolder; ++i)
         {
