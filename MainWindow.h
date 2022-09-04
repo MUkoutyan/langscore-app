@@ -15,7 +15,8 @@ class WriteModeComponent;
 QT_END_NAMESPACE
 
 class WriteModeComponent;
-class MainComponent;
+class AnalyzeDialog;
+class PackingMode;
 class MainWindow : public QMainWindow, public ComponentBase
 {
     Q_OBJECT
@@ -52,8 +53,9 @@ protected:
 private:
     Ui::MainWindow *ui;
     FormTaskBar* taskBar;
-    MainComponent* mainComponent;
+    AnalyzeDialog* analyzeDialog;
     WriteModeComponent* writeUi;
+    PackingMode* packingUi;
     QUndoView* undoView;
 
     Edges mousePressEdge;
@@ -64,6 +66,8 @@ private:
     bool leftButtonPressed;
     bool isDragging;
     bool cursorChanged;
+    bool initialAnalysis;
+    bool explicitSave;
     QPoint draggingStartPos;
     int borderWidth;
     int lastSavedHistoryIndex;
@@ -73,12 +77,15 @@ private:
 
     void attachTheme(FormTaskBar::Theme theme);
 
+signals:
+    void moveWiget(QPoint newPos);
+
 private slots:
     void createUndoView();
     bool changeMaximumState();
-    QString openOutputProjectDir(QString root);
-    void openGameProject(QString path);
+    void openGameProject(QString configFilePath);
     void showWriteMode();
+
 
 
 #if defined(LANGSCORE_GUIAPP_TEST)

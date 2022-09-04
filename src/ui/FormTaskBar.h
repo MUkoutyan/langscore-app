@@ -29,7 +29,6 @@ signals:
     void minimum();
     void doubleClick();
 
-    void openGameProj();
     void saveProj();
     void saveAsProj();
     void requestOpenProj(QString path);

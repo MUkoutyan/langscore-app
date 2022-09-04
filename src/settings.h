@@ -11,6 +11,7 @@ public:
 
     //Common
     enum ProjectType{
+        None,
         VXAce,
         MV,
         MZ
@@ -100,6 +101,10 @@ public:
     void write(QString path);
     void saveForProject();
     void load(QString path);
+
+    void updateLangscoreProjectPath();
+
+    static ProjectType getProjectType(const QString& path);
 
 };
 

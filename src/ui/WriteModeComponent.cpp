@@ -2,9 +2,9 @@
 #include "ui_WriteModeComponent.h"
 #include "LanguageSelectComponent.h"
 #include "WriteDialog.h"
+#include "src/invoker.h"
 #include "../utility.hpp"
 #include "../graphics.hpp"
-#include "../invoker.h"
 #include "../csv.hpp"
 
 #include <QFileInfo>
@@ -98,6 +98,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     , currentScriptWordCount(0)
     , showAllScriptContents(true)
     , _suspendHistory(false)
+    , _invoker(new invoker(this))
 {
 
     ui->setupUi(this);
@@ -113,6 +114,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         graphics::ReverceHSVValue(image);
         this->ui->scriptFilterButton->setIcon(QIcon(QPixmap::fromImage(image)));
     }
+    connect(this->ui->toPackingMode, &QToolButton::clicked, this, &WriteModeComponent::toNextPage);
 
     connect(this->ui->treeWidget, &QTreeWidget::itemSelectionChanged, this, &WriteModeComponent::treeItemSelected);
     connect(this->ui->treeWidget, &QTreeWidget::itemChanged, this, &WriteModeComponent::treeItemChanged);
@@ -150,12 +152,26 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         auto baseMessage = tr("Update to the latest content...");
         this->dispatch(StatusMessage, {baseMessage});
         this->dispatch(SaveProject,{});
-        invoker invoke(this);
-        if(invoke.analyze() != invoker::SUCCESS){ return; }
+        this->_invoker->analyze(true);
         this->clear();
         this->setup();
         this->dispatch(StatusMessage, {baseMessage+tr(" Complete."), 3000});
     });
+
+    connect(_invoker, &invoker::getStdOut, this, [this](QString text){
+        text.replace("\r\n", "\n");
+        this->ui->logText->insertPlainText(text);
+        auto vBar = this->ui->logText->verticalScrollBar();
+        vBar->setValue(vBar->maximum());
+        this->update();
+    });
+    connect(_invoker, &invoker::update, this, [this](){ this->update(); });
+    connect(_invoker, &invoker::finish, this, [this](int)
+    {
+        this->changeEnabledUIState(true);
+        this->ui->logText->insertPlainText(tr("Done."));
+    });
+
 
 #ifdef QT_DEBUG
     auto* configView = new QPlainTextEdit(this);
@@ -179,6 +195,57 @@ WriteModeComponent::~WriteModeComponent(){
 
 void WriteModeComponent::show()
 {
+    const auto& outputDirPath = this->setting->tempFileDirectoryPath();
+    auto outputDir = QDir(outputDirPath);
+    auto basicFiles = outputDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
+    for(auto& file : basicFiles){
+        this->setting->writeObj.basicDataInfo.emplace_back(
+            settings::BasicData{file.completeBaseName(), false, 0}
+        );
+    }
+
+    auto writedScripts = [&outputDirPath]()
+    {
+        auto scriptCsv     = readCsv(outputDirPath + "/Scripts.csv");
+        QStringList result;
+        if(scriptCsv.empty()){ return result; }
+        scriptCsv.erase(scriptCsv.begin()); //Headerを削除
+        for(auto& line : scriptCsv){
+            result.emplace_back(line[0]);
+        }
+        result.sort();
+        result.erase(std::unique(result.begin(), result.end()), result.end());
+        return result;
+    }();
+
+    for(auto& script : writedScripts)
+    {
+        auto [fileName, row, col] = parseScriptNameWithRowCol(script);
+
+        auto& scriptList = this->setting->writeObj.scriptInfo;
+        const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+                return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
+            });
+            return result != scriptList.cend();
+        };
+        if(IsIgnoreText(fileName, row, col)){
+            settings::TextPoint txtPos;
+            txtPos.row = row;
+            txtPos.col = col;
+            auto info = settings::ScriptInfo{{fileName, false, 0}, {txtPos}};
+            this->setting->writeObj.scriptInfo.emplace_back(std::move(info));
+        }
+    }
+
+    this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
+    for(auto& lang : this->setting->languages)
+    {
+        if(lang.languageName == QLocale::system().bcp47Name()){
+            lang.enable = true;
+        }
+    }
+
     this->setup();
 }
 
@@ -206,6 +273,8 @@ void WriteModeComponent::clear()
     this->ui->treeWidget->blockSignals(false);
     this->ui->tableWidget->blockSignals(false);
     this->ui->tableWidget_script->blockSignals(false);
+
+    this->update();
 }
 
 void WriteModeComponent::treeItemSelected()
@@ -279,7 +348,6 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
         selectedItems.clear();
         selectedItems.emplace_back(_item);
     }
-    auto newCheckVal = _item->checkState(0);
 
     const auto NotifyTreeUndoCommand = [this](std::vector<QUndoCommand *> result, QString groupName){
 
@@ -302,6 +370,7 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
         }
     };
 
+    auto newCheckVal = _item->checkState(0);
     if(treeType == TreeItemType::Main)
     {
         auto fileName = ::getFileName(_item);
@@ -319,13 +388,17 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
     {
         auto fileName = ::getFileName(_item);
         const auto& scriptList = this->setting->fetchScriptInfo(fileName);
+        //変更前(現在)のチェック状態を取得
         auto treeCheckState = Qt::Checked;
         if(scriptList.ignore){
             treeCheckState = Qt::Unchecked;
+            newCheckVal = Qt::Checked;
         }
         else if(scriptList.ignorePoint.empty() == false){
             treeCheckState = Qt::PartiallyChecked;
+            newCheckVal = Qt::Unchecked;
         }
+
         if(newCheckVal == Qt::Checked){
             //チェックを付ける場合は、テーブルの選択状態によってツリーのチェック状態を変更。
             auto scriptName = ::getScriptName(_item);
@@ -478,34 +551,19 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
     }
 }
 
-bool WriteModeComponent::exportTranslateFiles()
+void WriteModeComponent::exportTranslateFiles()
 {
-    class Switcher {
-    public:
-        Switcher(WriteModeComponent* p) : p(p){
-            this->p->ui->treeWidget->setEnabled(false);
-            this->p->ui->tableWidget_script->setEnabled(false);
-            this->p->ui->writeButton->setEnabled(false);
-            this->p->ui->updateButton->setEnabled(false);
-            p->setGraphicsEffect(new QGraphicsBlurEffect);
-        }
-        ~Switcher(){
-            this->p->ui->treeWidget->setEnabled(true);
-            this->p->ui->tableWidget_script->setEnabled(true);
-            this->p->ui->writeButton->setEnabled(true);
-            this->p->ui->updateButton->setEnabled(true);
-            p->setGraphicsEffect({});
-        }
-        WriteModeComponent* p;
-    };
-    Switcher _switcher(this);
-
     if(this->setting->writeObj.exportDirectory.isEmpty()){
         this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
     }
+    this->setGraphicsEffect(new QGraphicsBlurEffect);
+    this->changeEnabledUIState(false);
 
     WriteDialog dialog(this->setting, this);
-    if(dialog.exec() == QDialog::Rejected){ return true; }
+
+    auto execCode = dialog.exec();
+    this->setGraphicsEffect(nullptr);
+    if(execCode == QDialog::Rejected){ return; }
 
     QDir lsProjDir(this->setting->langscoreProjectDirectory);
     auto relativePath = lsProjDir.relativeFilePath(dialog.outputPath());
@@ -518,21 +576,9 @@ bool WriteModeComponent::exportTranslateFiles()
 
     this->ui->logText->clear();
     this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
-    invoker invoker(this);
-
-    connect(&invoker, &invoker::getStdOut, this, [this](QString text){
-        text.replace("\r\n", "\n");
-        this->ui->logText->insertPlainText(text+"\n");
-        this->update();
-    });
-    connect(&invoker, &invoker::update, this, [this](){ this->update(); });
 
     this->dispatch(SaveProject,{});
-    if(invoker.write() != invoker::SUCCESS){
-        return false;
-    }
-    this->ui->logText->insertPlainText(tr("Done."));
-    return true;
+    _invoker->write();
 }
 
 void WriteModeComponent::setup()
@@ -592,6 +638,8 @@ void WriteModeComponent::setup()
 
     setupTree();
     setupScriptCsvText();
+
+    this->setting->saveForProject();
 
     this->ui->tableWidget_script->blockSignals(false);
     this->ui->treeWidget->blockSignals(false);
@@ -819,7 +867,7 @@ void WriteModeComponent::setupScriptCsvText()
     const auto& scriptList = this->setting->writeObj.scriptInfo;
     const auto IsIgnoreText = [&scriptList](const ScriptLineInfo& info){
         auto [fileName, row, col] = info;
-        fileName = withoutExtension(fileName);
+        fileName = withoutExtension(std::move(fileName));
         auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
             return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
         });
@@ -1036,6 +1084,8 @@ void WriteModeComponent::setScriptTableItemCheck(QTableWidgetItem* item, Qt::Che
         //スクリプトの無視状態が最優先なので、チェック無しの場合は何もしない。
         if(treeItem->checkState(0) != Qt::Unchecked){
             treeItem->setCheckState(0, treeCheckState);
+            //ヒストリーを介さない方法で変更するため、ここで設定ファイルへの書き込みを行う
+            writeToScriptListSetting(treeItem, check == Qt::Unchecked);
         }
         treeItem->setForeground(1, tableTextColorForState[treeCheckState]);
     }
@@ -1164,6 +1214,14 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
 
 }
 
+void WriteModeComponent::changeEnabledUIState(bool enable)
+{
+    this->ui->treeWidget->setEnabled(enable);
+    this->ui->tableWidget_script->setEnabled(enable);
+    this->ui->writeButton->setEnabled(enable);
+    this->ui->updateButton->setEnabled(enable);
+}
+
 void WriteModeComponent::dropEvent(QDropEvent *event)
 {
     const QMimeData* mimeData = event->mimeData();
@@ -1210,7 +1268,8 @@ std::vector<int> WriteModeComponent::fetchScriptTableSameFileRows(QString script
     {
         if(auto scriptNameItem = this->scriptTableItem(i, ScriptTableCol::ScriptName))
         {
-            if(scriptName == ::getScriptName(scriptNameItem)){
+            auto itemText = ::getScriptName(scriptNameItem);
+            if(scriptName == itemText){
                 result.emplace_back(i);
             }
         }

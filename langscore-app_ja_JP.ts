@@ -2,6 +2,34 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ja_JP">
 <context>
+    <name>AnalyzeDialog</name>
+    <message>
+        <location filename="src/ui/AnalyzeDialog.ui" line="23"/>
+        <source>AnalyzeDialog</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/AnalyzeDialog.ui" line="127"/>
+        <source>Analyze</source>
+        <translation type="unfinished">解析</translation>
+    </message>
+    <message>
+        <source>Analyze game projects and create translation files.</source>
+        <extracomment>ゲームプロジェクトを解析して翻訳ファイルを作成します</extracomment>
+        <translation type="obsolete">ゲームプロジェクトを解析して翻訳ファイルを作成します。</translation>
+    </message>
+    <message>
+        <location filename="src/ui/AnalyzeDialog.ui" line="65"/>
+        <source>Drop your game project folder here!</source>
+        <translation type="unfinished">ここにゲームプロジェクトのフォルダをドロップ!</translation>
+    </message>
+    <message>
+        <location filename="src/ui/AnalyzeDialog.ui" line="90"/>
+        <source>LangscoreProjectPath</source>
+        <translation type="unfinished">Langscoreプロジェクトのパス</translation>
+    </message>
+</context>
+<context>
     <name>FormTaskBar</name>
     <message>
         <location filename="src/ui/FormTaskBar.ui" line="26"/>
@@ -100,35 +128,25 @@
 <context>
     <name>MainComponent</name>
     <message>
-        <location filename="src/ui/MainComponent.ui" line="23"/>
-        <source>Form</source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="src/ui/MainComponent.ui" line="71"/>
         <source>Analyze Mode</source>
-        <translation>解析モード</translation>
+        <translation type="vanished">解析モード</translation>
     </message>
     <message>
-        <location filename="src/ui/MainComponent.ui" line="84"/>
         <source>Analyze game projects and create translation files.</source>
         <extracomment>ゲームプロジェクトを解析して翻訳ファイルを作成します</extracomment>
-        <translation>ゲームプロジェクトを解析して翻訳ファイルを作成します。</translation>
+        <translation type="vanished">ゲームプロジェクトを解析して翻訳ファイルを作成します。</translation>
     </message>
     <message>
-        <location filename="src/ui/MainComponent.ui" line="112"/>
         <source>Drop your game project folder here!</source>
-        <translation>ここにゲームプロジェクトのフォルダをドロップ!</translation>
+        <translation type="vanished">ここにゲームプロジェクトのフォルダをドロップ!</translation>
     </message>
     <message>
-        <location filename="src/ui/MainComponent.ui" line="137"/>
         <source>LangscoreProjectPath</source>
-        <translation>Langscoreプロジェクトのパス</translation>
+        <translation type="vanished">Langscoreプロジェクトのパス</translation>
     </message>
     <message>
-        <location filename="src/ui/MainComponent.ui" line="174"/>
         <source>Analyze</source>
-        <translation>解析</translation>
+        <translation type="vanished">解析</translation>
     </message>
 </context>
 <context>
@@ -139,39 +157,39 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="67"/>
+        <location filename="MainWindow.cpp" line="76"/>
         <source>Open Game Project Folder...</source>
         <translation>ゲームプロジェクトのフォルダを開く...</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="75"/>
+        <location filename="MainWindow.cpp" line="84"/>
         <source>Save Projet.</source>
         <translation>プロジェクトを保存しました。</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="82"/>
+        <location filename="MainWindow.cpp" line="91"/>
         <source>Edited</source>
         <translation>編集済み</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="117"/>
+        <location filename="MainWindow.cpp" line="154"/>
         <source>Open Project File</source>
         <translation>プロジェクトファイルを開く</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="334"/>
+        <location filename="MainWindow.cpp" line="373"/>
         <source>Trying to close a project.</source>
         <translation>ファイルを閉じようとしています。</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="334"/>
+        <location filename="MainWindow.cpp" line="373"/>
         <source>Do you want to save the changes you made to the project?
 If not, the changes will be discarded.</source>
         <translation>プロジェクトに加えた変更を保存しますか？
 「いいえ」を選んだ場合、編集した内容は破棄されます。</translation>
     </message>
     <message>
-        <location filename="MainWindow.cpp" line="396"/>
+        <location filename="MainWindow.cpp" line="435"/>
         <source>Command List</source>
         <translation>編集履歴</translation>
     </message>
@@ -324,7 +342,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="src/ui/WriteModeComponent.ui" line="263"/>
         <location filename="src/ui/WriteModeComponent.ui" line="360"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="952"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="955"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
@@ -354,37 +372,37 @@ Unchecked text and images are excluded from translation.</source>
         <translation>翻訳CSVの書き出し</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="127"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="126"/>
         <source>Show All Contents</source>
         <translation>全ての内容を表示</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="131"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="130"/>
         <source>Hide Ignore Contents</source>
         <translation>無視にした内容を非表示</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="151"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="150"/>
         <source>Update to the latest content...</source>
         <translation>最新の内容に更新中...</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="158"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="157"/>
         <source> Complete.</source>
         <translation> 完了。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="317"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="316"/>
         <source>Main Tree Change Enable State</source>
         <translation>メインツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="341"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="340"/>
         <source>Script Tree Change Enable State</source>
         <translation>スクリプトツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="405"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="404"/>
         <source>Graphics Tree Change Enable State</source>
         <translation>画像ツリーのチェックを変更</translation>
     </message>
@@ -394,44 +412,44 @@ Unchecked text and images are excluded from translation.</source>
         <translation>スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="518"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="520"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
 </translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="531"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="534"/>
         <source>Done.</source>
         <translation>完了。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="713"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="773"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="716"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="776"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="916"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1276"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="919"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1279"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1331"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1341"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1334"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1344"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1334"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1344"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1337"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1347"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1354"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1359"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1357"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1362"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>

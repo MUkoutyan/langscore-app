@@ -1,6 +1,7 @@
 ﻿#include "settings.h"
 #include "utility.hpp"
 #include "csv.hpp"
+#include "application_config.h"
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QJsonObject>
@@ -10,6 +11,8 @@
 #include <QFontDatabase>
 
 #define MAKE_KEYVALUE(k) {JsonKey::k, #k}
+
+
 
 enum class JsonKey : size_t
 {
@@ -44,6 +47,8 @@ enum class JsonKey : size_t
     OverwriteLangscore,
     OverwriteLangscoreCustom,
 
+    ApplicationVersion,
+    ConfigVersion,
     NumKeys,
 };
 
@@ -78,6 +83,8 @@ static const std::map<JsonKey, const char*> jsonKeys = {
     MAKE_KEYVALUE(RPGMakerScripts),
     MAKE_KEYVALUE(OverwriteLangscore),
     MAKE_KEYVALUE(OverwriteLangscoreCustom),
+    MAKE_KEYVALUE(ApplicationVersion),
+    MAKE_KEYVALUE(ConfigVersion),
 };
 
 inline const char* key(JsonKey key)
@@ -91,6 +98,13 @@ namespace {
 QString scriptExt(settings::ProjectType type){
     return type==settings::ProjectType::VXAce?".rb":".js";
 }
+
+const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
+    {"rvproj2",     settings::VXAce},
+    {"rpgproject",  settings::MV},
+    {"rmmzproject", settings::MZ},
+};
+
 }
 
 settings::settings()
@@ -102,19 +116,23 @@ settings::settings()
 {
 }
 
-void settings::setGameProjectPath(QString absolutePath)
+void settings::setGameProjectPath(QString absoluteGameProjectPath)
 {
-    absolutePath.replace("\\", "/");
-    this->gameProjectPath = absolutePath;
+    absoluteGameProjectPath.replace("\\", "/");
 
-    //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
-    //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
-    auto folderName = absolutePath.sliced(absolutePath.lastIndexOf("/")+1);
-    auto gameProjPath = std::filesystem::path(absolutePath.toLocal8Bit().toStdString());
-    auto langscoreProj = gameProjPath / ".." / (folderName.toLocal8Bit().toStdString() + "_langscore");
-    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
-    this->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});;
-    this->langscoreProjectDirectory.replace("\\", "/");
+    auto projType = settings::getProjectType(absoluteGameProjectPath);
+
+    if(this->gameProjectPath == absoluteGameProjectPath){ return; }
+    if(projType == ProjectType::None){ return; }
+
+    this->gameProjectPath = absoluteGameProjectPath;
+    this->projectType = projType;
+
+    if(projType == ProjectType::VXAce){
+        this->writeObj.exportDirectory = "./Data/Translate";
+    }
+
+    updateLangscoreProjectPath();
 }
 
 QString settings::translateDirectoryPath() const
@@ -227,6 +245,9 @@ QString settings::getLowerBcp47Name(QLocale locale)
 QByteArray settings::createJson()
 {
     QJsonObject root;
+
+    root[key(JsonKey::ApplicationVersion)] = PROJECT_VER;
+    root[key(JsonKey::ConfigVersion)] = CONFIG_FILE_VERSION;
 
     QJsonArray langs;
     for(auto& l : this->languages){
@@ -364,6 +385,15 @@ void settings::load(QString path)
     QFile file(path);
     if(file.open(QFile::ReadOnly) == false){ return; }
 
+   if(projectType == ProjectType::None){
+        QFileInfo lsProjFile(path);
+        auto parentDir = lsProjFile.absolutePath();
+        parentDir.remove("_langscore");
+        this->setGameProjectPath(parentDir);
+
+        if(this->projectType == ProjectType::None){ return; }
+    }
+
     QJsonDocument root = QJsonDocument::fromJson(QByteArray(file.readAll()));
 
     this->languages.clear();
@@ -447,4 +477,36 @@ void settings::load(QString path)
     }
 
 
+}
+
+void settings::updateLangscoreProjectPath()
+{
+    //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
+    //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
+    auto folderName = this->gameProjectPath.sliced(this->gameProjectPath.lastIndexOf("/")+1);
+    auto gameProjPath = std::filesystem::path(this->gameProjectPath.toLocal8Bit().toStdString());
+    auto langscoreProj = gameProjPath / ".." / (folderName.toLocal8Bit().toStdString() + "_langscore");
+    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
+    this->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});;
+    this->langscoreProjectDirectory.replace("\\", "/");
+}
+
+settings::ProjectType settings::getProjectType(const QString& filePath)
+{
+    QFileInfo info(filePath);
+    if(info.isFile() && projectExtensionAndType.contains(info.suffix())){
+        return projectExtensionAndType[info.suffix()];
+    }
+    else if(info.isDir()){
+        QDir dir(filePath);
+        auto files = dir.entryInfoList();
+        if(files.empty()){ return settings::None; }
+
+        for(auto& child : files){
+            if(projectExtensionAndType.contains(child.suffix())){
+                return projectExtensionAndType[child.suffix()];
+            }
+        }
+    }
+    return settings::None;
 }

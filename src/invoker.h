@@ -18,15 +18,18 @@ public:
 
     invoker(ComponentBase* setting);
 
-    int analyze();
-    int write();
+    void analyze(bool sync = false);
+    void write(bool sync = false);
+    void validate(bool sync = false);
+    void packing(bool sync = false);
 
 signals:
     void getStdOut(QString);
     void update();
+    void finish(int exitCode);
 
 private:
-    int doProcess(QStringList option);
-    QProcess* process;
+    void doProcess(QStringList option);
+    bool sync;
 };
 

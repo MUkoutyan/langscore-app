@@ -1,15 +1,16 @@
 ﻿#include "MainWindow.h"
-#include "./ui_MainWindow.h"
+#include "ui_MainWindow.h"
 #include "./src/ui/FormTaskBar.h"
-#include "./src/ui/MainComponent.h"
+#include "./src/ui/AnalyzeDialog.h"
 #include "./src/ui/WriteModeComponent.h"
+#include "./src/ui/PackingMode.h"
 
-#include <QStandardPaths>
+#include <QFile>
+#include <QDir>
 #include <QMouseEvent>
 #include <QSettings>
 #include <QSizeGrip>
 #include <QGraphicsDropShadowEffect>
-#include <QFileDialog>
 #include <QPalette>
 #include <QFontDatabase>
 #include <QMessageBox>
@@ -19,8 +20,9 @@ MainWindow::MainWindow(QWidget *parent)
     , ComponentBase()
     , ui(new Ui::MainWindow)
     , taskBar(new FormTaskBar(this->history, this))
-    , mainComponent(new MainComponent(this, this))
+    , analyzeDialog(new AnalyzeDialog(this, this))
     , writeUi(new WriteModeComponent(this, this))
+    , packingUi(new PackingMode(this, this))
     , undoView(nullptr)
     , mousePressEdge(Edges::None)
     , mouseMoveEdge(Edges::None)
@@ -28,6 +30,8 @@ MainWindow::MainWindow(QWidget *parent)
     , leftButtonPressed(false)
     , isDragging(false)
     , cursorChanged(false)
+    , initialAnalysis(false)
+    , explicitSave(false)
     , draggingStartPos()
     , borderWidth(2)
     , lastSavedHistoryIndex(0)
@@ -39,16 +43,28 @@ MainWindow::MainWindow(QWidget *parent)
     this->setAutoFillBackground(true);
     this->dispatchComponentList->emplace_back(this);
 
+    this->ui->mainStackedWidget->removeWidget(this->ui->writeMode);
+    this->ui->mainStackedWidget->removeWidget(this->ui->packingMode);
     this->ui->verticalLayout->insertWidget(0, taskBar);
     this->ui->verticalLayout->insertWidget(1, writeUi);
     this->ui->verticalLayout->setStretch(1,1);
 
-    mainComponent->setContentsMargins(8,0,8,0);
-    mainComponent->show();
+    analyzeDialog->setContentsMargins(8,0,8,0);
+    analyzeDialog->show();
 
     writeUi->setEnabled(false);
     writeUi->setGraphicsEffect(new QGraphicsBlurEffect);
 
+    this->ui->mainStackedWidget->addWidget(this->writeUi);
+    this->ui->mainStackedWidget->addWidget(this->packingUi);
+
+    connect(this->writeUi, &WriteModeComponent::toNextPage, this, [this](){
+        this->ui->mainStackedWidget->setCurrentWidget(this->packingUi);
+    });
+
+    connect(this->packingUi, &PackingMode::toPrevPage, this, [this](){
+        this->ui->mainStackedWidget->setCurrentWidget(this->writeUi);
+    });
 
     connect(this->taskBar, &FormTaskBar::showUndoView, this, &MainWindow::createUndoView);
 
@@ -61,28 +77,37 @@ MainWindow::MainWindow(QWidget *parent)
     {
         if(mousePressEdge == Edges::None){
             auto pos = this->pos() + delta;
+            emit this->moveWiget(delta);
             this->move(pos);
         }
     });
 
-    connect(this->mainComponent, &MainComponent::requestOpenOutputDir, this, &MainWindow::openOutputProjectDir);
-    connect(this->mainComponent, &MainComponent::toWriteMode, this, &MainWindow::showWriteMode);
-
-    connect(this->taskBar, &FormTaskBar::openGameProj, this, [this]()
+    connect(this, &MainWindow::moveWiget, this->analyzeDialog, &AnalyzeDialog::moveParent);
+    connect(this->analyzeDialog, &AnalyzeDialog::toAnalyzeMode, this, [this](){
+        initialAnalysis = true;
+    });
+    connect(this->analyzeDialog, &AnalyzeDialog::toWriteMode, this, [this](QString gameProjPath)
     {
-        auto&& settings = ComponentBase::getAppSettings();
-        auto openPath = settings.value("lastOpenGameProjDirectory", QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation)).toUrl();
-        openPath = QFileDialog::getExistingDirectory(this, tr("Open Game Project Folder..."), openPath.toString());
-        if(openPath.isEmpty()){ return; }
-        settings.setValue("lastOpenGameProjDirectory", openPath);
-        settings.sync();
-        this->openGameProject(openPath.toString());
+        auto projFile = this->setting->langscoreProjectDirectory+"/config.json";
+        if(QFile::exists(projFile) == false){ return; }
+        this->openGameProject(std::move(projFile));
     });
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
+        this->explicitSave = true;
         this->receive(SaveProject, {});
         this->receive(StatusMessage, {tr("Save Projet."), 5000});
     });
-    connect(this->taskBar, &FormTaskBar::requestOpenProj, this, &MainWindow::openGameProject);
+    connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)
+    {
+        const auto configFilePath = path+"_langscore/config.json";
+        if(QFile::exists(configFilePath)){
+            this->setting->setGameProjectPath(path);
+            this->openGameProject(std::move(configFilePath));
+        }
+        else{
+            this->analyzeDialog->openFile(std::move(path));
+        }
+    });
     connect(this->taskBar, &FormTaskBar::quit,            this, &MainWindow::close);
 
     connect(this->history, &QUndoStack::indexChanged, this, [this](int idx){
@@ -104,16 +129,13 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::openGameProject(QString path)
+void MainWindow::openGameProject(QString configFilePath)
 {
-    this->writeUi->setEnabled(true);
-    this->writeUi->setGraphicsEffect({});
-    this->mainComponent->openGameProject(path);
-    this->mainComponent->hide();
-}
+    this->writeUi->clear();
 
-void MainWindow::showWriteMode()
-{
+    this->setting->load(std::move(configFilePath));
+    this->history->clear();
+
     auto&& settings = this->getAppSettings();
     auto projDir = this->setting->gameProjectPath;
     QVariantList recentFiles;
@@ -121,9 +143,17 @@ void MainWindow::showWriteMode()
     if(recentList.size() >= 8){
         recentList.remove(7, qMin(1, recentList.size()-7));
     }
+
+    auto rm_result = std::remove_if(recentList.begin(), recentList.end(), [&](auto obj){
+        return settings::getProjectType(obj.toString()) == settings::ProjectType::None;
+    });
+    recentList.erase(rm_result, recentList.end());
+
     int index = 0;
-    for(auto& obj : recentList){
-        if(obj.toString() == projDir){
+    for(auto& obj : recentList)
+    {
+        auto path = obj.toString();
+        if(path == projDir){
             recentList.removeAt(index);
             break;
         }
@@ -133,7 +163,18 @@ void MainWindow::showWriteMode()
     settings.setValue("recentFiles", recentList);
     settings.sync();
 
+    this->showWriteMode();
+}
+
+void MainWindow::showWriteMode()
+{
     this->taskBar->updateRecentMenu();
+
+    this->writeUi->show();
+    this->writeUi->setEnabled(true);
+    this->writeUi->setGraphicsEffect({});
+    this->analyzeDialog->hide();
+    this->update();
 }
 
 bool MainWindow::changeMaximumState()
@@ -146,11 +187,6 @@ bool MainWindow::changeMaximumState()
         this->showMaximized();
         return true;
     }
-}
-
-QString MainWindow::openOutputProjectDir(QString root)
-{
-    return QFileDialog::getExistingDirectory(this, tr("Open Project File"), root);
 }
 
 bool MainWindow::event(QEvent*e)
@@ -176,6 +212,7 @@ bool MainWindow::event(QEvent*e)
     }
     return QMainWindow::event(e);
 }
+
 
 void MainWindow::mouseHover(QHoverEvent *e) {
     updateCursorShape(e->globalPosition().toPoint());
@@ -271,7 +308,11 @@ void MainWindow::closeEvent(QCloseEvent* e)
         e->ignore();
         return;
     }
-    else if(button == QMessageBox::Discard){
+    else if(button == QMessageBox::Discard)
+    {
+        if(this->initialAnalysis && this->explicitSave == false){
+            QDir(this->setting->langscoreProjectDirectory).removeRecursively();
+        }
         e->accept();
     }
     else if(button == QMessageBox::Save){
@@ -362,7 +403,9 @@ void MainWindow::receive(DispatchType type, const QVariantList &args)
 
 int MainWindow::askCloseProject()
 {
-    if(this->history->index() == this->lastSavedHistoryIndex){
+    bool ask = this->initialAnalysis && (this->explicitSave == false);
+
+    if(ask == false && (this->history->index() == this->lastSavedHistoryIndex)){
         return QMessageBox::Discard;
     }
     //ファイルを閉じようとしています。

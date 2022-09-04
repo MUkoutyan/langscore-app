@@ -17,6 +17,7 @@ class WriteModeComponent;
 }
 
 class LanguageSelectComponent;
+class invoker;
 class WriteModeComponent : public QWidget, public ComponentBase
 {
     Q_OBJECT
@@ -28,6 +29,7 @@ public:
     void clear();
 
 signals:
+    void toNextPage();
 
 public slots:
     void treeItemSelected();
@@ -35,7 +37,7 @@ public slots:
     void scriptTableSelected();
     void scriptTableItemChanged(QTableWidgetItem *item);
 
-    bool exportTranslateFiles();
+    void exportTranslateFiles();
 
 private:
     Ui::WriteModeComponent* ui;
@@ -45,6 +47,7 @@ private:
     int currentScriptWordCount;
     bool showAllScriptContents;
     bool _suspendHistory;
+    invoker* _invoker;
 
     void setup();
     void setupScriptCsvText();
@@ -74,6 +77,8 @@ private:
     QString getScriptFileNameFromTable(int row);
 
     void setFontList(std::vector<QString> fontPaths);
+
+    void changeEnabledUIState(bool enable);
 
     void dropEvent(QDropEvent* event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;

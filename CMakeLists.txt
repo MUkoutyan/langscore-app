@@ -1,6 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
 project(langscore-app VERSION 0.5 LANGUAGES CXX)
+set(CONFIG_FILE_VERSION 1.0.0)
 configure_file(application_config.h.in application_config.h)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -18,39 +19,42 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 set(TS_FILES langscore-app_ja_JP.ts)
 
 set(PROJECT_SOURCES
-        main.cpp
-        MainWindow.cpp
-        MainWindow.h
-        MainWindow.ui
-        src/ui/ComponentBase.h
-        src/ui/FormTaskBar.h
-        src/ui/FormTaskBar.cpp
-        src/ui/FormTaskBar.ui
-        src/ui/MainComponent.h
-        src/ui/MainComponent.cpp
-        src/ui/MainComponent.ui
-        src/ui/WriteModeComponent.h
-        src/ui/WriteModeComponent.cpp
-        src/ui/WriteModeComponent.ui
-        src/ui/LanguageSelectComponent.h
-        src/ui/LanguageSelectComponent.cpp
-        src/ui/ScriptViewer.h
-        src/ui/ScriptViewer.cpp
-        src/csv.hpp
-        src/utility.hpp
-        src/invoker.h
-        src/invoker.cpp
-        src/settings.h
-        src/settings.cpp
-        src/graphics.hpp
-        src/ui/WriteDialog.h
-        src/ui/WriteDialog.cpp
-        src/ui/WriteDialog.ui
-        resources.qrc
+    main.cpp
+    MainWindow.cpp
+    MainWindow.h
+    MainWindow.ui
+    src/ui/ComponentBase.h
+    src/ui/FormTaskBar.h
+    src/ui/FormTaskBar.cpp
+    src/ui/FormTaskBar.ui
+    src/ui/AnalyzeDialog.h
+    src/ui/AnalyzeDialog.cpp
+    src/ui/AnalyzeDialog.ui
+    src/ui/WriteModeComponent.h
+    src/ui/WriteModeComponent.cpp
+    src/ui/WriteModeComponent.ui
+    src/ui/LanguageSelectComponent.h
+    src/ui/LanguageSelectComponent.cpp
+    src/ui/PackingMode.h
+    src/ui/PackingMode.cpp
+    src/ui/PackingMode.ui
+    src/ui/ScriptViewer.h
+    src/ui/ScriptViewer.cpp
+    src/csv.hpp
+    src/utility.hpp
+    src/invoker.h
+    src/invoker.cpp
+    src/settings.h
+    src/settings.cpp
+    src/graphics.hpp
+    src/ui/WriteDialog.h
+    src/ui/WriteDialog.cpp
+    src/ui/WriteDialog.ui
+    resources.qrc
 )
 
 include_directories(
-        "${DIVISI_PATH}/include"
+    "${DIVISI_PATH}/include"
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

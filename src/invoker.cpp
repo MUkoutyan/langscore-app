@@ -8,55 +8,56 @@ invoker::invoker(ComponentBase *setting)
     : ComponentBase(setting){
 }
 
-int invoker::analyze()
+void invoker::analyze(bool sync)
 {
+    this->sync = sync;
     return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--analyze"});
 }
 
-int invoker::write()
+void invoker::write(bool sync)
 {
+    this->sync = sync;
     return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--write"});
 }
 
-int invoker::doProcess(QStringList option)
+void invoker::validate(bool sync)
 {
-    process = new QProcess(this);
-    connect(process, &QProcess::readyReadStandardOutput, this, [this](){
+    this->sync = sync;
+    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--validate"});
+}
+
+void invoker::packing(bool sync)
+{
+    this->sync = sync;
+    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--packing"});
+}
+
+void invoker::doProcess(QStringList option)
+{
+    auto process = new QProcess();
+    connect(process, &QProcess::readyReadStandardOutput, this, [this, process](){
         QString message = process->readAllStandardOutput();
         qDebug() << message;
         emit this->getStdOut(message);
     });
-    process->setProgram(qApp->applicationDirPath()+"/bin/divisi.exe");
+    connect(process, &QProcess::readyReadStandardError, this, [this, process](){
+        QString message = process->readAllStandardError();
+        qDebug() << message;
+        emit this->getStdOut(message);
+    });
+    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [process, this](int exitCode, QProcess::ExitStatus){
+        emit this->finish(exitCode);
+        process->deleteLater();
+    });
 
-    process->setArguments(option);
-
-    process->start();
+    process->start(qApp->applicationDirPath()+"/bin/divisi.exe", option);
     if (!process->waitForStarted(-1)) {
         emit this->getStdOut(process->errorString());
+        delete process;
+        return;
     }
 
-    while(process->waitForFinished(200)){
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        emit this->update();
+    if(sync){
+        process->waitForFinished(-1);
     }
-
-    auto code = process->exitCode();
-    if(code == 0){
-        emit this->getStdOut(" Ok : " + QString(process->readAllStandardOutput()) + "\n" + process->errorString());
-    }
-    else
-    {
-        emit this->getStdOut("Error. code " + QString::number(code));
-        switch(code)
-        {
-        case -1:
-
-            break;
-        }
-    }
-
-    emit this->getStdOut(QString(process->readAllStandardOutput()));
-
-
-    return code;
 }

@@ -6,6 +6,8 @@
 #include <QActionGroup>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QStandardPaths>
+#include <QFileDialog>
 #include <QFile>
 #include <QDir>
 
@@ -88,7 +90,16 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
 
     auto quit = fileMenu->addAction(tr("Quit"));
 
-    connect(openGameProj, &QAction::triggered, this, &FormTaskBar::openGameProj);
+    connect(openGameProj, &QAction::triggered, this, [this]()
+    {
+        auto&& settings = ComponentBase::getAppSettings();
+        auto openPath = settings.value("lastOpenGameProjDirectory", QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation)).toUrl();
+        openPath = QFileDialog::getExistingDirectory(this, tr("Open Game Project Folder..."), openPath.toString());
+        if(openPath.isEmpty()){ return; }
+        settings.setValue("lastOpenGameProjDirectory", openPath);
+        settings.sync();
+        emit this->requestOpenProj(openPath.toLocalFile());
+    });
     connect(saveProj,     &QAction::triggered, this, &FormTaskBar::saveProj);
     connect(quit,         &QAction::triggered, this, &FormTaskBar::quit);
 
@@ -157,7 +168,8 @@ void FormTaskBar::updateRecentMenu()
     for(auto& proj : recentProjs){
         auto path = proj.toString();
         auto action = new QAction(QDir(path).dirName() + " (" + path + ")");
-        connect(action, &QAction::triggered, this, [this, path](){
+        connect(action, &QAction::triggered, this, [this, path]()
+        {
             emit this->requestOpenProj(path);
         });
         recentProjMenu->addAction(action);
