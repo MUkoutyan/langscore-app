@@ -80,3 +80,6 @@ test/build-Test-Debug
 test/build-Test-Release
 manual/output
 manual/doxygen-awesome-css
+test/build-Test-デバッグ
+test/build-Test-プロファイル
+test/build-Test-リリース
