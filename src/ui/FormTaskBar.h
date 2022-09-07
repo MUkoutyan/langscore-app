@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QUndoStack>
+#include <QMenu>
 
 namespace Ui {
 class FormTaskBar;

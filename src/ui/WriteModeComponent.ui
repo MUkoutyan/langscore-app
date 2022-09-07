@@ -211,7 +211,7 @@ Unchecked text and images are excluded from translation.</string>
      </widget>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="langTab">
        <attribute name="title">

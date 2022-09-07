@@ -125,11 +125,13 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     connect(this->ui->scriptFilterButton, &QToolButton::clicked, this->ui->scriptFilterButton, &QToolButton::showMenu);
 
     //全ての内容を表示
-    auto showAllContents = this->ui->scriptFilterButton->addAction(tr("Show All Contents"));
+    auto showAllContents = new QAction(tr("Show All Contents"));
+    this->ui->scriptFilterButton->addAction(showAllContents);
     showAllContents->setCheckable(true);
     showAllContents->setChecked(true);
     //無視する内容を非表示
-    auto hideIgnoreContents = this->ui->scriptFilterButton->addAction(tr("Hide Ignore Contents"));
+    auto hideIgnoreContents = new QAction(tr("Hide Ignore Contents"));
+    this->ui->scriptFilterButton->addAction(hideIgnoreContents);
     hideIgnoreContents->setCheckable(true);
     hideIgnoreContents->setChecked(false);
 
@@ -643,6 +645,8 @@ void WriteModeComponent::setup()
 
     this->ui->tableWidget_script->blockSignals(false);
     this->ui->treeWidget->blockSignals(false);
+
+    this->update();
 }
 
 void WriteModeComponent::setupTree()
@@ -803,11 +807,10 @@ void WriteModeComponent::setupTree()
         for(const auto& graphFolder : graphFolders)
         {
             auto folderRoot = new QTreeWidgetItem();
-            folderRoot->setText(1, graphFolder.baseName());
-            folderRoot->setBackground(0, graphicFolderBGColor);
-            folderRoot->setBackground(1, graphicFolderBGColor);
-            folderRoot->setForeground(1, Qt::black);
-            graphicsRootItem->addChild(folderRoot);
+            folderRoot->setText(TreeColIndex::Name, graphFolder.baseName());
+            folderRoot->setBackground(TreeColIndex::CheckBox, graphicFolderBGColor);
+            folderRoot->setBackground(TreeColIndex::Name, graphicFolderBGColor);
+            folderRoot->setForeground(TreeColIndex::Name, Qt::black);
             QDir childFolder(graphFolder.absoluteFilePath());
             QFileInfoList files = childFolder.entryInfoList(QStringList() << "*.*", QDir::Files);
             const auto numPictures = files.size();
@@ -841,12 +844,15 @@ void WriteModeComponent::setupTree()
                 folderRoot->addChild(child);
             }
 
-            if(0 < numPictures){
+            if(0 < numPictures)
+            {
                 folderRoot->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
+
                 if(ignorePictures == 0){ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Checked); }
                 else if(ignorePictures < numPictures){ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::PartiallyChecked); }
                 else{ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked); }
             }
+            graphicsRootItem->addChild(folderRoot);
         }
     }
 }
