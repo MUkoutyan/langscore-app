@@ -8,6 +8,38 @@
 namespace langscore
 {
 
+static std::vector<QString> parseCsvLine(QString line)
+{
+    QString tmp = "";
+    bool find_dq = false;
+    std::vector<QString> cols;
+    for(auto c : line)
+    {
+        if(c == '\"'){ find_dq = !find_dq; }
+
+        if(find_dq){
+            tmp.push_back(c);
+            continue;
+        }
+
+        if(c == ','){
+            find_dq = false;
+            cols.emplace_back(std::move(tmp));
+            tmp = "";
+            continue;
+        }
+        else if(c == '\n'){
+            find_dq = false;
+            cols.emplace_back(std::move(tmp));
+            tmp = "";
+        }
+        tmp.push_back(c);
+    }
+    if(tmp.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
+
+    return cols;
+}
+
 static std::vector<std::vector<QString>> readCsv(QString path)
 {
     std::ifstream file(path.toLocal8Bit());
