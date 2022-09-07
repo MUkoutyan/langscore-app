@@ -37,7 +37,6 @@ void invoker::doProcess(QStringList option)
     auto process = new QProcess();
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process](){
         QString message = process->readAllStandardOutput();
-        qDebug() << message;
         emit this->getStdOut(message);
     });
     connect(process, &QProcess::readyReadStandardError, this, [this, process](){
