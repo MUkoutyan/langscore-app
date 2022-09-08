@@ -881,7 +881,7 @@ void WriteModeComponent::setupScriptCsvText()
     };
 
     const auto IsIgnoreScript = [&scriptList](QString fileName){
-        fileName = withoutExtension(fileName);
+        fileName = withoutExtension(std::move(fileName));
         auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
             return withoutExtension(x.name) == fileName && x.ignore;
         });
@@ -923,7 +923,7 @@ void WriteModeComponent::setupScriptCsvText()
         const auto& originalText = line.size()<=1 ? "" : line[1];
         auto lineParsedResult = parseScriptNameWithRowCol(scriptLineInfo);
 
-        const auto textColor = TextColor(lineParsedResult);
+        const auto& textColor = TextColor(lineParsedResult);
 
         //チェックボックス
         auto* checkItem = new QTableWidgetItem();

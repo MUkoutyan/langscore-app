@@ -34,9 +34,9 @@ private:
         };
 
         ErrorType type = Warning;
+        ErrorSummary summary = EmptyCol;
         size_t row = 0;
-
-        ErrorSummary summary;
+        QString language;
         QString detail;
         bool shown = false;
     };
@@ -53,6 +53,7 @@ private:
 
     QString getCurrentSelectedItemFilePath();
     void setupCsvTable(QString fileName);
+    void highlightError(QTreeWidgetItem* item);
 
 private slots:
     void validate();

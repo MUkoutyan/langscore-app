@@ -433,12 +433,12 @@ void settings::load(QString path)
 
     auto jsonScripts = write[key(JsonKey::RPGMakerScripts)].toArray();
     auto scriptList = langscore::readCsv(this->tempScriptFileDirectoryPath()+"/_list.csv");
-    for(auto jsonInfo : jsonScripts)
+    for(const auto& jsonInfo : jsonScripts)
     {
         auto jsonScript = jsonInfo.toObject();
         auto fileName = jsonScript[key(JsonKey::Name)].toString();
 
-        fileName = langscore::withoutExtension(fileName);
+        fileName = langscore::withoutExtension(std::move(fileName));
 
         ScriptInfo& info = this->fetchScriptInfo(fileName);
         if(std::count_if(fileName.cbegin(), fileName.cend(), [](const auto c){
@@ -456,7 +456,7 @@ void settings::load(QString path)
         info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
 
         auto jsonIgnorePoints = jsonScript[key(JsonKey::IgnorePoints)].toArray();
-        for(auto jsonPoint : jsonIgnorePoints){
+        for(const auto& jsonPoint : jsonIgnorePoints){
             auto obj = jsonPoint.toObject();
             auto pair = TextPoint{
                             static_cast<size_t>(obj[key(JsonKey::Row)].toInteger()),

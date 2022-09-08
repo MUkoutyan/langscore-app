@@ -16,6 +16,7 @@ enum ErrorTextCol
 {
     Type = 0,
     Summary,
+    Language,
     Details,
     File,
     Row,
@@ -48,6 +49,7 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
         this->ui->packingButton->setEnabled(true);
         this->ui->moveToWrite->setEnabled(true);
         this->ui->treeWidget->blockSignals(false);
+        this->ui->treeWidget->blockSignals(false);
         this->_finishInvoke = true;
     });
 
@@ -56,16 +58,22 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
         auto selectedItems = this->ui->treeWidget->selectedItems();
         if(selectedItems.empty()){ return; }
         auto item = selectedItems[0];
-        this->setupCsvTable(item->parent() ? item->parent()->text(0) : item->text(0));
+
+        if(item->parent()){
+            this->setupCsvTable(item->parent()->text(0));
+            this->highlightError(item);
+        }
+        else{
+            this->setupCsvTable(item->text(0));
+        }
     });
 
     this->treeMenu = new QMenu(this->ui->treeWidget);
-//    auto openFile = treeMenu->addAction(tr("Open File"));
-    auto openExplorer = treeMenu->addAction(tr("Show in Explorer"));
-    connect(this->ui->treeWidget, &QTreeWidget::customContextMenuRequested, this, [this](const QPoint&)
-    {
+    connect(this->ui->treeWidget, &QTreeWidget::customContextMenuRequested, this, [this](const QPoint&){
         this->treeMenu->exec(QCursor::pos());
     });
+
+//    auto openFile = treeMenu->addAction(tr("Open File"));
 //    connect(openFile, &QAction::triggered, this, [this]()
 //    {
 //        auto filePath = this->getCurrentSelectedItemFilePath();
@@ -73,6 +81,7 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
 //        qDebug() << "start" QDir::toNativeSeparators(filePath);
 //        QProcess::startDetached("start", {QDir::toNativeSeparators(filePath)});
 //    });
+    auto openExplorer = treeMenu->addAction(tr("Show in Explorer"));
     connect(openExplorer, &QAction::triggered, this, [this]()
     {
         auto filePath = this->getCurrentSelectedItemFilePath();
@@ -103,28 +112,55 @@ void PackingMode::setupCsvTable(QString fileName)
     auto csv = langscore::readCsv(translateFolder + "/" + langscore::withoutExtension(fileName) + ".csv");
     if(csv.empty()){ return; }
 
-    const auto& header = csv[0];
+    const auto& header = QStringList{csv[0].begin(), csv[0].end()};
     auto numTableItems = csv.size()-1;
     QTableWidget *targetTable = this->ui->tableWidget;
     targetTable->clear();
     targetTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     targetTable->setRowCount(numTableItems);
-    targetTable->setColumnCount(header.size());
+    const auto numColumns = header.size();
+    targetTable->setColumnCount(numColumns);
     for(int c=0; c<header.size(); ++c){
         auto* item = new QTableWidgetItem(header[c]);
         targetTable->setHorizontalHeaderItem(c, item);
     }
 
+    auto errorInfoList = this->errors[fileName];
+
     for(int r=0; r<numTableItems; ++r)
     {
         const auto& line = csv[r+1];
-        for(int c=0; c<line.size(); ++c){
-            auto text = line[c];
+        for(int c=0; c<numColumns; ++c)
+        {
+            auto text = line.size() <= c ? "" : line[c];
             auto* item = new QTableWidgetItem(text);
             targetTable->setItem(r, c, item);
+
+            auto result = std::find_if(errorInfoList.begin(), errorInfoList.end(), [&](const ErrorInfo& x){
+                auto targetLangs = x.language.split(" ");
+                return x.row == r+1 && targetLangs.contains(header[c]);
+            });
+            if(result != errorInfoList.end())
+            {
+                item->setBackground(result->type == ErrorInfo::Warning ? QColor(240, 227, 0, 51) : QColor(236, 11, 0, 51));
+                QString tooltipStr;
+                if(result->summary == ErrorInfo::EmptyCol){
+                    tooltipStr = tr("The text is empty.");
+                }
+                else if(result->summary == ErrorInfo::NotFoundEsc){
+                    tooltipStr = tr("Esc character is missing.");
+                    tooltipStr += result->detail;
+                }
+                item->setToolTip(tooltipStr);
+            }
         }
     }
+
+}
+
+void PackingMode::highlightError(QTreeWidgetItem *item)
+{
 
 }
 
@@ -134,9 +170,15 @@ void PackingMode::validate()
     this->ui->packingButton->setEnabled(false);
     this->ui->moveToWrite->setEnabled(false);
     this->ui->treeWidget->blockSignals(true);
+    this->ui->treeWidget->blockSignals(true);
     this->ui->treeWidget->clear();
-    _invoker->validate();
+    this->treeTopItemList.clear();
+    this->ui->tableWidget->clear();
+    this->updateList.clear();
+    this->errors.clear();
+
     _finishInvoke = false;
+    _invoker->validate();
     updateTimer = new QTimer();
     connect(updateTimer, &QTimer::timeout, this, &PackingMode::updateTree);
     updateTimer->start(100);
@@ -178,8 +220,9 @@ void PackingMode::addText(QString text)
         return;
     }
 
-    info.detail = cols[ErrorTextCol::Details];
-    info.row = cols[ErrorTextCol::Row].toULongLong();
+    info.language   = cols[ErrorTextCol::Language];
+    info.detail     = cols[ErrorTextCol::Details];
+    info.row        = cols[ErrorTextCol::Row].toULongLong();
 
     QFileInfo fileInfo(cols[ErrorTextCol::File]);
     auto fileName = langscore::withoutExtension(fileInfo.fileName());
@@ -208,15 +251,18 @@ void PackingMode::updateTree()
             QTreeWidgetItem* item = nullptr;
             if(treeTopItemList.find(updateInfo.first) == treeTopItemList.end()){
                 item = new QTreeWidgetItem();
-                auto size = item->sizeHint(0);
-                size.setHeight(50);
-                item->setSizeHint(0, size);
                 item->setText(0, updateInfo.first);
-                if(info.type == ErrorInfo::Warning){
-                    item->setIcon(0, QIcon(":/images/resources/image/warning.svg"));
-                }
-                else if(info.type == ErrorInfo::Error){
+                //アイコンの設定　エラー優先で警告は次点
+                auto error = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& x){ return x.type == ErrorInfo::Error; });
+                if(error != infoList.cend()){
                     item->setIcon(0, QIcon(":/images/resources/image/attention.svg"));
+                }
+                else
+                {
+                    auto warn = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& x){ return x.type == ErrorInfo::Warning; });
+                    if(warn != infoList.cend()){
+                        item->setIcon(0, QIcon(":/images/resources/image/warning.svg"));
+                    }
                 }
                 treeTopItemList[updateInfo.first] = item;
                 this->ui->treeWidget->addTopLevelItem(item);
@@ -230,17 +276,17 @@ void PackingMode::updateTree()
                 QString text;
                 if(info.type == ErrorInfo::Warning){
                     text += tr("[Warning]");
-                    item->setForeground(0, QColor("#f0e300"));
+                    item->setForeground(0, QColor(240, 227, 0));
                 }
                 else if(info.type == ErrorInfo::Error){
                     text += tr("[Error]");
-                    item->setForeground(0, QColor("#ec0b00"));
+                    item->setForeground(0, QColor(236, 11, 0));
                 }
                 if(info.summary == ErrorInfo::EmptyCol){
-                    text += tr(" Empty Column (") + info.detail + ")";
+                    text += tr(" Empty Column") + "[" + info.language + "]";
                 }
                 else if(info.summary == ErrorInfo::NotFoundEsc){
-                    text += tr(" Not Found Esc (") + info.detail + ")";
+                    text += tr(" Not Found Esc") + "[" + info.language + "] (" + info.detail + ")";
                 }
 
                 child->setText(0, tr("Line") + QString::number(info.row)+" : " + text);
