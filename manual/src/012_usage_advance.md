@@ -127,14 +127,12 @@ original,en,ja,zh-cn
 ./Picture/TitleLogo.png,,./Picture/TitleLogo.png,
 ~~~~~
 
-
-
 翻訳先のパスが空なので、ゲームで現在設定中の言語を元にファイルを検索します。
 * 英語表示の場合
 	- ./Picture/TitleLogo_en.png
 
 * 日本語表示の場合
-	- パスが埋まっているので、CSVの内容を適用
+	- パスが書かれているので、CSVの内容を適用
 
 * 中国語(簡体)表示の場合
 	- ./Picture/TitleLogo_zh-cn.png
