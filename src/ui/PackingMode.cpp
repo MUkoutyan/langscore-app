@@ -28,8 +28,14 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
     , ui(new Ui::PackingMode)
     , _invoker(new invoker(this))
     , _finishInvoke(false)
+    , errorInfoIndex(0)
+    , currentShowCSV("")
 {
     ui->setupUi(this);
+
+    this->ui->modeDesc->hide();
+    this->ui->treeWidget->setStyleSheet("QTreeView::item { height: 28px; }");
+    this->ui->splitter->setStretchFactor(1, 1);
 
     connect(this->ui->moveToWrite, &QToolButton::clicked, this, &PackingMode::toPrevPage);
     connect(this->ui->validateButton, &QPushButton::clicked, this, &PackingMode::validate);
@@ -45,20 +51,23 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
     });
     connect(_invoker, &invoker::finish, this, [this](int)
     {
-        this->ui->validateButton->setEnabled(true);
         this->ui->packingButton->setEnabled(true);
         this->ui->moveToWrite->setEnabled(true);
         this->ui->treeWidget->blockSignals(false);
-        this->ui->treeWidget->blockSignals(false);
+        this->ui->tableWidget->blockSignals(false);
         this->_finishInvoke = true;
+
+        if(this->ui->treeWidget->topLevelItemCount() == 0){
+            this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
+        }
     });
 
     connect(this->ui->treeWidget, &QTreeWidget::itemSelectionChanged, this, [this]()
     {
         auto selectedItems = this->ui->treeWidget->selectedItems();
         if(selectedItems.empty()){ return; }
+        this->ui->tableWidget->clearSelection();
         auto item = selectedItems[0];
-
         if(item->parent()){
             this->setupCsvTable(item->parent()->text(0));
             this->highlightError(item);
@@ -69,7 +78,12 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
     });
 
     this->treeMenu = new QMenu(this->ui->treeWidget);
-    connect(this->ui->treeWidget, &QTreeWidget::customContextMenuRequested, this, [this](const QPoint&){
+    auto openExplorer = treeMenu->addAction("");
+    connect(this->ui->treeWidget, &QTreeWidget::customContextMenuRequested, this, [this, openExplorer](const QPoint&)
+    {
+        auto filePath = this->getCurrentSelectedItemFilePath();
+        if(QFile(filePath).exists() == false){ return; }
+        openExplorer->setText(tr("Show in Explorer") + " (" + QFileInfo(filePath).fileName() + ")");
         this->treeMenu->exec(QCursor::pos());
     });
 
@@ -81,7 +95,6 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
 //        qDebug() << "start" QDir::toNativeSeparators(filePath);
 //        QProcess::startDetached("start", {QDir::toNativeSeparators(filePath)});
 //    });
-    auto openExplorer = treeMenu->addAction(tr("Show in Explorer"));
     connect(openExplorer, &QAction::triggered, this, [this]()
     {
         auto filePath = this->getCurrentSelectedItemFilePath();
@@ -101,13 +114,14 @@ QString PackingMode::getCurrentSelectedItemFilePath()
     auto selectItems = this->ui->treeWidget->selectedItems();
     if(selectItems.empty()){ return ""; }
     auto item = selectItems[0];
-    auto fileName = item->text(0);
+    auto fileName = item->parent() ? item->parent()->text(0) : item->text(0);
     auto filePath = this->setting->translateDirectoryPath() + "/" + fileName+".csv";
     return filePath;
 }
 
 void PackingMode::setupCsvTable(QString fileName)
 {
+    if(currentShowCSV == fileName){ return; }
     const auto translateFolder = this->setting->translateDirectoryPath();
     auto csv = langscore::readCsv(translateFolder + "/" + langscore::withoutExtension(fileName) + ".csv");
     if(csv.empty()){ return; }
@@ -143,6 +157,7 @@ void PackingMode::setupCsvTable(QString fileName)
             });
             if(result != errorInfoList.end())
             {
+                item->setData(Qt::UserRole, result->id);
                 item->setBackground(result->type == ErrorInfo::Warning ? QColor(240, 227, 0, 51) : QColor(236, 11, 0, 51));
                 QString tooltipStr;
                 if(result->summary == ErrorInfo::EmptyCol){
@@ -157,10 +172,41 @@ void PackingMode::setupCsvTable(QString fileName)
         }
     }
 
+    this->ui->tableWidget->horizontalHeader()->setStretchLastSection(true);
+    this->currentShowCSV = fileName;
+
 }
 
-void PackingMode::highlightError(QTreeWidgetItem *item)
+void PackingMode::highlightError(QTreeWidgetItem *treeItem)
 {
+    auto id = treeItem->data(0, Qt::UserRole).toULongLong();
+    if(id == 0){ return; }
+
+    const auto& errorList = errors[treeItem->parent()->text(0)];
+
+    auto result = std::find_if(errorList.cbegin(), errorList.cend(), [id](const auto& x){
+        return x.id ==id;
+    });
+    if(result == errorList.cend()){ return; }
+
+    const auto numRow = this->ui->tableWidget->rowCount();
+    const auto numCol = this->ui->tableWidget->columnCount();
+
+    for(int r=0; r<numRow; ++r)
+    {
+        for(int c=0; c<numCol; ++c)
+        {
+            auto tableItem = this->ui->tableWidget->item(r, c);
+            auto tableId = tableItem->data(Qt::UserRole).toULongLong();
+            if(tableId == 0){ continue; }
+
+            if(id == tableId){
+                tableItem->setSelected(true);
+                this->ui->tableWidget->scrollToItem(tableItem, QAbstractItemView::ScrollHint::PositionAtCenter);
+                return;
+            }
+        }
+    }
 
 }
 
@@ -170,12 +216,17 @@ void PackingMode::validate()
     this->ui->packingButton->setEnabled(false);
     this->ui->moveToWrite->setEnabled(false);
     this->ui->treeWidget->blockSignals(true);
-    this->ui->treeWidget->blockSignals(true);
+    this->ui->tableWidget->blockSignals(true);
+
     this->ui->treeWidget->clear();
     this->treeTopItemList.clear();
     this->ui->tableWidget->clear();
+    this->ui->tableWidget->clearContents();
     this->updateList.clear();
     this->errors.clear();
+    currentShowCSV = "";
+
+    errorInfoIndex = 0;
 
     _finishInvoke = false;
     _invoker->validate();
@@ -223,6 +274,7 @@ void PackingMode::addText(QString text)
     info.language   = cols[ErrorTextCol::Language];
     info.detail     = cols[ErrorTextCol::Details];
     info.row        = cols[ErrorTextCol::Row].toULongLong();
+    info.id         = (++errorInfoIndex);   //1開始にする
 
     QFileInfo fileInfo(cols[ErrorTextCol::File]);
     auto fileName = langscore::withoutExtension(fileInfo.fileName());
@@ -272,14 +324,15 @@ void PackingMode::updateTree()
             }
 
             auto child = new QTreeWidgetItem();
-            [&](QTreeWidgetItem* item){
+            [&](QTreeWidgetItem* item)
+            {
                 QString text;
                 if(info.type == ErrorInfo::Warning){
-                    text += tr("[Warning]");
+                    item->setIcon(0, QIcon(":/images/resources/image/warning.svg"));
                     item->setForeground(0, QColor(240, 227, 0));
                 }
                 else if(info.type == ErrorInfo::Error){
-                    text += tr("[Error]");
+                    item->setIcon(0, QIcon(":/images/resources/image/attention.svg"));
                     item->setForeground(0, QColor(236, 11, 0));
                 }
                 if(info.summary == ErrorInfo::EmptyCol){
@@ -291,6 +344,7 @@ void PackingMode::updateTree()
 
                 child->setText(0, tr("Line") + QString::number(info.row)+" : " + text);
             }(child);
+            child->setData(0, Qt::UserRole, info.id);
             item->addChild(child);
             info.shown = true;
         }
@@ -300,5 +354,6 @@ void PackingMode::updateTree()
     if(_finishInvoke && updated == false){
         delete this->updateTimer;
         this->updateTimer = nullptr;
+        this->ui->validateButton->setEnabled(true);
     }
 }

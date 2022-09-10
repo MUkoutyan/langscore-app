@@ -10,8 +10,8 @@ class ComponentBase
 public:
 
     enum DispatchType {
-        StatusMessage,
-        SaveProject
+        StatusMessage,  //文字列, 秒数
+        SaveProject     //無し
     };
 
     ComponentBase():setting(std::make_shared<settings>()), history(new QUndoStack), dispatchComponentList(std::make_shared<std::vector<ComponentBase*>>()){}

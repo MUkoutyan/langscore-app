@@ -38,6 +38,7 @@ private:
         size_t row = 0;
         QString language;
         QString detail;
+        size_t id = 0;
         bool shown = false;
     };
 
@@ -48,6 +49,8 @@ private:
     std::mutex _mutex;
     QTimer* updateTimer;
     bool _finishInvoke;
+    size_t errorInfoIndex;
+    QString currentShowCSV;
 
     QMenu* treeMenu;
 
