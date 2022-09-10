@@ -41,7 +41,6 @@ void invoker::doProcess(QStringList option)
     });
     connect(process, &QProcess::readyReadStandardError, this, [this, process](){
         QString message = process->readAllStandardError();
-        qDebug() << message;
         emit this->getStdOut(message);
     });
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [process, this](int exitCode, QProcess::ExitStatus){

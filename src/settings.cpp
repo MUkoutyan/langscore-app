@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFontDatabase>
+#include <assert.h>
 
 #define MAKE_KEYVALUE(k) {JsonKey::k, #k}
 
