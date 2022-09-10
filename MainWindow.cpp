@@ -120,8 +120,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
 
-    attachTheme(FormTaskBar::Theme::System);
-
+    {
+        auto theme = (FormTaskBar::Theme)(ComponentBase::getAppSettings().value("appTheme", 2).toInt());
+        attachTheme(theme);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -463,9 +465,39 @@ void MainWindow::attachTheme(FormTaskBar::Theme theme)
 
         qApp->setPalette(darkPalette);
 
-        qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #2a82da; border: 1px solid white; }");
+        qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #222222; border: 1px solid white; }");
 
         this->setStyleSheet("#mainWindow{ border: 2px solid #323232; }");
+        analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #3f3f3f;}");
+    }
+    else if(lightTheme){
+        QPalette darkPalette;
+        QColor whiteColor = QColor(240, 240, 240);
+        QColor disabledColor = QColor(127,127,127);
+        darkPalette.setColor(QPalette::Window, whiteColor);
+        darkPalette.setColor(QPalette::WindowText, Qt::black);
+        darkPalette.setColor(QPalette::Base, QColor(230, 230, 230));
+        darkPalette.setColor(QPalette::AlternateBase, whiteColor);
+        darkPalette.setColor(QPalette::ToolTipBase, Qt::black);
+        darkPalette.setColor(QPalette::ToolTipText, Qt::black);
+        darkPalette.setColor(QPalette::Text, Qt::black);
+        darkPalette.setColor(QPalette::Disabled, QPalette::Text, disabledColor);
+        darkPalette.setColor(QPalette::Button, whiteColor);
+        darkPalette.setColor(QPalette::ButtonText, Qt::black);
+        darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
+        darkPalette.setColor(QPalette::BrightText, QColor(139, 25, 40));
+        darkPalette.setColor(QPalette::Link, QColor(99, 166, 233));
+
+        darkPalette.setColor(QPalette::Highlight, QColor(99, 166, 233));
+        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+        darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
+
+        qApp->setPalette(darkPalette);
+
+        qApp->setStyleSheet("QToolTip { color: #222222; background-color: #efefef; border: 1px solid black; }");
+
+        this->setStyleSheet("#mainWindow{ border: 2px solid #aaaaaa; }");
+        analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #999999;}");
     }
 }
 

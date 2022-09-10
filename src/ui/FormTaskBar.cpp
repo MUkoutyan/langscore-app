@@ -48,22 +48,17 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
         #minimumButton:hover:pressed{background-color: rgba(255,255,255,32);}
     )");
 
-    const auto SetIcon = [](QPushButton* button, QString iconPath){
-        QImage img(iconPath);
-        graphics::ReverceHSVValue(img);
-        button->setIcon(QIcon(QPixmap::fromImage(img)));
-    };
-    SetIcon(this->ui->closeButton, ":images/resources/image/close.svg");
-    SetIcon(this->ui->maximumButton, ":images/resources/image/maxminze.svg");
-    SetIcon(this->ui->minimumButton, ":images/resources/image/minimize.svg");
+    SetIconWithReverceColor(this->ui->closeButton, ":images/resources/image/close.svg");
+    SetIconWithReverceColor(this->ui->maximumButton, ":images/resources/image/maxminze.svg");
+    SetIconWithReverceColor(this->ui->minimumButton, ":images/resources/image/minimize.svg");
 
     connect(this->ui->closeButton,   &QPushButton::clicked, this, &FormTaskBar::pushClose);
-    connect(this->ui->maximumButton, &QPushButton::clicked, this, [this, &SetIcon](){
+    connect(this->ui->maximumButton, &QPushButton::clicked, this, [this](){
         if(emit this->maximum()){
-            SetIcon(this->ui->maximumButton, ":/images/resources/image/normalize.svg");
+            SetIconWithReverceColor(this->ui->maximumButton, ":/images/resources/image/normalize.svg");
         }
         else{
-            SetIcon(this->ui->maximumButton, ":/images/resources/image/maxminze.svg");
+            SetIconWithReverceColor(this->ui->maximumButton, ":/images/resources/image/maxminze.svg");
         }
     });
     connect(this->ui->minimumButton, &QPushButton::clicked, this, &FormTaskBar::minimum);
@@ -122,8 +117,11 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     auto systemMenu = AddMenu(tr("System"));
     auto themeAction        = systemMenu->addMenu(tr("Theme"));
     auto lightAction        = themeAction->addAction(tr("Light"));
+    lightAction->setCheckable(true);
     auto darkAction         = themeAction->addAction(tr("Dark"));
+    darkAction->setCheckable(true);
     auto systemThemeAction  = themeAction->addAction(tr("System"));
+    systemThemeAction->setCheckable(true);
     QActionGroup* themeGroup = new QActionGroup(this);
     themeGroup->setExclusive(true);
     themeGroup->addAction(lightAction);
@@ -132,6 +130,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     connect(lightAction,       &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::Light));
     connect(darkAction,        &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::Dark));
     connect(systemThemeAction, &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::System));
+
     {
         auto&& settings = ComponentBase::getAppSettings();
         auto theme = (Theme)settings.value("appTheme", 2).toInt();
@@ -204,10 +203,27 @@ void FormTaskBar::mouseDoubleClickEvent(QMouseEvent *event)
     emit this->doubleClick();
 }
 
+void FormTaskBar::SetIconWithReverceColor(QPushButton *button, QString iconPath)
+{
+    QImage img(iconPath);
+
+    auto&& settings = ComponentBase::getAppSettings();
+    auto theme = (Theme)settings.value("appTheme", 2).toInt();
+    if(theme == Theme::Dark){
+        graphics::ReverceHSVValue(img);
+    }
+    button->setIcon(QIcon(QPixmap::fromImage(img)));
+}
+
 void FormTaskBar::emitChangeTheme(Theme theme)
 {
     auto&& settings = ComponentBase::getAppSettings();
     settings.setValue("appTheme", theme);
+
+    SetIconWithReverceColor(this->ui->closeButton, ":images/resources/image/close.svg");
+    SetIconWithReverceColor(this->ui->maximumButton, ":images/resources/image/maxminze.svg");
+    SetIconWithReverceColor(this->ui->minimumButton, ":images/resources/image/minimize.svg");
+
     emit this->changeTheme(theme);
 }
 

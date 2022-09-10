@@ -26,7 +26,6 @@ AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
     this->setWindowFlag(Qt::FramelessWindowHint);
 
     this->setObjectName("analyzeDialog");
-    this->setStyleSheet("#analyzeDialog{border: 2px solid #3f3f3f;}");
 
     connect(this->ui->analyzeButton, &QPushButton::clicked, this, &AnalyzeDialog::invokeAnalyze);
 

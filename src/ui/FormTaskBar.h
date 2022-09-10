@@ -1,6 +1,7 @@
 ﻿#ifndef FORMTASKBAR_H
 #define FORMTASKBAR_H
 
+#include <QPushButton>
 #include <QWidget>
 #include <QUndoStack>
 #include <QMenu>
@@ -16,7 +17,7 @@ class FormTaskBar : public QWidget
 public:
 
     enum Theme {
-        Dark,
+        Dark = 0,
         Light,
         System
     };
@@ -54,6 +55,8 @@ private:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+
+    void SetIconWithReverceColor(QPushButton* button, QString iconPath);
 
 
     bool pressLeftButton;

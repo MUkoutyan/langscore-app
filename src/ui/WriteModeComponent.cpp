@@ -190,6 +190,12 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     });
 #endif
 
+    this->ui->treeWidget->setStyleSheet(R"(
+QTreeView::item {
+    height: 28px;
+})");
+    this->ui->graphicsView->setStyleSheet("QGraphicsView{background : #858585;}");
+
 }
 
 WriteModeComponent::~WriteModeComponent(){
@@ -651,8 +657,8 @@ void WriteModeComponent::setup()
 
 void WriteModeComponent::setupTree()
 {
-    const auto topLevelItemBGColor = QColor(166, 121, 8);
-    const auto graphicFolderBGColor = QColor(172, 141, 4);
+    const auto topLevelItemBGColor  = QColor(128, 128, 128, 90);
+    const auto graphicFolderBGColor = QColor(128, 128, 128, 90);
     const auto translateFolder = this->setting->tempFileDirectoryPath();
     //Main
     {
@@ -665,7 +671,7 @@ void WriteModeComponent::setupTree()
         mainItem->setData(0, Qt::UserRole, TreeItemType::Main);
         mainItem->setBackground(0, topLevelItemBGColor);
         mainItem->setBackground(1, topLevelItemBGColor);
-        mainItem->setForeground(0, Qt::black);
+        mainItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(mainItem);
         for(const auto& file : files)
         {
@@ -742,7 +748,7 @@ void WriteModeComponent::setupTree()
         scriptItem->setData(0, Qt::UserRole, TreeItemType::Script);
         scriptItem->setBackground(0, topLevelItemBGColor);
         scriptItem->setBackground(1, topLevelItemBGColor);
-        scriptItem->setForeground(0, Qt::black);
+        scriptItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(scriptItem);
         auto scriptFolder  = this->setting->tempScriptFileDirectoryPath();
         auto scriptFiles   = readCsv(scriptFolder + "/_list.csv");
@@ -798,7 +804,7 @@ void WriteModeComponent::setupTree()
         graphicsRootItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
         graphicsRootItem->setBackground(0, topLevelItemBGColor);
         graphicsRootItem->setBackground(1, topLevelItemBGColor);
-        graphicsRootItem->setForeground(0, Qt::black);
+        graphicsRootItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(graphicsRootItem);
 
         QDir graphicsFolder(this->setting->tempGraphicsFileDirectoryPath());
@@ -810,7 +816,7 @@ void WriteModeComponent::setupTree()
             folderRoot->setText(TreeColIndex::Name, graphFolder.baseName());
             folderRoot->setBackground(TreeColIndex::CheckBox, graphicFolderBGColor);
             folderRoot->setBackground(TreeColIndex::Name, graphicFolderBGColor);
-            folderRoot->setForeground(TreeColIndex::Name, Qt::black);
+            folderRoot->setForeground(TreeColIndex::Name, Qt::white);
             QDir childFolder(graphFolder.absoluteFilePath());
             QFileInfoList files = childFolder.entryInfoList(QStringList() << "*.*", QDir::Files);
             const auto numPictures = files.size();
