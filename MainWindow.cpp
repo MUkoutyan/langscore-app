@@ -215,7 +215,7 @@ bool MainWindow::event(QEvent*e)
 
 
 void MainWindow::mouseHover(QHoverEvent *e) {
-    updateCursorShape(e->globalPosition().toPoint());
+    updateCursorShape(QCursor::pos());
 }
 
 void MainWindow::mouseLeave(QEvent*) {
@@ -227,7 +227,7 @@ void MainWindow::mouseLeave(QEvent*) {
 void MainWindow::mousePress(QMouseEvent *e) {
     if (e->button() & Qt::LeftButton) {
         leftButtonPressed = true;
-        calculateCursorPosition(e->globalPosition().toPoint(), mousePressEdge);
+        calculateCursorPosition(QCursor::pos(), mousePressEdge);
 
         if (this->rect().marginsRemoved(QMargins(borderWidth, borderWidth, borderWidth, borderWidth)).contains(e->pos())) {
             isDragging = true;
@@ -247,14 +247,14 @@ void MainWindow::mouseRealese(QMouseEvent *e) {
 void MainWindow::mouseMove(QMouseEvent *e)
 {
     if (leftButtonPressed == false) {
-        updateCursorShape(e->globalPosition().toPoint());
+        updateCursorShape(QCursor::pos());
         return;
     }
 
     if(mousePressEdge == Edges::None){ return; }
 
     auto rect = this->frameGeometry();
-    auto pos = e->globalPosition();
+    auto pos = QCursor::pos();
     int top = rect.top(), bottom = rect.bottom(), left = rect.left(), right = rect.right();
 
     switch (mousePressEdge) {
