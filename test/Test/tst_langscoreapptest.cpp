@@ -58,8 +58,7 @@ private slots:
     void editMode_changeTableCheckState();
     void editMode_hideScriptTable();
     void editMode_exportFile();
-
-    void checkConfig_pictures();
+    void editMode_picturesState();
 
 private:
     std::shared_ptr<settings> settings;
@@ -612,8 +611,9 @@ void LangscoreAppTest::editMode_exportFile()
 
 }
 
-void LangscoreAppTest::checkConfig_pictures()
+void LangscoreAppTest::editMode_picturesState()
 {
+    //コンフィグへの書き込み確認
     {
         MainWindow window;
         auto* analyzeDialog = window.analyzeDialog;
@@ -622,7 +622,6 @@ void LangscoreAppTest::checkConfig_pictures()
         if(QDir(qApp->applicationDirPath()+"/Project1_langscore").exists()){
             QDir(qApp->applicationDirPath()+"/Project1_langscore").removeRecursively();
         }
-
 
         analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
         window.show();
@@ -687,6 +686,33 @@ void LangscoreAppTest::checkConfig_pictures()
         auto& ignorePicturePath = window.setting->writeObj.ignorePicturePath;
         QCOMPARE(ignorePicturePath.size(), 1);
         QVERIFY(std::find(ignorePicturePath.cbegin(), ignorePicturePath.cend(), "Pictures/nantoka8.jpg") != ignorePicturePath.cend());
+        //次のテストのために一回保存する
+        window.setting->saveForProject();
+    }
+
+
+    {
+        MainWindow window;
+        auto* analyzeDialog = window.analyzeDialog;
+        auto* component = window.writeUi;
+        QSignalSpy spy(analyzeDialog, &AnalyzeDialog::toWriteMode);
+        window.show();
+
+        analyzeDialog->openFile(qApp->applicationDirPath()+"/Project1");
+        //プロジェクトを削除していないので書き込みモード遷移が呼び出されるはず
+        QCOMPARE(spy.count(), 1);
+
+
+        auto graphicsItem = component->ui->treeWidget->topLevelItem(2);
+        auto numFolder = graphicsItem->childCount();
+        for(int i=0; i<numFolder; ++i)
+        {
+            auto folderItem = graphicsItem->child(i);
+            if(folderItem->text(1) != "Pictures"){ continue; }
+
+            QCOMPARE(folderItem->checkState(0), Qt::PartiallyChecked);
+            break;
+        }
     }
 }
 
