@@ -51,12 +51,15 @@ private:
     bool _finishInvoke;
     size_t errorInfoIndex;
     QString currentShowCSV;
+    bool isValidate;
 
     QMenu* treeMenu;
 
     QString getCurrentSelectedItemFilePath();
-    void setupCsvTable(QString fileName);
+    void setupCsvTable(QString filePath);
     void highlightError(QTreeWidgetItem* item);
+
+    void showEvent(QShowEvent *event) override;
 
 private slots:
     void validate();

@@ -83,6 +83,9 @@ public:
     WriteProps writeObj;
     std::vector<std::tuple<FontType, int, QString>> fontIndexList;
 
+    //Packing
+    QString packingInputDirectory;
+
     QString translateDirectoryPath() const;
     QString tempFileDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
@@ -96,6 +99,8 @@ public:
     void removeScriptInfoPoint(QString fileName, std::pair<size_t, size_t> point);
 
     static QString getLowerBcp47Name(QLocale locale);
+
+    void setPackingDirectory(QString path);
 
     QByteArray createJson();
     void write(QString path);

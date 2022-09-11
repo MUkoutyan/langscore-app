@@ -571,12 +571,16 @@ void WriteModeComponent::exportTranslateFiles()
 
     auto execCode = dialog.exec();
     this->setGraphicsEffect(nullptr);
-    if(execCode == QDialog::Rejected){ return; }
+    if(execCode == QDialog::Rejected){
+        this->changeEnabledUIState(true);
+        return;
+    }
 
     QDir lsProjDir(this->setting->langscoreProjectDirectory);
     auto relativePath = lsProjDir.relativeFilePath(dialog.outputPath());
     this->setting->writeObj.exportDirectory = relativePath;
     this->setting->writeObj.exportByLanguage = dialog.writeByLanguage();
+    this->setting->setPackingDirectory(relativePath);
 
     if(dialog.backup()){ backup(); }
 

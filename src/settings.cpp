@@ -47,6 +47,7 @@ enum class JsonKey : size_t
     RPGMakerScripts,
     OverwriteLangscore,
     OverwriteLangscoreCustom,
+    PackingInputDir,
 
     ApplicationVersion,
     ConfigVersion,
@@ -84,6 +85,7 @@ static const std::map<JsonKey, const char*> jsonKeys = {
     MAKE_KEYVALUE(RPGMakerScripts),
     MAKE_KEYVALUE(OverwriteLangscore),
     MAKE_KEYVALUE(OverwriteLangscoreCustom),
+    MAKE_KEYVALUE(PackingInputDir),
     MAKE_KEYVALUE(ApplicationVersion),
     MAKE_KEYVALUE(ConfigVersion),
 };
@@ -243,6 +245,24 @@ QString settings::getLowerBcp47Name(QLocale locale)
     return bcp47Name;
 }
 
+void settings::setPackingDirectory(QString validatePath)
+{
+    if(validatePath.isEmpty()){
+        validatePath = this->writeObj.exportDirectory;
+    }
+
+    QFileInfo outputDirInfo(validatePath);
+    if(outputDirInfo.isRelative()){
+        auto lsProjDir = QDir(this->langscoreProjectDirectory);
+        auto absPath = lsProjDir.absoluteFilePath(validatePath);
+        absPath = lsProjDir.cleanPath(absPath);
+        validatePath = absPath;
+    } else {
+        validatePath = outputDirInfo.absoluteFilePath();
+    }
+    this->packingInputDirectory = validatePath;
+}
+
 QByteArray settings::createJson()
 {
     QJsonObject root;
@@ -357,6 +377,9 @@ QByteArray settings::createJson()
     write[key(JsonKey::FontPath)] = copyFonts;
 
     root[key(JsonKey::Write)] = write;
+
+
+    root[key(JsonKey::PackingInputDir)] = this->packingInputDirectory;
 
     QJsonDocument doc(root);
     return doc.toJson();
@@ -477,7 +500,7 @@ void settings::load(QString path)
         this->writeObj.ignorePicturePath.emplace_back(jsonPath.toString());
     }
 
-
+    this->packingInputDirectory = root[key(JsonKey::PackingInputDir)].toString();
 }
 
 void settings::updateLangscoreProjectPath()

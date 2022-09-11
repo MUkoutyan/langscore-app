@@ -11,6 +11,7 @@
 #include <QTreeWidget>
 #include <QProcess>
 #include <QDir>
+#include <QFileDialog>
 
 enum ErrorTextCol
 {
@@ -22,14 +23,15 @@ enum ErrorTextCol
     Row,
 };
 
-PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
+PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     : QWidget{parent}
-    , ComponentBase(setting)
+    , ComponentBase(settings)
     , ui(new Ui::PackingMode)
     , _invoker(new invoker(this))
     , _finishInvoke(false)
     , errorInfoIndex(0)
     , currentShowCSV("")
+    , isValidate(false)
 {
     ui->setupUi(this);
 
@@ -37,10 +39,27 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
     this->ui->treeWidget->setStyleSheet("QTreeView::item { height: 28px; }");
     this->ui->splitter->setStretchFactor(1, 1);
 
+    this->ui->validateButton->setEnabled(false);
+    this->ui->packingButton->setEnabled(false);
+
+
     connect(this->ui->moveToWrite, &QToolButton::clicked, this, &PackingMode::toPrevPage);
     connect(this->ui->validateButton, &QPushButton::clicked, this, &PackingMode::validate);
     connect(this->ui->packingButton, &QPushButton::clicked, this, &PackingMode::packing);
 
+    connect(this->ui->openDirectory, &QPushButton::clicked, this, [this](){
+        auto path = QFileDialog::getExistingDirectory(this, tr("Select Export Directory"), this->setting->translateDirectoryPath());
+        if(path.isEmpty()){ return; }
+        this->ui->packingSourceDirectory->setText(path);
+    });
+
+    connect(this->ui->packingSourceDirectory, &QLineEdit::textChanged, this, [this](const QString& path){
+        auto dir = QFileInfo(path);
+        auto exists = dir.exists() && dir.isDir();
+        this->ui->validateButton->setEnabled(exists);
+        this->ui->packingButton->setEnabled(exists);
+        this->ui->packingSourceDirectory->setForegroundRole(exists ? QPalette::Text : QPalette::BrightText);
+    });
 
     connect(_invoker, &invoker::getStdOut, this, [this](QString raw){
         raw.replace("\r\n", "\n");
@@ -57,9 +76,17 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
         this->ui->tableWidget->blockSignals(false);
         this->_finishInvoke = true;
 
-        if(this->ui->treeWidget->topLevelItemCount() == 0){
-            this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
+
+        if(isValidate){
+            if(this->ui->treeWidget->topLevelItemCount() == 0){
+                this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
+            }
         }
+        else{
+            this->ui->validateButton->setEnabled(true);
+            this->dispatch(DispatchType::StatusMessage, {tr("Complete Packing!"), 5000});
+        }
+
     });
 
     connect(this->ui->treeWidget, &QTreeWidget::itemSelectionChanged, this, [this]()
@@ -69,11 +96,11 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
         this->ui->tableWidget->clearSelection();
         auto item = selectedItems[0];
         if(item->parent()){
-            this->setupCsvTable(item->parent()->text(0));
+            this->setupCsvTable(item->parent()->data(0, Qt::UserRole).toString());
             this->highlightError(item);
         }
         else{
-            this->setupCsvTable(item->text(0));
+            this->setupCsvTable(item->data(0, Qt::UserRole).toString());
         }
     });
 
@@ -102,6 +129,7 @@ PackingMode::PackingMode(ComponentBase *setting, QWidget *parent)
         QProcess::startDetached("explorer", {"/select,"+QDir::toNativeSeparators(filePath)});
     });
 
+
 }
 
 PackingMode::~PackingMode()
@@ -119,11 +147,10 @@ QString PackingMode::getCurrentSelectedItemFilePath()
     return filePath;
 }
 
-void PackingMode::setupCsvTable(QString fileName)
+void PackingMode::setupCsvTable(QString filePath)
 {
-    if(currentShowCSV == fileName){ return; }
-    const auto translateFolder = this->setting->translateDirectoryPath();
-    auto csv = langscore::readCsv(translateFolder + "/" + langscore::withoutExtension(fileName) + ".csv");
+    if(currentShowCSV == filePath){ return; }
+    auto csv = langscore::readCsv(filePath);
     if(csv.empty()){ return; }
 
     const auto& header = QStringList{csv[0].begin(), csv[0].end()};
@@ -140,7 +167,7 @@ void PackingMode::setupCsvTable(QString fileName)
         targetTable->setHorizontalHeaderItem(c, item);
     }
 
-    auto errorInfoList = this->errors[fileName];
+    auto errorInfoList = this->errors[filePath];
 
     for(int r=0; r<numTableItems; ++r)
     {
@@ -173,7 +200,7 @@ void PackingMode::setupCsvTable(QString fileName)
     }
 
     this->ui->tableWidget->horizontalHeader()->setStretchLastSection(true);
-    this->currentShowCSV = fileName;
+    this->currentShowCSV = filePath;
 
 }
 
@@ -210,6 +237,15 @@ void PackingMode::highlightError(QTreeWidgetItem *treeItem)
 
 }
 
+void PackingMode::showEvent(QShowEvent*)
+{
+    if(this->setting->packingInputDirectory.isEmpty()){
+        this->setting->setPackingDirectory("");
+    }
+
+    this->ui->packingSourceDirectory->setText(this->setting->packingInputDirectory);
+}
+
 void PackingMode::validate()
 {
     this->ui->validateButton->setEnabled(false);
@@ -224,9 +260,21 @@ void PackingMode::validate()
     this->ui->tableWidget->clearContents();
     this->updateList.clear();
     this->errors.clear();
-    currentShowCSV = "";
 
-    errorInfoIndex = 0;
+    this->currentShowCSV = "";
+    this->errorInfoIndex = 0;
+    this->isValidate = true;
+
+    auto files = QDir(this->ui->packingSourceDirectory->text()).entryInfoList({"*.csv"});
+    for(const auto &file : files)
+    {
+        auto filePath = file.absoluteFilePath();
+        auto item = new QTreeWidgetItem();
+        item->setData(0, Qt::UserRole, filePath);
+        item->setText(0, langscore::withoutExtension(file.fileName()));
+        treeTopItemList[filePath] = item;
+        this->ui->treeWidget->addTopLevelItem(item);
+    }
 
     _finishInvoke = false;
     _invoker->validate();
@@ -240,6 +288,11 @@ void PackingMode::packing()
     this->ui->validateButton->setEnabled(false);
     this->ui->packingButton->setEnabled(false);
     this->ui->moveToWrite->setEnabled(false);
+    this->isValidate = false;
+
+    this->setting->packingInputDirectory = this->ui->packingSourceDirectory->text();
+    this->setting->saveForProject();
+
     _invoker->packing();
 }
 
@@ -277,7 +330,7 @@ void PackingMode::addText(QString text)
     info.id         = (++errorInfoIndex);   //1開始にする
 
     QFileInfo fileInfo(cols[ErrorTextCol::File]);
-    auto fileName = langscore::withoutExtension(fileInfo.fileName());
+    auto fileName = fileInfo.absoluteFilePath();
     _mutex.lock();
     errors[fileName].emplace_back(std::move(info));
     updateList[fileName] = true;
@@ -304,6 +357,13 @@ void PackingMode::updateTree()
             if(treeTopItemList.find(updateInfo.first) == treeTopItemList.end()){
                 item = new QTreeWidgetItem();
                 item->setText(0, updateInfo.first);
+
+                treeTopItemList[updateInfo.first] = item;
+                this->ui->treeWidget->addTopLevelItem(item);
+            }
+            else {
+                item = treeTopItemList[updateInfo.first];
+
                 //アイコンの設定　エラー優先で警告は次点
                 auto error = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& x){ return x.type == ErrorInfo::Error; });
                 if(error != infoList.cend()){
@@ -316,11 +376,6 @@ void PackingMode::updateTree()
                         item->setIcon(0, QIcon(":/images/resources/image/warning.svg"));
                     }
                 }
-                treeTopItemList[updateInfo.first] = item;
-                this->ui->treeWidget->addTopLevelItem(item);
-            }
-            else {
-                item = treeTopItemList[updateInfo.first];
             }
 
             auto child = new QTreeWidgetItem();
@@ -355,5 +410,9 @@ void PackingMode::updateTree()
         delete this->updateTimer;
         this->updateTimer = nullptr;
         this->ui->validateButton->setEnabled(true);
+
+        if(this->ui->treeWidget->topLevelItemCount() == 0){
+            this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
+        }
     }
 }

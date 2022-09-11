@@ -200,12 +200,12 @@ If not, the changes will be discarded.</source>
 <context>
     <name>PackingMode</name>
     <message>
-        <location filename="src/ui/PackingMode.ui" line="14"/>
+        <location filename="src/ui/PackingMode.ui" line="17"/>
         <source>Form</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.ui" line="43"/>
+        <location filename="src/ui/PackingMode.ui" line="46"/>
         <source>WriteMode</source>
         <translation>書き込みモード</translation>
     </message>
@@ -214,12 +214,12 @@ If not, the changes will be discarded.</source>
         <translation type="obsolete">翻訳ファイル作成モード</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.ui" line="64"/>
+        <location filename="src/ui/PackingMode.ui" line="67"/>
         <source>Packing Mode</source>
         <translation>パッキングモード</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.ui" line="79"/>
+        <location filename="src/ui/PackingMode.ui" line="82"/>
         <source>Final check of translation files and preparation for distribution.
 *Required for encryption.</source>
         <extracomment>翻訳ファイルの最終チェックや配布の準備を行います。 ※暗号化を行う場合は必須です</extracomment>
@@ -227,47 +227,73 @@ If not, the changes will be discarded.</source>
  ※暗号化を行う場合は必須です。</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.ui" line="167"/>
-        <source>Check Validate</source>
-        <translation>問題の確認</translation>
+        <location filename="src/ui/PackingMode.ui" line="117"/>
+        <source>Folder with translation files</source>
+        <translation>翻訳ファイルが有るフォルダ</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.ui" line="180"/>
+        <location filename="src/ui/PackingMode.ui" line="139"/>
+        <source>...</source>
+        <translation>...</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.ui" line="219"/>
+        <source>Check Translate File Validate</source>
+        <oldsource>Check Validate</oldsource>
+        <translation>翻訳ファイルの問題の確認</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.ui" line="232"/>
+        <source>Packing Translate File</source>
+        <translation>翻訳ファイルをパッキング</translation>
+    </message>
+    <message>
         <source>Packing</source>
-        <translation>まとめる！</translation>
+        <translation type="vanished">まとめる！</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="61"/>
+        <location filename="src/ui/PackingMode.cpp" line="51"/>
+        <source>Select Export Directory</source>
+        <translation>出力先ディレクトリを選択</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="82"/>
+        <location filename="src/ui/PackingMode.cpp" line="415"/>
         <source>Valid!</source>
         <translation>問題なし！</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="86"/>
+        <location filename="src/ui/PackingMode.cpp" line="87"/>
+        <source>Complete Packing!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="113"/>
         <source>Show in Explorer</source>
         <translation>エクスプローラーで表示</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="164"/>
+        <location filename="src/ui/PackingMode.cpp" line="191"/>
         <source>The text is empty.</source>
         <translation>文章が空になっています。</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="167"/>
+        <location filename="src/ui/PackingMode.cpp" line="194"/>
         <source>Esc character is missing.</source>
         <translation>制御文字が見つかりません。</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="339"/>
+        <location filename="src/ui/PackingMode.cpp" line="394"/>
         <source> Empty Column</source>
-        <translation>空の文章</translation>
+        <translation> 空の文章</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="342"/>
+        <location filename="src/ui/PackingMode.cpp" line="397"/>
         <source> Not Found Esc</source>
-        <translation>制御文字が見つからない</translation>
+        <translation> 制御文字の不足</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="345"/>
+        <location filename="src/ui/PackingMode.cpp" line="400"/>
         <source>Line</source>
         <translation>行</translation>
     </message>
@@ -425,7 +451,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="src/ui/WriteModeComponent.ui" line="289"/>
         <location filename="src/ui/WriteModeComponent.ui" line="386"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1015"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1019"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
@@ -495,7 +521,7 @@ Unchecked text and images are excluded from translation.</source>
         <translation>スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="586"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="590"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
@@ -507,32 +533,32 @@ Unchecked text and images are excluded from translation.</source>
         <translation>完了。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="774"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="833"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="778"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="837"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="979"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1350"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="983"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1354"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1405"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1415"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1409"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1419"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1408"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1418"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1412"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1422"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1428"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1433"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1432"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1437"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>
