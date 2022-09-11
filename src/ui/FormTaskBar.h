@@ -19,7 +19,9 @@ public:
     enum Theme {
         Dark = 0,
         Light,
-        System
+        System,
+
+        None
     };
 
     explicit FormTaskBar(QUndoStack* history, QWidget *parent = nullptr);

@@ -209,6 +209,16 @@ void FormTaskBar::SetIconWithReverceColor(QPushButton *button, QString iconPath)
 
     auto&& settings = ComponentBase::getAppSettings();
     auto theme = (Theme)settings.value("appTheme", 2).toInt();
+    if(theme == Theme::System)
+    {
+        QSettings regist("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
+        if(regist.value("AppsUseLightTheme")==0){
+            theme = Theme::Dark;
+        }
+        else{
+            theme = Theme::Light;
+        }
+    }
     if(theme == Theme::Dark){
         graphics::ReverceHSVValue(img);
     }

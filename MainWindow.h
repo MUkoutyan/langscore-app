@@ -71,6 +71,7 @@ private:
     QPoint draggingStartPos;
     int borderWidth;
     int lastSavedHistoryIndex;
+    FormTaskBar::Theme currentTheme;
 
     void receive(DispatchType type, const QVariantList& args) override;
     int askCloseProject();

@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     , draggingStartPos()
     , borderWidth(2)
     , lastSavedHistoryIndex(0)
+    , currentTheme(FormTaskBar::Theme::None)
 {
     ui->setupUi(this);
     this->setObjectName("mainWindow");
@@ -418,30 +419,23 @@ int MainWindow::askCloseProject()
 
 void MainWindow::attachTheme(FormTaskBar::Theme theme)
 {
-    bool darkTheme = false;
-    bool lightTheme = false;
-    switch(theme)
+    if(theme == FormTaskBar::Theme::System)
     {
-    case FormTaskBar::Theme::Dark:
-        darkTheme = true;
-        break;
-    case FormTaskBar::Theme::Light:
-        lightTheme = true;
-        break;
-    case FormTaskBar::Theme::System:
 #ifdef Q_OS_WIN
         QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
         if(settings.value("AppsUseLightTheme")==1){
-            lightTheme = true;
+            theme = FormTaskBar::Theme::Light;
         }
         else{
-            darkTheme = true;
+            theme = FormTaskBar::Theme::Dark;
         }
 #endif
-        break;
     }
 
-    if(darkTheme){
+    if(currentTheme == theme){ return; }
+    currentTheme = theme;
+
+    if(theme == FormTaskBar::Theme::Dark){
         QPalette darkPalette;
         QColor darkColor = QColor(28, 28, 28);
         QColor disabledColor = QColor(127,127,127);
@@ -470,7 +464,7 @@ void MainWindow::attachTheme(FormTaskBar::Theme theme)
         this->setStyleSheet("#mainWindow{ border: 2px solid #323232; }");
         analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #3f3f3f;}");
     }
-    else if(lightTheme){
+    else if(theme == FormTaskBar::Theme::Light){
         QPalette darkPalette;
         QColor whiteColor = QColor(240, 240, 240);
         QColor disabledColor = QColor(127,127,127);
