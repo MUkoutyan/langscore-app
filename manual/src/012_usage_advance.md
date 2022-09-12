@@ -53,15 +53,15 @@ langscore_customにはコメントアウトされたtranslate_for_scriptが記�
 ~~~~~{.rb}
 	#Scripts/65903110#37,38
 	#original : Data/Actors.rvdata2
-	#Langscore.translate_for_script("65903110:37:38") #<<これ1
+	#Langscore.translate_for_script("65903110:37:38") #<<この行を外す
 
 	#Scripts/65903110#38,38
 	#original : Data/Classes.rvdata2
-	#Langscore.translate_for_script("65903110:38:38") #<<これ2
+	#Langscore.translate_for_script("65903110:38:38") #<<この行を外す2
 
 	#Scripts/65903110#39,38
 	#original : Data/Skills.rvdata2
-	#Langscore.translate_for_script("65903110:39:38") #<<これ3
+	#Langscore.translate_for_script("65903110:39:38") #<<この行を外す3
 ~~~~~
 
 
