@@ -15,7 +15,7 @@ Langscore.exeを開いて、ゲームプロジェクトの *フォルダ* をド
 
 ## 翻訳ファイルを書き出す
 
-![作成モード](editMode.png)
+![作成モード](edit_mode1.png)
 
 解析が完了すると作成モードに画面が切り替わります。
 
@@ -43,9 +43,7 @@ Langscore.exeを開いて、ゲームプロジェクトの *フォルダ* をド
 
 スクリプト中のLangscore.changeLanguage(lang)関数に、言語文字列を指定して呼び出してください。
 
-```
-Langscore.changeLanguage("ja")  #日本語の場合
-```
+![使用例](script_usage_ex.png)
 
 また、メニュー等から言語を選択させたい場合に、言語選択メニュークラス"Scene_Language"を用意しています。
 こちらも用途に応じてご利用ください。

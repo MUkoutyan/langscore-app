@@ -3,9 +3,23 @@ html {
   --font-family: "YU Gothic UI";
 }
 
+p {
+  margin-block-start: 0.5em;
+  margin-block-end: 0.5em;
+  margin-left: 24px;
+}
+
+li {
+  margin-bottom: 8px;
+}
+
 h1 {
+  margin-block-start: 0.88em;
+  margin-block-end: 0.4em;
   border-left: 8px solid #999;
+  border-bottom: 1px solid #999;
   padding-left: 8px;
+  padding-bottom: 3px;
 }
 
 h2 {

@@ -78,11 +78,12 @@ end
 
 上記のケースの場合、langscore_customからdraw_text変数が見れないため、書き換えることが出来ません。
 
-この場合、以下のような方法で翻訳を適用します。
+この場合、lstrans関数を使用する方法で翻訳を適用します。
 
 ~~~~~{.rb}
 def draw_attack_text
   draw_text = "%1の攻撃！".lstrans("Script:123:45")
+	#                   ^^^^^^^^^^^^^^^^^^^^^^^^^
   draw_function(draw_text)
 end
 ~~~~~
@@ -91,7 +92,7 @@ end
 
 スクリプト名:行数:列数 から成る識別子ですが、この文字列もlangscore_customに記載されていますので、コピペしてお使いください。
 
-@note .lstrans内の文字列は翻訳対象となりません。
+@note .lstrans関数に渡す文字列は翻訳対象となりません。
 
 
 ### 画像を変える
@@ -111,11 +112,11 @@ end
 Picture/TitleLogo.png
 ~~~~~
 
-翻訳対象が英日中の場合、CSVには以下のように記載します。
+翻訳対象が英日中の場合、CSVには以下のように記述します。
 
 ~~~~~
 original,en,ja,zh-cn
-./Picture/TitleLogo.png,Picture/TitleLogo_2.png, Picture/TitleLogo.png, Picture/TitleLogo_3.png
+./Picture/TitleLogo.png,Picture/TitleLogo_2.png,Picture/TitleLogo.png,Picture/TitleLogo_3.png
 ~~~~~
 
 #### 詳解:2.
@@ -127,7 +128,6 @@ original,en,ja,zh-cn
 ./Picture/TitleLogo.png,,./Picture/TitleLogo.png,
 ~~~~~
 
-翻訳先のパスが空なので、ゲームで現在設定中の言語を元にファイルを検索します。
 * 英語表示の場合
 	- ./Picture/TitleLogo_en.png
 
@@ -136,3 +136,5 @@ original,en,ja,zh-cn
 
 * 中国語(簡体)表示の場合
 	- ./Picture/TitleLogo_zh-cn.png
+
+英・中の場合、TitleLogo_(lang).pngが見つからない場合はTitleLogo.pngを表示します。
