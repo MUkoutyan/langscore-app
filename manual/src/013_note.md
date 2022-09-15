@@ -1,4 +1,4 @@
-# 注意点 {#points_to_note}
+# アプリとスクリプトの注意点 {#points_to_note}
 
 ## ウイルス対策ソフトに検出される
 
@@ -9,7 +9,7 @@ Langscore内部で使用しているrvcnv.exeが、トロイの木馬として�
 
 ## 競合する可能性のあるスクリプト
 
-Langscoreでは下記の関数の処理を上書きしています。
+Langscoreでは下記の処理または、関数の処理を上書きしています。
 
 他のスクリプトが同様の事を行っていた場合、Langscoreの処理と競合する可能性があります。
 
@@ -21,6 +21,7 @@ Langscoreでは下記の関数の処理を上書きしています。
 * DataManager.load_normal_database (eval)
 * DataManager.make_save_contents (eval)
 * Cache.load_bitmap (eval)
+* フォントの変更
 
 
 
