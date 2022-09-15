@@ -16,7 +16,7 @@ LangscoreはRPGツクール VXAce, RPGツクール MV/MZで翻訳機能を実装
 * 無料でご利用いただけます。
 * 商用・非商用問わずご利用いただけます。
 * R-18, R-18G作品への利用制限はありません。
-* Langscoreが出力した翻訳ファイル(CSV)に対して、当方が著作権を持つことはありません。
+* Langscoreが出力した翻訳ファイル(CSV)に対して、Langscore製作者が著作権を持つ・主張することはありません。
 * Langscoreを使用したことによる著作権表示の義務はありません。
   - 使用報告やスタッフロールへの記載は歓迎です。喜びます。
   - 例)翻訳ソフト Langscore : 來奈津(BreezeSinfonia)
@@ -24,7 +24,7 @@ LangscoreはRPGツクール VXAce, RPGツクール MV/MZで翻訳機能を実装
   
 @attention 
 * Langscoreを構成するファイルの再配布は禁止します。
-  - スクリプトのlangscoreもご遠慮ください。
+  - ツクール用スクリプトのlangscoreもご遠慮ください。
 * 海賊版作成目的での利用は禁止します。
 
 
