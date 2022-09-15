@@ -28,6 +28,12 @@ LangscoreはRPGツクール VXAce, RPGツクール MV/MZで翻訳機能を実装
 * 海賊版作成目的での利用は禁止します。
 
 
+### 必須コンポーネント
+
+* Microsoft Visual C++ 2019 再頒布可能パッケージ
+  - 未インストールの場合はexeと同じフォルダに有るvc_redist.x64.exeをご利用ください。
+
+
 ### 作った人
 
 * [來奈津（BreezeSinfonia）](https://breezesinfonia.com/)
