@@ -591,6 +591,8 @@ void WriteModeComponent::exportTranslateFiles()
 
     this->dispatch(SaveProject,{});
     _invoker->write();
+
+    QProcess::startDetached("explorer", {QDir::toNativeSeparators(dialog.outputPath())});
 }
 
 void WriteModeComponent::setup()
