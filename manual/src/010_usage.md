@@ -39,6 +39,8 @@ Langscore.exeを開いて、ゲームプロジェクトの *フォルダ* をド
 
 * VXAce : Data/Translate
 
+@note 翻訳ファイルは必ずUTF-8で保存してください。(Bomは出来れば無しで)
+
 
 ## ゲーム中で言語を切り替える
 
