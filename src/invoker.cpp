@@ -36,11 +36,11 @@ void invoker::doProcess(QStringList option)
 {
     auto process = new QProcess();
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process](){
-        QString message = process->readAllStandardOutput();
+        QString message = QString::fromLocal8Bit(process->readAllStandardOutput());
         emit this->getStdOut(message);
     });
     connect(process, &QProcess::readyReadStandardError, this, [this, process](){
-        QString message = process->readAllStandardError();
+        QString message = QString::fromLocal8Bit(process->readAllStandardError());
         emit this->getStdOut(message);
     });
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [process, this](int exitCode, QProcess::ExitStatus){
