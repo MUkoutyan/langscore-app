@@ -189,9 +189,14 @@ void settings::removeLanguage(QString bcp47Name)
     this->languages.erase(result);
 }
 
-settings::BasicData &settings::fetchBasicDataInfo(QString fileName)
+settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
 {
-    fileName = QFileInfo(fileName).completeBaseName() + ".json";
+    fileName = langscore::withoutAllExtension(fileName);
+    if(fileName.isEmpty()){
+        throw "Load Invalid Basic Script Info";
+    }
+
+    fileName += ".json";
     auto& list = writeObj.basicDataInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x){
         return x.name == name;
@@ -199,6 +204,10 @@ settings::BasicData &settings::fetchBasicDataInfo(QString fileName)
 
     if(result != list.end()){
         return *result;
+    }
+
+    if(fileName.indexOf(".") == -1){
+        qDebug() << "Hoge";
     }
 
     list.emplace_back(
@@ -209,7 +218,12 @@ settings::BasicData &settings::fetchBasicDataInfo(QString fileName)
 
 settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 {
-    fileName = QFileInfo(fileName).completeBaseName() + ::scriptExt(projectType);
+    fileName = langscore::withoutAllExtension(fileName);
+    if(fileName.isEmpty()){
+        throw "Load Invalid Script Info";
+    }
+
+    fileName += ::scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
         return script.name == name;
@@ -449,10 +463,16 @@ void settings::load(QString path)
     for(auto jsonInfo : basicScripts)
     {
         auto jsonScript = jsonInfo.toObject();
-        BasicData info;
-        info.name = jsonScript[key(JsonKey::Name)].toString();
-        info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
-        this->writeObj.basicDataInfo.emplace_back(std::move(info));
+
+        auto name = jsonScript[key(JsonKey::Name)].toString();
+
+        try{
+            auto& info = this->fetchBasicDataInfo(name);
+            info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
+        }
+        catch(const char* mes){
+//            std::cerr << mes << std::endl;
+        }
     }
 
     auto jsonScripts = write[key(JsonKey::RPGMakerScripts)].toArray();
@@ -462,36 +482,44 @@ void settings::load(QString path)
         auto jsonScript = jsonInfo.toObject();
         auto fileName = jsonScript[key(JsonKey::Name)].toString();
 
-        fileName = langscore::withoutExtension(std::move(fileName));
+        try
+        {
+            ScriptInfo& info = this->fetchScriptInfo(fileName);
+            //スクリプト情報の名前がスクリプト名だった時の対応。数字列以外が含まれていたらスクリプト名とみなしてIDに変更する。
+            if(std::count_if(fileName.cbegin(), fileName.cend(), [](const auto c){
+                return c < '0' || '9' < c;
+            }) > 0){
+                auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&fileName](const auto& x){ return x[1] == fileName; });
+                if(result != scriptList.cend()){
+                    info.name = (*result)[0];
+                }
+            }
 
-        ScriptInfo& info = this->fetchScriptInfo(fileName);
-        if(std::count_if(fileName.cbegin(), fileName.cend(), [](const auto c){
-            return c < '0' || '9' < c;
-        }) > 0){
-            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&fileName](const auto& x){ return x[1] == fileName; });
-            if(result != scriptList.cend()){
-                info.name = (*result)[0];
+            info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
+
+            auto jsonIgnorePoints = jsonScript[key(JsonKey::IgnorePoints)].toArray();
+            for(const auto& jsonPoint : jsonIgnorePoints)
+            {
+                auto obj = jsonPoint.toObject();
+                auto pair = TextPoint{
+                                static_cast<size_t>(obj[key(JsonKey::Row)].toInteger()),
+                                static_cast<size_t>(obj[key(JsonKey::Col)].toInteger()),
+                                obj[key(JsonKey::Disable)].toBool(false),
+                                obj[key(JsonKey::Ignore)].toBool(false),
+                                obj[key(JsonKey::WriteType)].toInt()
+                            };
+
+                auto result = std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [&pair](const auto& x){
+                    return x == std::pair<size_t,size_t>{pair.row, pair.col};
+                });
+                if(result == info.ignorePoint.end()){
+                    info.ignorePoint.emplace_back(std::move(pair));
+                }
             }
         }
-        else {
-            info.name = fileName;
+        catch(const char* mes){
+//            std::cerr << mes << std::endl;
         }
-
-        info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
-
-        auto jsonIgnorePoints = jsonScript[key(JsonKey::IgnorePoints)].toArray();
-        for(const auto& jsonPoint : jsonIgnorePoints){
-            auto obj = jsonPoint.toObject();
-            auto pair = TextPoint{
-                            static_cast<size_t>(obj[key(JsonKey::Row)].toInteger()),
-                            static_cast<size_t>(obj[key(JsonKey::Col)].toInteger()),
-                            obj[key(JsonKey::Disable)].toBool(false),
-                            obj[key(JsonKey::Ignore)].toBool(false),
-                            obj[key(JsonKey::WriteType)].toInt()
-                        };
-            info.ignorePoint.emplace_back(std::move(pair));
-        }
-//        this->writeObj.scriptInfo.emplace_back(std::move(info));
     }
 
     auto jsonIgnorePictures = write[key(JsonKey::IgnorePictures)].toArray();

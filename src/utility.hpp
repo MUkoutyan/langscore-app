@@ -23,4 +23,14 @@ static QString withoutExtension(QString fileName)
     return fileName;
 }
 
+static QString withoutAllExtension(QString fileName)
+{
+    int index = fileName.indexOf('.');
+    if(index == -1){ return fileName; }
+
+    fileName.remove(index, fileName.length()-index);
+
+    return fileName;
+}
+
 }

@@ -207,9 +207,10 @@ void WriteModeComponent::show()
     auto outputDir = QDir(outputDirPath);
     auto basicFiles = outputDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
     for(auto& file : basicFiles){
-        this->setting->writeObj.basicDataInfo.emplace_back(
-            settings::BasicData{file.completeBaseName(), false, 0}
-        );
+        auto fileName = file.completeBaseName();
+        if(fileName.isEmpty() == false){
+            this->setting->fetchBasicDataInfo(fileName);
+        }
     }
 
     auto writedScripts = [&outputDirPath]()
@@ -237,12 +238,17 @@ void WriteModeComponent::show()
             });
             return result != scriptList.cend();
         };
-        if(IsIgnoreText(fileName, row, col)){
-            settings::TextPoint txtPos;
-            txtPos.row = row;
-            txtPos.col = col;
-            auto info = settings::ScriptInfo{{fileName, false, 0}, {txtPos}};
-            this->setting->writeObj.scriptInfo.emplace_back(std::move(info));
+        if(IsIgnoreText(fileName, row, col) == false){ continue; }
+
+        auto& info = this->setting->fetchScriptInfo(fileName);
+        if(std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [row, col](const auto& x){
+            return x == std::pair<size_t,size_t>{row, col};
+        }) == info.ignorePoint.end())
+        {
+            settings::TextPoint point;
+            point.row = row;
+            point.col = col;
+            info.ignorePoint.emplace_back(std::move(point));
         }
     }
 
