@@ -19,6 +19,7 @@ public:
     invoker(ComponentBase* setting);
 
     void analyze(bool sync = false);
+    void updateData(bool sync = false);
     void write(bool sync = false);
     void validate(bool sync = false);
     void packing(bool sync = false);

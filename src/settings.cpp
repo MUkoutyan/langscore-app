@@ -312,6 +312,7 @@ QByteArray settings::createJson()
     write[key(JsonKey::ExportByLang)] = writeObj.exportByLanguage;
     write[key(JsonKey::OverwriteLangscore)] = writeObj.overwriteLangscore;
     write[key(JsonKey::OverwriteLangscoreCustom)] = writeObj.overwriteLangscoreCustom;
+    write[key(JsonKey::WriteType)] = writeObj.writeMode;
 
     QJsonArray basicDataList;
     for(const auto& info : writeObj.basicDataInfo)
@@ -458,6 +459,7 @@ void settings::load(QString path)
     //保存したいようなフラグではないため、設定値を読み込まない
 //    writeObj.overwriteLangscore = write[key(JsonKey::OverwriteLangscore)].toBool(false);
 //    writeObj.overwriteLangscoreCustom = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
+//    writeObj.writeMode = -1;
 
     auto basicScripts = write[key(JsonKey::RPGMakerBasicData)].toArray();
     for(auto jsonInfo : basicScripts)

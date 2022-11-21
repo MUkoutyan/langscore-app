@@ -102,6 +102,7 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
         return;
     }
 
+    //analyzeフォルダがあればスキップ
     if(QFile::exists(this->setting->tempFileDirectoryPath())){
         emit this->toWriteMode(gameProjDirPath);
     }

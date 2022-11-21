@@ -186,9 +186,8 @@ void LanguageSelectComponent::setupData()
     std::vector<QFont> fontList;
     QFont defaultFont;
     const auto projType = this->setting->projectType;
-    for(auto& fontInfo : this->setting->fontIndexList)
+    for(const auto& [type, index, path] : this->setting->fontIndexList)
     {
-        auto [type, index, path] = fontInfo;
         auto familyList = QFontDatabase::applicationFontFamilies(index);
         for(const auto& family : familyList)
         {

@@ -214,9 +214,12 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_5">
             <item>
-             <widget class="QRadioButton" name="overwriteMode">
+             <widget class="QRadioButton" name="keepSource">
               <property name="text">
                <string extracomment="既存の翻訳を残して上書き">Leave and overwrite existing translations</string>
+              </property>
+              <property name="autoExclusive">
+               <bool>true</bool>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">buttonGroup</string>
@@ -224,12 +227,28 @@
              </widget>
             </item>
             <item>
-             <widget class="QRadioButton" name="truncMode">
+             <widget class="QRadioButton" name="keepBoth">
+              <property name="text">
+               <string extracomment="両方残す (手動で編集が必要になります)">Leave both (manual editing is required)</string>
+              </property>
+              <property name="autoExclusive">
+               <bool>true</bool>
+              </property>
+              <attribute name="buttonGroup">
+               <string notr="true">buttonGroup</string>
+              </attribute>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="acceptTarget">
               <property name="styleSheet">
                <string notr="true">color: rgb(222, 51, 17);</string>
               </property>
               <property name="text">
                <string extracomment="新しい内容で上書き(既存の内容は消されます)">Overwrite by New  (Translations already written will be erased.)</string>
+              </property>
+              <property name="autoExclusive">
+               <bool>true</bool>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">buttonGroup</string>

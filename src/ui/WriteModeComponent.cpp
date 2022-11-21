@@ -2,6 +2,7 @@
 #include "ui_WriteModeComponent.h"
 #include "LanguageSelectComponent.h"
 #include "WriteDialog.h"
+#include "MessageDialog.h"
 #include "src/invoker.h"
 #include "../utility.hpp"
 #include "../graphics.hpp"
@@ -105,9 +106,6 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     this->ui->modeDesc->hide();
     this->setAcceptDrops(true);
 
-    //無効機能
-    this->ui->updateButton->setHidden(true);
-
     {
         auto icon = this->ui->scriptFilterButton->icon();
         auto image = icon.pixmap(this->ui->scriptFilterButton->size()).toImage();
@@ -151,10 +149,30 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
 
     connect(this->ui->updateButton, &QPushButton::clicked, this, [this]()
     {
+        MessageDialog mes(this);
+        //更新する
+        mes.okButtonText(tr("Update"));
+        //更新すると表示されている内容が最新の内容に変更されます。
+        //この処理は元に戻せません。
+        //※翻訳ファイルは書き出しを行うまで変更されません。
+        mes.setLabelText(tr("When updated, the displayed content will be changed to the latest content.\nThis process cannot be undone.\nNote:The translation file will not be changed until it is exported."));
+        this->setGraphicsEffect(new QGraphicsBlurEffect);
+        this->changeEnabledUIState(false);
+        auto result = mes.exec();
+        this->setGraphicsEffect(nullptr);
+        if(result != QDialog::Accepted){
+            this->changeEnabledUIState(true);
+            return;
+        }
+
+        this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+        this->ui->logText->clear();
+        this->ui->logText->insertPlainText(tr("Update Projects...\n"));
+
         auto baseMessage = tr("Update to the latest content...");
         this->dispatch(StatusMessage, {baseMessage});
         this->dispatch(SaveProject,{});
-        this->_invoker->analyze(true);
+        this->_invoker->updateData(true);
         this->clear();
         this->setup();
         this->dispatch(StatusMessage, {baseMessage+tr(" Complete."), 3000});
@@ -277,6 +295,7 @@ void WriteModeComponent::clear()
     this->showAllScriptContents = true;
     this->ui->treeWidget->clear();
     this->ui->tableWidget->clear();
+    this->ui->tableWidget->setRowCount(0);
     this->ui->tableWidget_script->clear();
     this->ui->scriptViewer->clear();
     for(auto langButton : this->languageButtons){
@@ -586,6 +605,7 @@ void WriteModeComponent::exportTranslateFiles()
     auto relativePath = lsProjDir.relativeFilePath(dialog.outputPath());
     this->setting->writeObj.exportDirectory = relativePath;
     this->setting->writeObj.exportByLanguage = dialog.writeByLanguage();
+    this->setting->writeObj.writeMode = dialog.writeMode();
     this->setting->setPackingDirectory(relativePath);
 
     if(dialog.backup()){ backup(); }

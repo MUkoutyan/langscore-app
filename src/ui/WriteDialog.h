@@ -1,13 +1,13 @@
 ﻿#pragma once
 
-#include <QDialog>
+#include "PopupDialogBase.h"
 #include "../settings.h"
 
 namespace Ui {
 class WriteDialog;
 }
 
-class WriteDialog : public QDialog
+class WriteDialog : public PopupDialogBase
 {
     Q_OBJECT
 

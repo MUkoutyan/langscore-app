@@ -14,6 +14,12 @@ void invoker::analyze(bool sync)
     return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--analyze"});
 }
 
+void invoker::updateData(bool sync)
+{
+    this->sync = sync;
+    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--update"});
+}
+
 void invoker::write(bool sync)
 {
     this->sync = sync;

@@ -79,6 +79,7 @@ public:
         std::vector<BasicData> basicDataInfo;
 
         std::vector<QString> ignorePicturePath;
+        int writeMode = -1;
     };
     WriteProps writeObj;
     std::vector<std::tuple<FontType, int, QString>> fontIndexList;

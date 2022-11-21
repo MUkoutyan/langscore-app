@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(langscore-app VERSION 0.5.5 LANGUAGES CXX)
+project(langscore-app VERSION 0.6.0 LANGUAGES CXX)
 set(CONFIG_FILE_VERSION 1.0.0)
 configure_file(application_config.h.in application_config.h)
 
@@ -50,6 +50,10 @@ set(PROJECT_SOURCES
     src/ui/WriteDialog.h
     src/ui/WriteDialog.cpp
     src/ui/WriteDialog.ui
+    src/ui/PopupDialogBase.h
+    src/ui/PopupDialogBase.cpp
+    src/ui/MessageDialog.cpp
+    src/ui/MessageDialog.h
     resources.qrc
 )
 

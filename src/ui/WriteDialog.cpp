@@ -5,7 +5,7 @@
 #include <QActionGroup>
 
 WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
-    QDialog(parent),
+    PopupDialogBase(parent),
     ui(new Ui::WriteDialog),
     _writeMode(0)
 {
@@ -15,8 +15,6 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     this->ui->exportByLangCheck->setHidden(true);
 
     this->setObjectName("writeDialog");
-    this->setWindowFlag(Qt::FramelessWindowHint);
-    this->setStyleSheet("#writeDialog{border: 2px solid #ececec;}");
 
     auto okButton = this->ui->buttonBox->button(QDialogButtonBox::Ok);
     okButton->setText(tr("Write"));
@@ -47,7 +45,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     }
 
     connect(this->ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(this->ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::rejected);
+    connect(this->ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
     connect(this->ui->pushButton, &QPushButton::clicked, this, [this, setting = settings](){
         auto path = QFileDialog::getExistingDirectory(this, tr("Select Export Directory"), setting->translateDirectoryPath());
@@ -55,8 +53,9 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->ui->lineEdit->setText(path);
     });
 
-    this->ui->buttonGroup->setId(this->ui->overwriteMode, 1);
-    this->ui->buttonGroup->setId(this->ui->truncMode, 2);
+    this->ui->buttonGroup->setId(this->ui->keepSource, 2);
+    this->ui->buttonGroup->setId(this->ui->keepBoth, 4);
+    this->ui->buttonGroup->setId(this->ui->acceptTarget, 0);
 
     connect(this->ui->buttonGroup, &QButtonGroup::idToggled, this, [this](int id, bool check){
         this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
@@ -122,8 +121,9 @@ void WriteDialog::changeOutputPath(const QString &text)
 
     if(fileInfo.isDir() == false){
         this->ui->baseWidget->setVisible(true);
-        this->ui->overwriteMode->setVisible(false);
-        this->ui->truncMode->setVisible(false);
+        this->ui->keepSource->setVisible(false);
+        this->ui->keepBoth->setVisible(false);
+        this->ui->acceptTarget->setVisible(false);
         this->setToolTip(tr("The path must be a directory!"));
         return;
     }
@@ -133,8 +133,9 @@ void WriteDialog::changeOutputPath(const QString &text)
         if(info.suffix() != "csv"){ continue; }
 
         this->ui->baseWidget->setVisible(true);
-        this->ui->overwriteMode->setVisible(true);
-        this->ui->truncMode->setVisible(true);
+        this->ui->keepSource->setVisible(true);
+        this->ui->keepBoth->setVisible(true);
+        this->ui->acceptTarget->setVisible(true);
 
         if(this->ui->buttonGroup->checkedButton() == nullptr){
             this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
@@ -142,7 +143,4 @@ void WriteDialog::changeOutputPath(const QString &text)
 
         return;
     }
-
-
-
 }
