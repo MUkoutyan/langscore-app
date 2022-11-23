@@ -12,8 +12,11 @@
 * [各画面の説明](#screen_description)
   - UI中のボタンが何なのか知りたい人向け
 
-* [応用的な使い方](#usage_advance)
-  - がっつり実装し始める人向け
+* [応用的な使い方(アプリ編)](#usage_advance_tool)
+  - アプリのより細かい使い方
+
+* [応用的な使い方(スクリプト編)](#usage_advance_script)
+  - スクリプト
 
 * [アプリとスクリプトの注意点](#points_to_note)
   - 注意する点
