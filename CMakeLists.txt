@@ -1,8 +1,9 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(langscore-app VERSION 0.6.0 LANGUAGES CXX)
+project(langscore-app VERSION 0.6.1 LANGUAGES CXX)
 set(CONFIG_FILE_VERSION 1.0.0)
-configure_file(application_config.h.in application_config.h)
+configure_file(application_config.h.in application_config.h @ONLY)
+configure_file(version.rc.in version.rc @ONLY)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -59,12 +60,14 @@ set(PROJECT_SOURCES
 
 include_directories(
     "${DIVISI_PATH}/include"
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(langscore-app
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        ${CMAKE_CURRENT_BINARY_DIR}/version.rc
     )
     qt_add_translations(langscore-app TS_FILES ${TS_FILES} SOURCES ${PROJECT_SOURCES})
 # App bundles on macOS have an .app suffix
