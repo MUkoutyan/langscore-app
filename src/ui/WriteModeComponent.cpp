@@ -100,6 +100,8 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     , showAllScriptContents(true)
     , _suspendHistory(false)
     , _invoker(new invoker(this))
+    , invokeType(InvokeType::None)
+    , lastWritePath("")
 {
 
     ui->setupUi(this);
@@ -172,10 +174,9 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         auto baseMessage = tr("Update to the latest content...");
         this->dispatch(StatusMessage, {baseMessage});
         this->dispatch(SaveProject,{});
-        this->_invoker->updateData(true);
-        this->clear();
-        this->setup();
-        this->dispatch(StatusMessage, {baseMessage+tr(" Complete."), 3000});
+        this->_invoker->updateData();
+
+        invokeType = InvokeType::Update;
     });
 
     connect(_invoker, &invoker::getStdOut, this, [this](QString text){
@@ -190,6 +191,16 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     {
         this->changeEnabledUIState(true);
         this->ui->logText->insertPlainText(tr("Done."));
+
+        if(invokeType == InvokeType::Update){
+            this->clear();
+            this->setup();
+            this->dispatch(StatusMessage, {tr(" Complete."), 3000});
+        }
+        else if(invokeType == InvokeType::Write){
+            QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
+        }
+        invokeType = InvokeType::None;
     });
 
 
@@ -300,6 +311,7 @@ void WriteModeComponent::clear()
     this->ui->scriptViewer->clear();
     for(auto langButton : this->languageButtons){
         this->ui->langTabGrid->removeWidget(langButton);
+        delete langButton;
     }
     this->languageButtons.clear();
 
@@ -602,7 +614,8 @@ void WriteModeComponent::exportTranslateFiles()
     }
 
     QDir lsProjDir(this->setting->langscoreProjectDirectory);
-    auto relativePath = lsProjDir.relativeFilePath(dialog.outputPath());
+    lastWritePath = dialog.outputPath();
+    auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
     this->setting->writeObj.exportDirectory = relativePath;
     this->setting->writeObj.exportByLanguage = dialog.writeByLanguage();
     this->setting->writeObj.writeMode = dialog.writeMode();
@@ -617,8 +630,8 @@ void WriteModeComponent::exportTranslateFiles()
 
     this->dispatch(SaveProject,{});
     _invoker->write();
+    invokeType = InvokeType::Write;
 
-    QProcess::startDetached("explorer", {QDir::toNativeSeparators(dialog.outputPath())});
 }
 
 void WriteModeComponent::setup()

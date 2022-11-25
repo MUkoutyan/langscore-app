@@ -40,6 +40,13 @@ public slots:
     void exportTranslateFiles();
 
 private:
+
+    enum InvokeType {
+        None,
+        Write,
+        Update
+    };
+
     Ui::WriteModeComponent* ui;
     QGraphicsScene* scene;
     std::vector<LanguageSelectComponent*> languageButtons;
@@ -48,6 +55,8 @@ private:
     bool showAllScriptContents;
     bool _suspendHistory;
     invoker* _invoker;
+    InvokeType invokeType;
+    QString lastWritePath;
 
     void setup();
     void setupScriptCsvText();
