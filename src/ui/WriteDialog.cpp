@@ -13,6 +13,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
 
     //無効機能
     this->ui->exportByLangCheck->setHidden(true);
+    this->ui->keepBoth->setHidden(true);
 
     this->setObjectName("writeDialog");
 
@@ -122,7 +123,7 @@ void WriteDialog::changeOutputPath(const QString &text)
     if(fileInfo.isDir() == false){
         this->ui->baseWidget->setVisible(true);
         this->ui->keepSource->setVisible(false);
-        this->ui->keepBoth->setVisible(false);
+//        this->ui->keepBoth->setVisible(false);
         this->ui->acceptTarget->setVisible(false);
         this->setToolTip(tr("The path must be a directory!"));
         return;
@@ -134,7 +135,7 @@ void WriteDialog::changeOutputPath(const QString &text)
 
         this->ui->baseWidget->setVisible(true);
         this->ui->keepSource->setVisible(true);
-        this->ui->keepBoth->setVisible(true);
+//        this->ui->keepBoth->setVisible(true);
         this->ui->acceptTarget->setVisible(true);
 
         if(this->ui->buttonGroup->checkedButton() == nullptr){

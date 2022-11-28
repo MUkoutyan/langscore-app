@@ -9,6 +9,7 @@
 #include "../csv.hpp"
 
 #include <QFileInfo>
+#include <QFileDialog>
 #include <QDir>
 #include <QString>
 #include <QCheckBox>
@@ -18,6 +19,7 @@
 #include <QActionGroup>
 #include <QScrollBar>
 #include <QMimeData>
+#include <QMenu>
 #include <QGraphicsBlurEffect>
 
 #include <functional>
@@ -201,6 +203,25 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
         }
         invokeType = InvokeType::None;
+    });
+
+    auto exportLogFile = new QAction(tr("Save log as..."), this);
+    connect(exportLogFile, &QAction::triggered, this, [this](){
+        //ログを名前をつけて保存
+        auto defaultPath = this->setting->langscoreProjectDirectory + "/log.txt";
+        auto path = QFileDialog::getSaveFileName(this, tr("Save log as"), defaultPath, tr("Logfile (*.txt)"));
+
+        QFile file(path);
+        if(file.open(QIODevice::WriteOnly))
+        {
+            file.write(this->ui->logText->toPlainText().toUtf8());
+        }
+    });
+
+    connect(this->ui->logText, &QPlainTextEdit::customContextMenuRequested, this, [this, exportLogFile](const QPoint& pos){
+        auto* menu = this->ui->logText->createStandardContextMenu();
+        menu->addAction(exportLogFile);
+        menu->exec(QCursor::pos());
     });
 
 
