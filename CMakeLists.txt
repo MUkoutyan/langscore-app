@@ -55,6 +55,8 @@ set(PROJECT_SOURCES
     src/ui/PopupDialogBase.cpp
     src/ui/MessageDialog.cpp
     src/ui/MessageDialog.h
+    src/ui/FramelessWindow.cpp
+    src/ui/FramelessWindow.h
     resources.qrc
 )
 
