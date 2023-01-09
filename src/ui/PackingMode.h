@@ -52,6 +52,7 @@ private:
     size_t errorInfoIndex;
     QString currentShowCSV;
     bool isValidate;
+    bool showLog;
 
     QMenu* treeMenu;
 
@@ -67,5 +68,7 @@ private slots:
 
     void addText(QString text);
     void updateTree();
+
+    void setPackingSourceDir(QString path);
 };
 

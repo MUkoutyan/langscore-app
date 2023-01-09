@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(langscore-app VERSION 0.6.2 LANGUAGES CXX)
+project(langscore-app VERSION 0.6.3 LANGUAGES CXX)
 set(CONFIG_FILE_VERSION 1.0.0)
 configure_file(application_config.h.in application_config.h @ONLY)
 configure_file(version.rc.in version.rc @ONLY)
@@ -57,6 +57,8 @@ set(PROJECT_SOURCES
     src/ui/MessageDialog.h
     src/ui/FramelessWindow.cpp
     src/ui/FramelessWindow.h
+    src/ui/InvokerLogViewer.cpp
+    src/ui/InvokerLogViewer.h
     resources.qrc
 )
 
@@ -127,7 +129,7 @@ install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
 )
 install(SCRIPT ${deploy_script})    # Add its runtime dependencies
 
-file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/rvcnv/rvcnv.exe
+file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe
             DESTINATION ${PROJECT_BINARY_DIR}/bin)
 file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe
             DESTINATION ${PROJECT_BINARY_DIR}/bin)

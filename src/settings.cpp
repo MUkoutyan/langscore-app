@@ -134,6 +134,9 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     if(projType == ProjectType::VXAce){
         this->writeObj.exportDirectory = "./Data/Translate";
     }
+    else if(projType == ProjectType::MV || projType == ProjectType::MZ){
+        this->writeObj.exportDirectory = "./data/translate";
+    }
 
     updateLangscoreProjectPath();
 }

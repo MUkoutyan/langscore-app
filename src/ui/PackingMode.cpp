@@ -32,12 +32,15 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     , errorInfoIndex(0)
     , currentShowCSV("")
     , isValidate(false)
+    , showLog(false)
 {
     ui->setupUi(this);
 
     this->ui->modeDesc->hide();
     this->ui->treeWidget->setStyleSheet("QTreeView::item { height: 28px; }");
     this->ui->splitter->setStretchFactor(1, 1);
+
+    this->ui->logText->SetSettings(this->setting);
 
     this->ui->validateButton->setEnabled(false);
     this->ui->packingButton->setEnabled(false);
@@ -48,26 +51,14 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     connect(this->ui->packingButton, &QPushButton::clicked, this, &PackingMode::packing);
 
     connect(this->ui->openDirectory, &QPushButton::clicked, this, [this](){
-        auto path = QFileDialog::getExistingDirectory(this, tr("Select Export Directory"), this->setting->translateDirectoryPath());
+        auto path = QFileDialog::getExistingDirectory(this, tr("Select Input Directory"), this->setting->translateDirectoryPath());
         if(path.isEmpty()){ return; }
-        this->ui->packingSourceDirectory->setText(path);
+        this->setPackingSourceDir(path);
     });
 
-    connect(this->ui->packingSourceDirectory, &QLineEdit::textChanged, this, [this](const QString& path){
-        auto dir = QFileInfo(path);
-        auto exists = dir.exists() && dir.isDir();
-        this->ui->validateButton->setEnabled(exists);
-        this->ui->packingButton->setEnabled(exists);
-        this->ui->packingSourceDirectory->setForegroundRole(exists ? QPalette::Text : QPalette::BrightText);
-    });
+    connect(this->ui->packingSourceDirectory, &QLineEdit::textChanged, this, &PackingMode::setPackingSourceDir);
 
-    connect(_invoker, &invoker::getStdOut, this, [this](QString raw){
-        raw.replace("\r\n", "\n");
-        auto list = raw.split("\n");
-        for(auto&& text : list){
-            this->addText(std::move(text));
-        }
-    });
+    connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
     connect(_invoker, &invoker::finish, this, [this](int)
     {
         this->ui->packingButton->setEnabled(true);
@@ -76,6 +67,9 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         this->ui->tableWidget->blockSignals(false);
         this->_finishInvoke = true;
 
+        if(this->showLog){
+            this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
+        }
 
         if(isValidate){
             if(this->ui->treeWidget->topLevelItemCount() == 0){
@@ -243,7 +237,11 @@ void PackingMode::showEvent(QShowEvent*)
         this->setting->setPackingDirectory("");
     }
 
-    this->ui->packingSourceDirectory->setText(this->setting->packingInputDirectory);
+    this->setPackingSourceDir(this->setting->packingInputDirectory);
+
+    if(this->setting->projectType == settings::VXAce){
+        this->ui->outputFolder->setText(this->setting->gameProjectPath + "/Data/Translate");
+    }
 }
 
 void PackingMode::validate()
@@ -276,6 +274,7 @@ void PackingMode::validate()
         this->ui->treeWidget->addTopLevelItem(item);
     }
 
+    this->showLog = false;
     _finishInvoke = false;
     _invoker->validate();
     updateTimer = new QTimer();
@@ -290,9 +289,12 @@ void PackingMode::packing()
     this->ui->moveToWrite->setEnabled(false);
     this->isValidate = false;
 
+    this->ui->logText->clear();
+
     this->setting->packingInputDirectory = this->ui->packingSourceDirectory->text();
     this->setting->saveForProject();
 
+    this->showLog = true;
     _invoker->packing();
 }
 
@@ -415,4 +417,18 @@ void PackingMode::updateTree()
             this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
         }
     }
+}
+
+void PackingMode::setPackingSourceDir(QString path)
+{
+    auto dir = QFileInfo(path);
+    auto exists = dir.exists() && dir.isDir();
+    this->ui->validateButton->setEnabled(exists);
+    this->ui->packingButton->setEnabled(exists);
+    this->ui->packingSourceDirectory->blockSignals(true);
+    auto palette = this->ui->packingSourceDirectory->palette();
+    palette.setColor(QPalette::Text, exists ? this->palette().color(QPalette::Text) : Qt::red);
+    this->ui->packingSourceDirectory->setPalette(palette);
+    this->ui->packingSourceDirectory->setText(path);
+    this->ui->packingSourceDirectory->blockSignals(false);
 }
