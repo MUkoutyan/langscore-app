@@ -156,6 +156,17 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
 FormTaskBar::~FormTaskBar()
 {
     delete ui;
+
+    auto&& settings = ComponentBase::getAppSettings();
+    QVariantList recentFiles;
+    auto recentProjs = settings.value("recentFiles", recentFiles).toList();
+
+    auto result = std::remove_if(recentProjs.begin(), recentProjs.end(), [](QVariant v){
+        auto path = v.toString();
+        return QDir(path).exists() == false;
+    });
+    recentProjs.erase(result, recentProjs.end());
+    settings.sync();
 }
 
 void FormTaskBar::updateRecentMenu()
@@ -166,7 +177,15 @@ void FormTaskBar::updateRecentMenu()
     auto recentProjs = settings.value("recentFiles", recentFiles).toList();
     for(auto& proj : recentProjs){
         auto path = proj.toString();
-        auto action = new QAction(QDir(path).dirName() + " (" + path + ")");
+        auto dir = QDir(path);
+        auto action = new QAction(dir.dirName() + " (" + path + ")");
+        action->setEnabled(dir.exists());
+
+        if(dir.exists()){
+            //ディレクトリが見つかりません。プロジェクト終了時に履歴からこの項目を削除します。
+            action->setToolTip(tr("Not Found Directory. Delete this item from the history at the end of the project."));
+        }
+
         connect(action, &QAction::triggered, this, [this, path]()
         {
             emit this->requestOpenProj(path);
