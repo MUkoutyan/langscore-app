@@ -31,7 +31,7 @@ InvokerLogViewer::InvokerLogViewer(QWidget *parent)
 
     connect(this, &QPlainTextEdit::customContextMenuRequested, this, [this, exportLogFile](const QPoint& pos){
         auto* menu = this->createStandardContextMenu();
-        exportLogFile->setEnabled(this->placeholderText().isEmpty() == false);
+        exportLogFile->setEnabled(this->document()->isEmpty() == false);
         menu->addAction(exportLogFile);
         menu->exec(QCursor::pos());
     });
