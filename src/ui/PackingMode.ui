@@ -147,7 +147,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Output Packing Folder</string>
+        <string extracomment="パッキングファイルの出力先">Output folder for packing files</string>
        </property>
       </widget>
      </item>
