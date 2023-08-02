@@ -6,19 +6,6 @@
 #include <QFontDatabase>
 #include <unordered_map>
 
-static std::unordered_map<QString, QString> languagePairs = {
-    {QLocale{QLocale::English}.bcp47Name(), "us.svg"},
-    {QLocale{QLocale::Spanish}.bcp47Name(), "es.svg"},
-    {QLocale{QLocale::German}.bcp47Name(), "de.svg"},
-    {QLocale{QLocale::French}.bcp47Name(), "fr.svg"},
-    {QLocale{QLocale::Italian}.bcp47Name(), "it.svg"},
-    {QLocale{QLocale::Japanese}.bcp47Name(), "jp.svg"},
-    {QLocale{QLocale::Korean}.bcp47Name(), "kr.svg"},
-    {QLocale{QLocale::Russian}.bcp47Name(), "ru.svg"},
-    {QLocale{QLocale::Chinese, QLocale::SimplifiedChineseScript}.bcp47Name(), "cn.svg"},
-    {QLocale{QLocale::Chinese, QLocale::TraditionalChineseScript}.bcp47Name(), "cn.svg"}
-};
-
 LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* component, QWidget* parent)
     : QWidget(parent)
     , ComponentBase(component)
@@ -211,10 +198,6 @@ void LanguageSelectComponent::setupData()
 
     auto langName = locale.nativeLanguageName() + "(" + bcp47Name + ")";
     this->button->setText(langName);
-    if(languagePairs.find(locale.bcp47Name()) != languagePairs.end()){
-        auto flagName = languagePairs[locale.bcp47Name()];
-        this->button->setIcon(QIcon(":flags/"+flagName));
-    }
 
     this->fontPreview->setText(locale.nativeLanguageName());
 
