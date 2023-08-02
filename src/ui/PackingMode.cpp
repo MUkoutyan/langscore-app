@@ -59,6 +59,7 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     connect(this->ui->packingSourceDirectory, &QLineEdit::textChanged, this, &PackingMode::setPackingSourceDir);
 
     connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
+    connect(_invoker, &invoker::getStdOut, this, &PackingMode::addText);
     connect(_invoker, &invoker::finish, this, [this](int)
     {
         this->ui->packingButton->setEnabled(true);
@@ -301,11 +302,49 @@ void PackingMode::packing()
 void PackingMode::addText(QString text)
 {
     if(text.isEmpty()){ return; }
-    auto cols = langscore::parseCsvLine(text);
 
+    if(text.contains("\r\n"))
+    {
+        auto csvRows = text.split("\r\n");
+        for(const auto& row : csvRows)
+        {
+            if(row.isEmpty()){ continue; }
+            auto cols = langscore::parseCsvLine(row);
+            if(cols.size() <= ErrorTextCol::Row){
+                continue;
+            }
+            auto info = convertErrorInfo(cols);
+            QFileInfo fileInfo(cols[ErrorTextCol::File]);
+            auto fileName = fileInfo.absoluteFilePath();
+            _mutex.lock();
+            errors[fileName].emplace_back(std::move(info));
+            updateList[fileName] = true;
+            _mutex.unlock();
+        }
+    }
+    else
+    {
+        auto cols = langscore::parseCsvLine(text);
+        if(cols.size() <= ErrorTextCol::Row){
+            return;
+        }
+        auto info = convertErrorInfo(cols);
+        QFileInfo fileInfo(cols[ErrorTextCol::File]);
+        auto fileName = fileInfo.absoluteFilePath();
+        _mutex.lock();
+        errors[fileName].emplace_back(std::move(info));
+        updateList[fileName] = true;
+        _mutex.unlock();
+    }
+
+    this->update();
+}
+
+PackingMode::ErrorInfo PackingMode::convertErrorInfo(std::vector<QString> csvText)
+{
     ErrorInfo info;
 
-    auto typeText = cols[ErrorTextCol::Type];
+    auto typeText = csvText[ErrorTextCol::Type];
     if(typeText == "Warning"){
         info.type = ErrorInfo::Warning;
     }
@@ -314,31 +353,29 @@ void PackingMode::addText(QString text)
     }
     else {
         info.type = ErrorInfo::Invalid;
-        return;
+        return info;
     }
 
-    auto summaryRaw = cols[ErrorTextCol::Summary].toInt();
-    if(ErrorInfo::EmptyCol <= summaryRaw && summaryRaw <= ErrorInfo::NotFoundEsc){
-        info.summary = static_cast<ErrorInfo::ErrorSummary>(summaryRaw);
-    }
-    else{
-        info.type = ErrorInfo::Invalid;
-        return;
+    bool isOk = false;
+    auto summaryRaw = csvText[ErrorTextCol::Summary].toInt(&isOk);
+    if(isOk)
+    {
+        if(ErrorInfo::EmptyCol <= summaryRaw && summaryRaw <= ErrorInfo::IncludeCR){
+            info.summary = static_cast<ErrorInfo::ErrorSummary>(summaryRaw);
+        }
+        else{
+            info.summary = ErrorInfo::None;
+            info.type = ErrorInfo::Invalid;
+            return info;
+        }
     }
 
-    info.language   = cols[ErrorTextCol::Language];
-    info.detail     = cols[ErrorTextCol::Details];
-    info.row        = cols[ErrorTextCol::Row].toULongLong();
+    info.language   = csvText[ErrorTextCol::Language];
+    info.detail     = csvText[ErrorTextCol::Details];
+    info.row        = csvText[ErrorTextCol::Row].toULongLong();
     info.id         = (++errorInfoIndex);   //1開始にする
 
-    QFileInfo fileInfo(cols[ErrorTextCol::File]);
-    auto fileName = fileInfo.absoluteFilePath();
-    _mutex.lock();
-    errors[fileName].emplace_back(std::move(info));
-    updateList[fileName] = true;
-    _mutex.unlock();
-
-    this->update();
+    return info;
 }
 
 void PackingMode::updateTree()
@@ -397,6 +434,12 @@ void PackingMode::updateTree()
                 }
                 else if(info.summary == ErrorInfo::NotFoundEsc){
                     text += tr(" Not Found Esc") + "[" + info.language + "] (" + info.detail + ")";
+                }
+                else if(info.summary == ErrorInfo::UnclosedEsc){
+                    text += tr(" Unclosed Esc") + "[" + info.language + "] (" + info.detail + ")";
+                }
+                else if(info.summary == ErrorInfo::IncludeCR){
+                    text += tr(" Include \"\r\n\"");
                 }
 
                 child->setText(0, tr("Line") + QString::number(info.row)+" : " + text);

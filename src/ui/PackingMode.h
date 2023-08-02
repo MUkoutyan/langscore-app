@@ -29,12 +29,12 @@ private:
     struct ErrorInfo
     {
         enum ErrorType{ Error, Warning, Invalid };
-        enum ErrorSummary{
-            EmptyCol, NotFoundEsc
+        enum ErrorSummary {
+            None = -1, EmptyCol = 0, NotFoundEsc, UnclosedEsc, IncludeCR
         };
 
-        ErrorType type = Warning;
-        ErrorSummary summary = EmptyCol;
+        ErrorType type = Invalid;
+        ErrorSummary summary = None;
         size_t row = 0;
         QString language;
         QString detail;
@@ -70,5 +70,10 @@ private slots:
     void updateTree();
 
     void setPackingSourceDir(QString path);
+
+private:
+
+    //キーはファイルパス
+    ErrorInfo convertErrorInfo(std::vector<QString> csvText);
 };
 
