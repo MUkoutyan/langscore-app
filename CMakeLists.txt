@@ -60,6 +60,8 @@ set(PROJECT_SOURCES
     src/ui/InvokerLogViewer.cpp
     src/ui/InvokerLogViewer.h
     resources.qrc
+    ColorDialog.cpp
+    ColorDialog.h
 )
 
 include_directories(

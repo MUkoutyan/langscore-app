@@ -153,13 +153,13 @@ QString settings::translateDirectoryPath() const
     return this->gameProjectPath + "/data/" + this->transFileOutputDirName;
 }
 
-QString settings::tempFileDirectoryPath() const {
+QString settings::analyzeDirectoryPath() const {
     return this->langscoreProjectDirectory+"/analyze";
 }
 
 QString settings::tempScriptFileDirectoryPath() const
 {
-    return this->tempFileDirectoryPath() + "/Scripts";
+    return this->analyzeDirectoryPath() + "/Scripts";
 }
 
 QString settings::tempGraphicsFileDirectoryPath() const
@@ -301,7 +301,7 @@ QByteArray settings::createJson()
     root[key(JsonKey::Project)] = "./" + QDir(this->langscoreProjectDirectory).relativeFilePath(this->gameProjectPath);
 
     QJsonObject analyze;
-    auto tempPath = QDir(this->langscoreProjectDirectory).relativeFilePath(this->tempFileDirectoryPath());
+    auto tempPath = QDir(this->langscoreProjectDirectory).relativeFilePath(this->analyzeDirectoryPath());
     analyze[key(JsonKey::TmpDir)] = "./" + tempPath;
     if(QFile::exists(this->langscoreProjectDirectory) == false){
         QDir().mkdir(this->langscoreProjectDirectory);
@@ -509,6 +509,7 @@ void settings::load(QString path)
                 auto pair = TextPoint{
                                 static_cast<size_t>(obj[key(JsonKey::Row)].toInteger()),
                                 static_cast<size_t>(obj[key(JsonKey::Col)].toInteger()),
+                                obj[key(JsonKey::Name)].toString(),
                                 obj[key(JsonKey::Disable)].toBool(false),
                                 obj[key(JsonKey::Ignore)].toBool(false),
                                 obj[key(JsonKey::WriteType)].toInt()

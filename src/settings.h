@@ -51,11 +51,15 @@ public:
     {
         size_t row = 0;
         size_t col = 0;
+        QString argName;
         bool disable = false;	//元スクリプト変更によって位置が噛み合わなくなった場合true
         bool ignore = false;
         int writeMode = 0;
         bool operator==(const std::pair<size_t,size_t>& x) const noexcept {
             return row == x.first && col == x.second;
+        }
+        bool operator==(const QString& x) const noexcept {
+            return x == argName;
         }
     };
     struct ScriptInfo : public BasicData
@@ -88,7 +92,7 @@ public:
     QString packingInputDirectory;
 
     QString translateDirectoryPath() const;
-    QString tempFileDirectoryPath() const;
+    QString analyzeDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
     QString tempGraphicsFileDirectoryPath() const;
 

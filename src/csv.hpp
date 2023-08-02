@@ -106,22 +106,65 @@ static std::vector<std::vector<QString>> readCsv(QString path)
     return csv;
 }
 
-static std::tuple<QString, size_t, size_t> parseScriptNameWithRowCol(QString script)
+struct TextPosition
+{
+    struct RowCol {
+        size_t row;
+        size_t col;
+        RowCol():row(0), col(0){}
+    };
+    struct ScriptArg {
+        QString valueName;
+        ScriptArg():valueName(""){}
+    };
+    enum class Type {
+        RowCol,
+        Argument
+    };
+
+    Type type;
+    QString scriptFileName;
+    std::variant<RowCol, ScriptArg> d;
+};
+
+static TextPosition parseScriptNameWithRowCol(QString script)
 {
     auto colStart = script.lastIndexOf(":");
-    auto col = script.mid(colStart+1, script.size()-colStart).toUInt();
+    auto colStr = script.mid(colStart+1, script.size()-colStart);
+    bool colOk = false;
+    auto col = colStr.toUInt(&colOk);
     script.remove(colStart, script.size()-colStart);
     auto rowStart = script.lastIndexOf(":");
-    auto row = script.mid(rowStart+1, colStart-rowStart).toUInt();
+    auto rowStr = script.mid(rowStart+1, colStart-rowStart);
+    bool rowOk = false;
+    auto row = rowStr.toUInt(&rowOk);
 
-    auto fileName = script.remove(rowStart, script.size()-rowStart);
+    TextPosition result;
+    if(rowOk && colOk){
+        //fileName:row:colの形式でパースできた場合の処理
+        result.scriptFileName = script.remove(rowStart, script.size()-rowStart);
+        auto cell = TextPosition::RowCol{};
+        cell.col = col; cell.row = row;
+        result.d = cell;
+    }
+    else{
+        //それ以外はfileName:変数名として認識する。
+        //既に文字列を分割しているので、該当する変数を代入。
+        result.type = TextPosition::Type::Argument;
+        result.scriptFileName = rowStr;
+        auto cell = TextPosition::ScriptArg{};
+        cell.valueName = colStr;
+        result.d = cell;
+    }
 
-    return std::forward_as_tuple(fileName, row, col);
+    return result;
 }
 
 static std::tuple<size_t, size_t> parseScriptWithRowCol(QString script)
 {
     auto list = script.split(":");
+    constexpr size_t invalid = std::numeric_limits<size_t>::max();
+    if(list.size() < 2){ return std::forward_as_tuple(invalid, invalid); }
     return std::forward_as_tuple(list[0].toUInt(), list[1].toUInt());
 }
 

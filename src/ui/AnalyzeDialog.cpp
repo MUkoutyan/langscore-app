@@ -46,7 +46,7 @@ AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
     {
         if(exitCode != invoker::SUCCESS){ return; }
 
-        const auto& outputDirPath = this->setting->tempFileDirectoryPath();
+        const auto& outputDirPath = this->setting->analyzeDirectoryPath();
         auto outputDir = QDir(outputDirPath);
         if(outputDir.exists() == false){ return; }
         this->ui->analyzeButton->setEnabled(true);
@@ -103,7 +103,7 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
     }
 
     //analyzeフォルダがあればスキップ
-    if(QFile::exists(this->setting->tempFileDirectoryPath())){
+    if(QFile::exists(this->setting->analyzeDirectoryPath())){
         emit this->toWriteMode(gameProjDirPath);
     }
     else{

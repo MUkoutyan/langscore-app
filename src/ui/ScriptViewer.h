@@ -7,18 +7,13 @@
 #include <QTextCharFormat>
 #include <QRegularExpression>
 
-
-class Highlighter : public QSyntaxHighlighter
+class HighlighterBase : public QSyntaxHighlighter
 {
-    Q_OBJECT
-
 public:
-    Highlighter(QTextDocument *parent = nullptr);
-
+    using QSyntaxHighlighter::QSyntaxHighlighter;
 protected:
     void highlightBlock(const QString &text) override;
 
-private:
     struct HighlightingRule
     {
         QRegularExpression pattern;
@@ -35,6 +30,20 @@ private:
     QTextCharFormat multiLineCommentFormat;
     QTextCharFormat quotationFormat;
     QTextCharFormat functionFormat;
+};
+
+class RubyHighlighter : public HighlighterBase
+{
+    Q_OBJECT
+public:
+    RubyHighlighter(QTextDocument *parent = nullptr);
+};
+
+class JSHighlighter : public HighlighterBase
+{
+    Q_OBJECT
+public:
+    JSHighlighter(QTextDocument *parent = nullptr);
 };
 
 class ScriptViewer : public QPlainTextEdit
@@ -58,7 +67,7 @@ private:
     void updateLineNumAreaWidth();
 
     QWidget* lineNumberArea;
-    Highlighter* highlighter;
+    HighlighterBase* highlighter;
     QString currentFileName;
     QTextCursor highlightCursor;
 };

@@ -225,7 +225,7 @@ WriteModeComponent::~WriteModeComponent(){
 
 void WriteModeComponent::show()
 {
-    const auto& outputDirPath = this->setting->tempFileDirectoryPath();
+    const auto& outputDirPath = this->setting->analyzeDirectoryPath();
     auto outputDir = QDir(outputDirPath);
     auto basicFiles = outputDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
     for(auto& file : basicFiles){
@@ -251,7 +251,19 @@ void WriteModeComponent::show()
 
     for(auto& script : writedScripts)
     {
-        auto [fileName, row, col] = parseScriptNameWithRowCol(script);
+        auto parseResult = parseScriptNameWithRowCol(script);
+        QString fileName;
+        size_t row = 0;
+        size_t col = 0;
+        if(std::holds_alternative<TextPosition::RowCol>(parseResult.d)){
+            fileName = parseResult.scriptFileName;
+            const auto& cell = std::get<TextPosition::RowCol>(parseResult.d);
+            row = cell.row;
+            col = cell.col;
+        }
+        else{
+            continue;
+        }
 
         auto& scriptList = this->setting->writeObj.scriptInfo;
         const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
@@ -542,7 +554,9 @@ void WriteModeComponent::scriptTableSelected()
         auto text = i->text();
         textLen = text.length();
     }
-    this->ui->scriptViewer->scrollWithHighlight(textRow, textCol, textLen);
+    if(textRow != std::numeric_limits<size_t>::max()){
+        this->ui->scriptViewer->scrollWithHighlight(textRow, textCol, textLen);
+    }
 }
 
 void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
@@ -697,11 +711,11 @@ void WriteModeComponent::setupTree()
 {
     const auto topLevelItemBGColor  = QColor(128, 128, 128, 90);
     const auto graphicFolderBGColor = QColor(128, 128, 128, 90);
-    const auto translateFolder = this->setting->tempFileDirectoryPath();
+    const auto analyzeFolder = this->setting->analyzeDirectoryPath();
     //Main
     {
-        auto mapInfosCsv = readCsv(translateFolder + "/MapInfos.csv");
-        QDir sourceDir(this->setting->tempFileDirectoryPath());
+        auto mapInfosCsv = readCsv(analyzeFolder + "/MapInfos.csv");
+        QDir sourceDir(this->setting->analyzeDirectoryPath());
         auto files = sourceDir.entryInfoList();
 
         auto mainItem = new QTreeWidgetItem();
@@ -720,7 +734,7 @@ void WriteModeComponent::setupTree()
             else if(fileViewName == "Scripts"){ continue; }
             else if(fileViewName == "Graphics"){ continue; }
 
-            if(QFile::exists(translateFolder + "/" + fileViewName + ".csv") == false){
+            if(QFile::exists(analyzeFolder + "/" + fileViewName + ".csv") == false){
                 continue;
             }
             int mapID = -1;
@@ -764,7 +778,7 @@ void WriteModeComponent::setupTree()
     {
         scriptFileNameMap.clear();
         auto scriptExt = ::GetScriptExtension(this->setting->projectType);
-        auto scriptCsv     = readCsv(translateFolder + "/Scripts.csv");
+        auto scriptCsv     = readCsv(analyzeFolder + "/Scripts.csv");
         auto writedScripts = [&scriptCsv, &scriptExt]()
         {
             QStringList result;
@@ -789,7 +803,21 @@ void WriteModeComponent::setupTree()
         scriptItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(scriptItem);
         auto scriptFolder  = this->setting->tempScriptFileDirectoryPath();
-        auto scriptFiles   = readCsv(scriptFolder + "/_list.csv");
+        std::vector<std::vector<QString>> scriptFiles;
+        if(setting->projectType == settings::VXAce){
+            scriptFiles  = readCsv(scriptFolder + "/_list.csv");
+        }
+        else if(setting->projectType == settings::MV || setting->projectType == settings::MZ){
+
+            QDir folder(this->setting->tempScriptFileDirectoryPath());
+            QFileInfoList files = folder.entryInfoList({"*.js"});
+            for(const auto &file : files)
+            {
+                auto filename = file.completeBaseName();
+                scriptFiles.emplace_back(std::vector<QString>{filename, filename});
+            }
+
+        }
         auto extWithoutDot = scriptExt;
         extWithoutDot.remove(0,1);
         for(const auto& l : scriptFiles)
@@ -905,7 +933,7 @@ void WriteModeComponent::setupScriptCsvText()
 {
     this->ui->tableWidget_script->blockSignals(true);
     this->ui->tableWidget_script->clear();
-    const auto tempFolder = this->setting->tempFileDirectoryPath();
+    const auto tempFolder = this->setting->analyzeDirectoryPath();
     auto csv = readCsv(tempFolder + "/Scripts.csv");
     if(csv.empty()){
         this->ui->tableWidget_script->blockSignals(false);
@@ -915,13 +943,27 @@ void WriteModeComponent::setupScriptCsvText()
     using ScriptLineInfo = std::tuple<QString, size_t, size_t>;
 
     const auto& scriptList = this->setting->writeObj.scriptInfo;
-    const auto IsIgnoreText = [&scriptList](const ScriptLineInfo& info){
-        auto [fileName, row, col] = info;
+    const auto IsIgnoreText = [&scriptList](const TextPosition& info)
+    {
+        auto fileName = info.scriptFileName;
         fileName = withoutExtension(std::move(fileName));
-        auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
-            return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
-        });
-        return result != scriptList.cend();
+        if(std::holds_alternative<TextPosition::RowCol>(info.d))
+        {
+            auto& cell = std::get<TextPosition::RowCol>(info.d);
+            auto cellPos = std::pair<size_t, size_t>{cell.row, cell.col};
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+                return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cellPos) != x.ignorePoint.cend();
+            });
+            return result != scriptList.cend();
+        }
+        else
+        {
+            auto& cell = std::get<TextPosition::ScriptArg>(info.d);
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+                return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cell.valueName) != x.ignorePoint.cend();
+            });
+            return result != scriptList.cend();
+        }
     };
 
     const auto IsIgnoreScript = [&scriptList](QString fileName){
@@ -932,8 +974,8 @@ void WriteModeComponent::setupScriptCsvText()
         return result != scriptList.cend();
     };
 
-    const auto TextColor = [&](const ScriptLineInfo& lineInfo){
-        if(IsIgnoreScript(std::get<0>(lineInfo))){ return tableTextColorForState[Qt::Unchecked]; }
+    const auto TextColor = [&](const TextPosition& lineInfo){
+        if(IsIgnoreScript(lineInfo.scriptFileName)){ return tableTextColorForState[Qt::Unchecked]; }
         if(IsIgnoreText(lineInfo)){ return tableTextColorForState[Qt::PartiallyChecked]; }
         return tableTextColorForState[Qt::Checked];
     };
@@ -942,7 +984,7 @@ void WriteModeComponent::setupScriptCsvText()
     {
         auto rm_result = std::remove_if(csv.begin()+1, csv.end(), [&IsIgnoreScript, &IsIgnoreText](const std::vector<QString>& line){
             auto result = parseScriptNameWithRowCol(line[0]);
-            return IsIgnoreScript(std::get<0>(result)) || IsIgnoreText(result);
+            return IsIgnoreScript(result.scriptFileName) || IsIgnoreText(result);
         });
         csv.erase(rm_result, csv.end());
     }
@@ -986,26 +1028,36 @@ void WriteModeComponent::setupScriptCsvText()
         }
 
         //チェックセル以外を初期化
-        auto [fileName, row, col] = lineParsedResult;
-        if(fileName.contains(scriptExt)){
-            fileName.chop(scriptExt.length());
+        if(lineParsedResult.scriptFileName.contains(scriptExt)){
+            lineParsedResult.scriptFileName.chop(scriptExt.length());
         }
         currentScriptWordCount += wordCountUTF8(originalText);
 
         {
-            auto scriptName = getScriptName(fileName);
+            auto scriptName = getScriptName(lineParsedResult.scriptFileName);
             auto* item = new QTableWidgetItem(scriptName);
             item->setForeground(textColor);
             item->setFlags(scriptTableItemFlags);
-            item->setData(Qt::UserRole, withoutExtension(fileName));
+            item->setData(Qt::UserRole, withoutExtension(lineParsedResult.scriptFileName));
             targetTable->setItem(r, ScriptTableCol::ScriptName, item);
         }
         //テキストの位置
+
+        if(std::holds_alternative<TextPosition::RowCol>(lineParsedResult.d))
         {
-            auto* item = new QTableWidgetItem(QString("%1:%2").arg(row).arg(col));
+            auto& cell = std::get<TextPosition::RowCol>(lineParsedResult.d);
+            auto* item = new QTableWidgetItem(QString("%1:%2").arg(cell.row).arg(cell.col));
             item->setForeground(textColor);
             item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
+        }
+        else{
+            auto& cell = std::get<TextPosition::ScriptArg>(lineParsedResult.d);
+            auto* item = new QTableWidgetItem(cell.valueName);
+            item->setForeground(textColor);
+            item->setFlags(scriptTableItemFlags);
+            targetTable->setItem(r, ScriptTableCol::TextPoint, item);
+
         }
     }
 
@@ -1020,7 +1072,7 @@ void WriteModeComponent::setupScriptCsvText()
 
 void WriteModeComponent::showNormalCsvText(QString treeItemName, QString fileName)
 {
-    const auto translateFolder = this->setting->tempFileDirectoryPath();
+    const auto translateFolder = this->setting->analyzeDirectoryPath();
     auto csv = readCsv(translateFolder + "/" + withoutExtension(fileName) + ".csv");
     if(csv.empty()){ return; }
 

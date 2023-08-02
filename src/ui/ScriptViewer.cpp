@@ -5,8 +5,42 @@
 #include <QPainter>
 
 
-Highlighter::Highlighter(QTextDocument *parent)
-    : QSyntaxHighlighter(parent)
+void HighlighterBase::highlightBlock(const QString &text)
+{
+    for (const HighlightingRule &rule : qAsConst(highlightingRules)) {
+        QRegularExpressionMatchIterator matchIterator = rule.pattern.globalMatch(text);
+        while (matchIterator.hasNext()) {
+            QRegularExpressionMatch match = matchIterator.next();
+            setFormat(match.capturedStart(), match.capturedLength(), rule.format);
+        }
+    }
+
+    setCurrentBlockState(0);
+
+    int startIndex = 0;
+    if (previousBlockState() != 1)
+        startIndex = text.indexOf(commentStartExpression);
+
+    while (startIndex >= 0) {
+        QRegularExpressionMatch match = commentEndExpression.match(text, startIndex);
+        if(match.hasMatch() == false){ break; }
+        int endIndex = match.capturedStart();
+        int commentLength = 0;
+        if (endIndex == -1) {
+            setCurrentBlockState(1);
+            commentLength = text.length() - startIndex;
+        } else {
+            commentLength = endIndex - startIndex
+                            + match.capturedLength();
+        }
+        setFormat(startIndex, commentLength, multiLineCommentFormat);
+        startIndex = text.indexOf(commentStartExpression, startIndex + commentLength);
+    }
+}
+
+
+RubyHighlighter::RubyHighlighter(QTextDocument *parent)
+    : HighlighterBase(parent)
 {
     HighlightingRule rule;
 
@@ -58,43 +92,68 @@ Highlighter::Highlighter(QTextDocument *parent)
     commentEndExpression = QRegularExpression(QStringLiteral("end"));
 }
 
-void Highlighter::highlightBlock(const QString &text)
+
+JSHighlighter::JSHighlighter(QTextDocument *parent)
+    : HighlighterBase(parent)
 {
-    for (const HighlightingRule &rule : qAsConst(highlightingRules)) {
-        QRegularExpressionMatchIterator matchIterator = rule.pattern.globalMatch(text);
-        while (matchIterator.hasNext()) {
-            QRegularExpressionMatch match = matchIterator.next();
-            setFormat(match.capturedStart(), match.capturedLength(), rule.format);
-        }
+    HighlightingRule rule;
+
+    keywordFormat.setForeground(QColor("#398ecf"));
+    keywordFormat.setFontWeight(QFont::Bold);
+
+    QStringList keywordPatterns = {
+        "await", "break", "case", "catch", "class", "const", "continue",
+        "debugger", "default", "delete", "do", "else", "enum", "export",
+        "extends", "false", "finally", "for", "function", "if", "implements",
+        "import", "in", "instanceof", "interface", "let", "new", "null",
+        "package", "private", "protected", "public", "return", "super",
+        "switch", "this", "throw", "true", "try", "typeof", "var", "void",
+        "while", "with", "yield"
+    };
+    for (const QString &pattern : keywordPatterns) {
+        rule.pattern = QRegularExpression("\\b"+pattern+"\\b");
+        rule.format = keywordFormat;
+        highlightingRules.append(rule);
     }
 
-    setCurrentBlockState(0);
+    classFormat.setFontWeight(QFont::Bold);
+    classFormat.setForeground(Qt::darkMagenta);
+    rule.pattern = QRegularExpression(QStringLiteral("\\bQ[A-Za-z]+\\b"));
+    rule.format = classFormat;
+    highlightingRules.append(rule);
 
-    int startIndex = 0;
-    if (previousBlockState() != 1)
-        startIndex = text.indexOf(commentStartExpression);
+    singleLineCommentFormat.setForeground(Qt::green);
+    rule.pattern = QRegularExpression(QStringLiteral("//[^\n]*"));
+    rule.format = singleLineCommentFormat;
+    highlightingRules.append(rule);
 
-    while (startIndex >= 0) {
-        QRegularExpressionMatch match = commentEndExpression.match(text, startIndex);
-        int endIndex = match.capturedStart();
-        int commentLength = 0;
-        if (endIndex == -1) {
-            setCurrentBlockState(1);
-            commentLength = text.length() - startIndex;
-        } else {
-            commentLength = endIndex - startIndex
-                            + match.capturedLength();
-        }
-        setFormat(startIndex, commentLength, multiLineCommentFormat);
-        startIndex = text.indexOf(commentStartExpression, startIndex + commentLength);
-    }
+    multiLineCommentFormat.setForeground(Qt::green);
+
+    quotationFormat.setForeground(QColor("#d69d77"));
+    rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
+    rule.format = quotationFormat;
+    highlightingRules.append(rule);
+
+    rule.pattern = QRegularExpression(QStringLiteral("\'.*\'"));
+    rule.format = quotationFormat;
+    highlightingRules.append(rule);
+
+    functionFormat.setFontItalic(true);
+    functionFormat.setForeground(Qt::cyan);
+    rule.pattern = QRegularExpression(QStringLiteral("\\b[A-Za-z0-9_]+(?=\\()"));
+    rule.format = functionFormat;
+    highlightingRules.append(rule);
+
+    commentStartExpression = QRegularExpression(QStringLiteral("/*"));
+    commentEndExpression = QRegularExpression(QStringLiteral("*/"));
 }
+
 
 
 ScriptViewer::ScriptViewer(QWidget *parent)
     : QPlainTextEdit(parent)
     , lineNumberArea(new LineNumber(this))
-    , highlighter(new Highlighter(this->document()))
+    , highlighter(nullptr)
     , currentFileName("")
 {
 
@@ -114,6 +173,18 @@ void ScriptViewer::showFile(QString scriptFilePath)
     QFile script(scriptFilePath);
     if(script.open(QFile::ReadOnly | QFile::Text))
     {
+        if(highlighter){
+            delete highlighter;
+            highlighter = nullptr;
+        }
+
+        if(info.suffix() == "rb"){
+            highlighter = new RubyHighlighter(this->document());
+        }
+        else if(info.suffix() == "js"){
+            highlighter = new JSHighlighter(this->document());
+        }
+
         highlightCursor.setCharFormat(QTextCharFormat());
         highlightCursor = QTextCursor();
 

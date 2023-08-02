@@ -3,6 +3,8 @@
 #include "ComponentBase.h"
 #include "../graphics.hpp"
 
+#include "ColorDialog.h"
+
 #include <QActionGroup>
 #include <QMenuBar>
 #include <QMouseEvent>
@@ -141,6 +143,12 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
         }
     }
 
+    auto colorPalette = systemMenu->addAction(tr("Color"));
+    connect(colorPalette, &QAction::triggered, this, [this](){
+        auto dialog = new ColorDialog(this);
+        dialog->show();
+        dialog->raise();
+    });
 
     auto versionAction = systemMenu->addAction(tr("Version : ") + qApp->applicationVersion());
     versionAction->setEnabled(false);
