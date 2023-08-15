@@ -12,6 +12,7 @@
 #include <QProcess>
 #include <QDir>
 #include <QFileDialog>
+#include <QMessageBox>
 
 enum ErrorTextCol
 {
@@ -60,8 +61,11 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
 
     connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
     connect(_invoker, &invoker::getStdOut, this, &PackingMode::addText);
-    connect(_invoker, &invoker::finish, this, [this](int)
+    connect(_invoker, &invoker::finish, this, [this](int, QProcess::ExitStatus status)
     {
+        if(status == QProcess::ExitStatus::CrashExit){
+            this->ui->logText->writeText(tr("Crashed."));
+        }
         this->ui->packingButton->setEnabled(true);
         this->ui->moveToWrite->setEnabled(true);
         this->ui->treeWidget->blockSignals(false);
@@ -264,7 +268,20 @@ void PackingMode::validate()
     this->errorInfoIndex = 0;
     this->isValidate = true;
 
-    auto files = QDir(this->ui->packingSourceDirectory->text()).entryInfoList({"*.csv"});
+    auto searchPackingSourceDir = this->ui->packingSourceDirectory->text();
+    if(setting->packingInputDirectory != searchPackingSourceDir){
+        //パッキング入力ディレクトリが異なるため、プロジェクトを保存する必要があります。
+        //保存しますか？
+        auto button = QMessageBox::question(this, tr("Confirmation of save a project."), tr("The packing input directory is different and the project must be saved."), QMessageBox::Save|QMessageBox::Cancel,QMessageBox::Cancel);
+        if(button == QMessageBox::Cancel){
+            return;
+        }
+
+        setting->setPackingDirectory(searchPackingSourceDir);
+        setting->saveForProject();
+    }
+
+    auto files = QDir(searchPackingSourceDir).entryInfoList({"*.csv"});
     for(const auto &file : files)
     {
         auto filePath = file.absoluteFilePath();

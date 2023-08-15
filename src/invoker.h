@@ -27,7 +27,7 @@ public:
 signals:
     void getStdOut(QString);
     void update();
-    void finish(int exitCode);
+    void finish(int exitCode, QProcess::ExitStatus status);
 
 private:
     void doProcess(QStringList option);

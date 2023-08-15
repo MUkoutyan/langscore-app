@@ -49,8 +49,8 @@ void invoker::doProcess(QStringList option)
         QString message = QString::fromLocal8Bit(process->readAllStandardError());
         emit this->getStdOut(message);
     });
-    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [process, this](int exitCode, QProcess::ExitStatus){
-        emit this->finish(exitCode);
+    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [process, this](int exitCode, QProcess::ExitStatus status){
+        emit this->finish(exitCode, status);
         process->deleteLater();
     });
 
