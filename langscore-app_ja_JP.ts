@@ -30,6 +30,14 @@
     </message>
 </context>
 <context>
+    <name>ColorDialog</name>
+    <message>
+        <location filename="ColorDialog.cpp" line="8"/>
+        <source>Color Dialog</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>FormTaskBar</name>
     <message>
         <location filename="src/ui/FormTaskBar.ui" line="26"/>
@@ -42,83 +50,88 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="80"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="82"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="81"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="83"/>
         <source>Open Game Project...</source>
         <translation>ゲームプロジェクトを開く...</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="82"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="84"/>
         <source>Save Langscore Project...</source>
         <translation>Langscoreプロジェクトを保存...</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="83"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="85"/>
         <source>Recent Project</source>
         <translation>最近開いたプロジェクト</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="86"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="88"/>
         <source>Quit</source>
         <translation>終了</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="92"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="94"/>
         <source>Open Game Project Folder...</source>
         <translation>ゲームプロジェクトのフォルダを開く...</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="102"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="104"/>
         <source>Edit</source>
         <translation>編集</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="103"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="105"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="106"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="108"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="110"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="112"/>
         <source>Show Undo View...</source>
         <translation>操作履歴を表示...</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="117"/>
-        <location filename="src/ui/FormTaskBar.cpp" line="123"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="119"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="125"/>
         <source>System</source>
         <translation>システム</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="118"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="120"/>
         <source>Theme</source>
         <translation>テーマ</translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="119"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="121"/>
         <source>Light</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="121"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="123"/>
         <source>Dark</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="145"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="146"/>
+        <source>Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="src/ui/FormTaskBar.cpp" line="153"/>
         <source>Version : </source>
         <translation>バージョン : </translation>
     </message>
     <message>
-        <location filename="src/ui/FormTaskBar.cpp" line="186"/>
+        <location filename="src/ui/FormTaskBar.cpp" line="194"/>
         <source>Not Found Directory. Delete this item from the history at the end of the project.</source>
         <translation>ディレクトリが見つかりません。プロジェクト終了時に履歴からこの項目を削除します。</translation>
     </message>
@@ -148,7 +161,7 @@
         <translation type="vanished">デフォルト</translation>
     </message>
     <message>
-        <location filename="src/ui/LanguageSelectComponent.cpp" line="27"/>
+        <location filename="src/ui/LanguageSelectComponent.cpp" line="14"/>
         <source>Original Language</source>
         <translation>原文の言語</translation>
     </message>
@@ -292,49 +305,75 @@ If not, the changes will be discarded.</source>
         <translation type="vanished">まとめる！</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="54"/>
+        <location filename="src/ui/PackingMode.cpp" line="55"/>
         <source>Select Input Directory</source>
         <oldsource>Select Export Directory</oldsource>
         <translation>読み込むディレクトリを選択</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="76"/>
-        <location filename="src/ui/PackingMode.cpp" line="417"/>
+        <location filename="src/ui/PackingMode.cpp" line="67"/>
+        <source>Crashed.</source>
+        <translation>クラッシュしました...</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="81"/>
+        <location filename="src/ui/PackingMode.cpp" line="477"/>
         <source>Valid!</source>
         <translation>問題なし！</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="81"/>
+        <location filename="src/ui/PackingMode.cpp" line="86"/>
         <source>Complete Packing!</source>
         <translation>パッキング完了！</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="107"/>
+        <location filename="src/ui/PackingMode.cpp" line="112"/>
         <source>Show in Explorer</source>
         <translation>エクスプローラーで表示</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="185"/>
+        <location filename="src/ui/PackingMode.cpp" line="190"/>
         <source>The text is empty.</source>
         <translation>文章が空になっています。</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="188"/>
+        <location filename="src/ui/PackingMode.cpp" line="193"/>
         <source>Esc character is missing.</source>
         <translation>制御文字が見つかりません。</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="396"/>
+        <location filename="src/ui/PackingMode.cpp" line="275"/>
+        <source>Confirmation of save a project.</source>
+        <translation>プロジェクト保存の確認</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="275"/>
+        <source>The packing input directory is different and the project must be saved.</source>
+        <translation>パッキング入力ディレクトリが異なるため、プロジェクトを保存する必要があります。</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="450"/>
         <source> Empty Column</source>
         <translation> 空の文章</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="399"/>
+        <location filename="src/ui/PackingMode.cpp" line="453"/>
         <source> Not Found Esc</source>
         <translation> 制御文字の不足</translation>
     </message>
     <message>
-        <location filename="src/ui/PackingMode.cpp" line="402"/>
+        <location filename="src/ui/PackingMode.cpp" line="456"/>
+        <source> Unclosed Esc</source>
+        <translation> 制御文字の閉じ忘れ</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="459"/>
+        <source> Include &quot;<byte value="xd"/>
+&quot;</source>
+        <translation>改行文字\r\nを含んでいます</translation>
+    </message>
+    <message>
+        <location filename="src/ui/PackingMode.cpp" line="462"/>
         <source>Line</source>
         <translation>行</translation>
     </message>
@@ -498,7 +537,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="src/ui/WriteModeComponent.ui" line="289"/>
         <location filename="src/ui/WriteModeComponent.ui" line="386"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1053"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1105"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
@@ -581,27 +620,27 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation type="vanished">ログファイル (*.txt)</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="423"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="435"/>
         <source>Main Tree Change Enable State</source>
         <translation>メインツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="451"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="463"/>
         <source>Script Tree Change Enable State</source>
         <translation>スクリプトツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="515"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="527"/>
         <source>Graphics Tree Change Enable State</source>
         <translation>画像ツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="584"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="598"/>
         <source>Change Script Table Check</source>
         <translation>スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="622"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="636"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
@@ -613,32 +652,32 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation>完了。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="812"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="871"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="840"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="899"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1017"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1388"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1069"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1440"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1443"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1453"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1495"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1505"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1446"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1456"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1498"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1508"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1466"/>
-        <location filename="src/ui/WriteModeComponent.cpp" line="1471"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1518"/>
+        <location filename="src/ui/WriteModeComponent.cpp" line="1523"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>
