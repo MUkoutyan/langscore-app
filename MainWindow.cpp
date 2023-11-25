@@ -261,7 +261,11 @@ void MainWindow::attachTheme(FormTaskBar::Theme theme)
 
         qApp->setPalette(darkPalette);
 
-        qApp->setStyleSheet("QToolTip { color: #efefef; background-color: #222222; border: 1px solid white; }");
+        qApp->setStyleSheet(R"(
+QToolTip { color: #efefef; background-color: #222222; border: 1px solid white; }
+QTableView::item:hover { background-color: #2202abd1;}
+QTreeView::item:hover { background-color: #2202abd1;}
+)");
 
         this->setStyleSheet("#mainWindow{ border: 2px solid #323232; }");
         analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #3f3f3f;}");
