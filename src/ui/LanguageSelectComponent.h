@@ -19,7 +19,7 @@ public:
     QFont currentFont();
     void attachButtonGroup(QButtonGroup* group);
 
-    void setFontList(std::vector<QFont> fonts, QString familyName);
+    void setFontList(std::vector<settings::Font> fonts, QString familyName);
 
 private:
     QLocale locale;
@@ -27,7 +27,7 @@ private:
     QCheckBox* defaultCheck;
     QComboBox* fontList;
     QSpinBox* fontSize;
-    QFont font;
+    settings::Font font;
     QLineEdit* fontPreview;
 
     void setUseLang(bool is);

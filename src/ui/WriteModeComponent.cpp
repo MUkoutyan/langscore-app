@@ -7,6 +7,7 @@
 #include "../utility.hpp"
 #include "../graphics.hpp"
 #include "../csv.hpp"
+#include <icu.h>
 
 #include <QDir>
 #include <QString>
@@ -86,6 +87,28 @@ QString getScriptName(QTableWidgetItem* item){
     return item->text();
 }
 
+bool isJapaneseLanguage(QChar ch) {
+    UErrorCode status = U_ZERO_ERROR;
+    UScriptCode script = uscript_getScript(ch.unicode(), &status);
+
+    if(U_SUCCESS(status))
+    {
+        switch(script)
+        {
+        case USCRIPT_JAPANESE:
+        case USCRIPT_KATAKANA_OR_HIRAGANA:
+        case USCRIPT_KATAKANA:
+        case USCRIPT_HIRAGANA:
+        case USCRIPT_HAN:
+            return true;
+            break;
+        default:
+            break;
+        }
+    }
+    return false;
+}
+
 } //namespace {
 
 WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
@@ -147,6 +170,91 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         this->showAllScriptContents = false;
         setupScriptCsvText();
     });
+
+
+    connect(this->ui->autoCheckButton, &QToolButton::clicked, this->ui->autoCheckButton, &QToolButton::showMenu);
+    {
+        //記号のみの文のチェックを外す
+        auto uncheckSignOnly = new QAction(tr("Uncheck Sign Only Text"));
+        this->ui->autoCheckButton->addAction(uncheckSignOnly);
+
+        connect(uncheckSignOnly, &QAction::triggered, this, [this](){
+            auto numRow = this->ui->tableWidget_script->rowCount();
+            for(int r=0; r<numRow; ++r)
+            {
+                auto text = this->ui->tableWidget_script->item(r, ScriptTableCol::Original)->text();
+                bool is_find = false;
+                for(QChar qc : text) {
+                    int c = qc.toLatin1();
+                    if(c == 0){
+                        c = qc.unicode();
+                        if(c == 0){ continue; }
+                    }
+                    if(c < 127) {
+                       is_find |= (std::isalpha(c) != 0);
+                    }
+                    else {
+                       is_find = true;
+                    }
+                }
+                if(is_find == false){
+                    this->ui->tableWidget_script->item(r, ScriptTableCol::EnableCheck)->setCheckState(Qt::Unchecked);
+                }
+            }
+        });
+
+        //プログラミングで使用される文のチェックを外す
+        // auto uncheckProgrammingText = new QAction(tr("Uncheck Text used in programming"));
+        // this->ui->autoCheckButton->addAction(uncheckProgrammingText);
+        // connect(uncheckProgrammingText, &QAction::triggered, this, [this]()
+        // {
+        //     auto numRow = this->ui->tableWidget_script->rowCount();
+        //     std::vector<QString> ignoreTextList = {
+        //         "BigInt", "String", "Boolean", "Number", "Symbol"
+        //     };
+        //     for(int r=0; r<numRow; ++r)
+        //     {
+        //         auto text = this->ui->tableWidget_script->item(r, ScriptTableCol::Original)->text();
+        //         bool is_find = false;
+        //         for(QChar qc : text) {
+        //             int c = qc.toLatin1();
+        //             if(c == 0){
+        //                 c = qc.unicode();
+        //                 if(c == 0){ continue; }
+        //             }
+        //             if(c < 127) {
+        //                 is_find |= (std::isalpha(c) != 0);
+        //             }
+        //             else {
+        //                 is_find = true;
+        //             }
+        //         }
+        //         if(is_find == false){
+        //             this->ui->tableWidget_script->item(r, ScriptTableCol::EnableCheck)->setCheckState(Qt::Unchecked);
+        //         }
+        //     }
+        // });
+
+        //日本語を含まない文章のチェックを外す
+        auto uncheckNotIncludeHiragana = new QAction(tr("Uncheck text that does not contain hiragana"));
+        this->ui->autoCheckButton->addAction(uncheckNotIncludeHiragana);
+        connect(uncheckNotIncludeHiragana, &QAction::triggered, this, [this]()
+        {
+            auto numRow = this->ui->tableWidget_script->rowCount();
+            for(int r=0; r<numRow; ++r)
+            {
+                auto text = this->ui->tableWidget_script->item(r, ScriptTableCol::Original)->text();
+                bool is_find = false;
+                for(QChar qc : text) {
+                    is_find |= ::isJapaneseLanguage(qc);
+                    if(is_find){ break; }
+                }
+                if(is_find == false){
+                    this->ui->tableWidget_script->item(r, ScriptTableCol::EnableCheck)->setCheckState(Qt::Unchecked);
+                }
+            }
+        });
+    }
 
     connect(this->ui->updateButton, &QPushButton::clicked, this, [this]()
     {
@@ -658,7 +766,7 @@ void WriteModeComponent::setup()
         QFileInfoList files = QDir(qApp->applicationDirPath()+"/resources/fonts").entryInfoList(fontExtensions, QDir::Files);
         for(auto& info : files){
             auto path = info.absoluteFilePath();
-            this->setting->fontIndexList.emplace_back(settings::Global, QFontDatabase::addApplicationFont(path), info.fileName());
+            this->setting->fontIndexList.emplace_back(settings::Global, QFontDatabase::addApplicationFont(path), info.fileName(), path);
         }
     }
     //プロジェクトに登録されたフォント
@@ -666,22 +774,22 @@ void WriteModeComponent::setup()
         QFileInfoList files = QDir(this->setting->langscoreProjectDirectory+"/Fonts").entryInfoList(fontExtensions, QDir::Files);
         for(auto& info : files){
             auto path = info.absoluteFilePath();
-            this->setting->fontIndexList.emplace_back(settings::Local, QFontDatabase::addApplicationFont(path), info.fileName());
+            this->setting->fontIndexList.emplace_back(settings::Local, QFontDatabase::addApplicationFont(path), info.fileName(), path);
         }
     }
 
     //Languages
     const std::vector<QLocale> languages = {
+        {QLocale::Japanese},
         {QLocale::English},
+        {QLocale::Chinese, QLocale::SimplifiedChineseScript},
+        {QLocale::Chinese, QLocale::TraditionalChineseScript},
+        {QLocale::Korean},
         {QLocale::Spanish},
         {QLocale::German},
         {QLocale::French},
         {QLocale::Italian},
-        {QLocale::Japanese},
-        {QLocale::Korean},
         {QLocale::Russian},
-        {QLocale::Chinese, QLocale::SimplifiedChineseScript},
-        {QLocale::Chinese, QLocale::TraditionalChineseScript}
     };
 
     int count = 0;
@@ -1293,7 +1401,7 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
     if(lsProjDir.exists("/Fonts") == false){
         lsProjDir.mkdir("Fonts");
     }
-    std::vector<QFont> fonts;
+    std::vector<settings::Font> fonts;
     for(auto& path : fontPaths){
 
         QFile file(path);
@@ -1306,8 +1414,8 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
         auto fontIndex = QFontDatabase::addApplicationFont(path);
         auto appFonts = QFontDatabase::applicationFontFamilies(fontIndex);
         for(const auto& appFont : appFonts){
-            this->setting->fontIndexList.emplace_back(settings::Local, fontIndex, appFont);
-            fonts.emplace_back(appFont);
+            this->setting->fontIndexList.emplace_back(settings::Local, fontIndex, appFont, destPath);
+            fonts.emplace_back(settings::Font{"", path, appFont});
         }
     }
     for(auto* langButton : languageButtons){
@@ -1341,7 +1449,7 @@ void WriteModeComponent::dropEvent(QDropEvent *event)
 
         fontPathList.emplace_back(fileInfo.absoluteFilePath());
     }
-    setFontList(std::move(fontPathList));
+    this->setFontList(std::move(fontPathList));
 }
 
 void WriteModeComponent::dragEnterEvent(QDragEnterEvent *event)

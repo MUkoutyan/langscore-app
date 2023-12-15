@@ -2,6 +2,7 @@
 #include <QStringList>
 #include <QLocale>
 #include <QMap>
+#include <QFont>
 
 class settings
 {
@@ -19,6 +20,8 @@ public:
 
     struct Font {
         QString name = "";
+        QString filePath = "";
+        QFont fontData;
         std::uint32_t size = 22;
     };
     struct Language{
@@ -86,7 +89,8 @@ public:
         int writeMode = -1;
     };
     WriteProps writeObj;
-    std::vector<std::tuple<FontType, int, QString>> fontIndexList;
+    //FontType, fontIndex(from:addApplicationFont), FontFamily, fontFilePath
+    std::vector<std::tuple<FontType, int, QString, QString>> fontIndexList;
 
     //Packing
     QString packingInputDirectory;

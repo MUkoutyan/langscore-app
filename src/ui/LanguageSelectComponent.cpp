@@ -104,30 +104,31 @@ void LanguageSelectComponent::setPreviewText(QString text){
 void LanguageSelectComponent::setFont(QString fontFamily)
 {
     QFont f(fontFamily);
-    this->font = f;
-    this->font.setPixelSize(this->fontSize->value());
-    this->fontPreview->setFont(this->font);
+    this->font.fontData = f;
+    this->font.fontData.setPixelSize(this->fontSize->value());
+    this->fontPreview->setFont(this->font.fontData);
     this->update();
 
     auto shortName = settings::getLowerBcp47Name(this->locale);
     auto& lang = this->setting->fetchLanguage(shortName);
-    lang.font = settings::Font{font.family(), static_cast<std::uint32_t>(font.pixelSize())};
+    lang.font = this->font;
 }
 
 void LanguageSelectComponent::setFontSize(int size)
 {
-    this->font.setPixelSize(size);
-    this->fontPreview->setFont(this->font);
+    this->font.fontData.setPixelSize(size);
+    this->font.size = size;
+    this->fontPreview->setFont(this->font.fontData);
     this->fontSize->setValue(size);
     this->update();
 
     auto shortName = settings::getLowerBcp47Name(this->locale);
     auto& lang = this->setting->fetchLanguage(shortName);
-    lang.font = settings::Font{font.family(), static_cast<std::uint32_t>(font.pixelSize())};
+    lang.font = this->font;
 }
 
 QFont LanguageSelectComponent::currentFont(){
-    return this->font;
+    return this->font.fontData;
 }
 
 void LanguageSelectComponent::attachButtonGroup(QButtonGroup *group)
@@ -135,7 +136,7 @@ void LanguageSelectComponent::attachButtonGroup(QButtonGroup *group)
     group->addButton(this->defaultCheck);
 }
 
-void LanguageSelectComponent::setFontList(std::vector<QFont> fonts, QString familyName)
+void LanguageSelectComponent::setFontList(std::vector<settings::Font> fonts, QString familyName)
 {
     QStringList families;
     int size = this->fontList->count();
@@ -146,10 +147,10 @@ void LanguageSelectComponent::setFontList(std::vector<QFont> fonts, QString fami
     auto currentFont = this->fontList->currentText();
     for(auto& font : fonts)
     {
-        auto name = font.family();
+        auto name = font.name;
         if(families.contains(name)){ continue; }
 
-        this->fontList->addItem(name, QVariant(font));
+        this->fontList->addItem(name, QVariant(font.fontData));
     }
 
     if(familyName.isEmpty() == false){
@@ -170,29 +171,33 @@ void LanguageSelectComponent::setupData()
         attachInfo = *langData;
     }
 
-    std::vector<QFont> fontList;
-    QFont defaultFont;
+    std::vector<settings::Font> fontList;
+    settings::Font defaultFont;
     const auto projType = this->setting->projectType;
-    for(const auto& [type, index, path] : this->setting->fontIndexList)
+    for(const auto& [type, index, family, path] : this->setting->fontIndexList)
     {
         auto familyList = QFontDatabase::applicationFontFamilies(index);
         for(const auto& family : familyList)
         {
             auto familyName = family.toLower();
             if(projType == settings::VXAce && familyName.contains("vl gothic")){
-                defaultFont = QFont(family);
+                defaultFont.fontData = QFont(family);
+                defaultFont.filePath = path;
+                defaultFont.name = familyName;
             }
             else if((projType == settings::MV || projType == settings::MZ) && familyName.contains("m+ 1m")) {
-                defaultFont = QFont(family);
+                defaultFont.fontData = QFont(family);
+                defaultFont.filePath = path;
+                defaultFont.name = familyName;
             }
             auto font = QFont(family);
             font.setPixelSize(attachInfo.font.size);
-            fontList.emplace_back(font);
+            fontList.emplace_back(settings::Font{family, path, font, static_cast<std::uint32_t>(font.pixelSize())});
         }
     }
-    defaultFont.setPixelSize(22);
+    defaultFont.fontData.setPixelSize(22);
     if(langData == langList.end()){
-        attachInfo.font.name = defaultFont.family();
+        attachInfo.font = defaultFont;
     }
 
 
@@ -208,8 +213,12 @@ void LanguageSelectComponent::setupData()
     else{
         this->setUseLang(attachInfo.enable);
     }
-    this->setFontList(fontList, attachInfo.font.name);
+
+    this->setFontList(std::move(fontList), attachInfo.font.name);
     this->setFontSize(attachInfo.font.size);
+
+    auto& lang = this->setting->fetchLanguage(bcp47Name);
+    lang.font = attachInfo.font;
 }
 
 void LanguageSelectComponent::LanguageButtonUndo::undo(){

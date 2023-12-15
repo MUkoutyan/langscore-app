@@ -143,12 +143,14 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
         }
     }
 
+#ifdef QT_DEBUG
     auto colorPalette = systemMenu->addAction(tr("Color"));
     connect(colorPalette, &QAction::triggered, this, [this](){
         auto dialog = new ColorDialog(this);
         dialog->show();
         dialog->raise();
     });
+#endif
 
     auto versionAction = systemMenu->addAction(tr("Version : ") + qApp->applicationVersion());
     versionAction->setEnabled(false);

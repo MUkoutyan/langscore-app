@@ -242,7 +242,7 @@
             <item>
              <widget class="QRadioButton" name="acceptTarget">
               <property name="styleSheet">
-               <string notr="true">color: rgb(222, 51, 17);</string>
+               <string notr="true">color: rgb(255, 44, 44);</string>
               </property>
               <property name="text">
                <string extracomment="新しい内容で上書き(既存の内容は消されます)">Overwrite by New  (Translations already written will be erased.)</string>

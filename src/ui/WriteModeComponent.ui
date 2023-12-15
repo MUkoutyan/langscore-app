@@ -211,7 +211,7 @@ Unchecked text and images are excluded from translation.</string>
      </widget>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>4</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="langTab">
        <attribute name="title">
@@ -368,6 +368,13 @@ Unchecked text and images are excluded from translation.</string>
                </widget>
               </item>
               <item>
+               <widget class="QLabel" name="scriptFileWordCount">
+                <property name="text">
+                 <string>Word Count : %1</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <spacer name="horizontalSpacer">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -381,9 +388,9 @@ Unchecked text and images are excluded from translation.</string>
                </spacer>
               </item>
               <item>
-               <widget class="QLabel" name="scriptFileWordCount">
+               <widget class="QToolButton" name="autoCheckButton">
                 <property name="text">
-                 <string>Word Count : %1</string>
+                 <string>Auto Check</string>
                 </property>
                </widget>
               </item>

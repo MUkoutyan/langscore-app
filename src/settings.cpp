@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFontDatabase>
+#include <QVersionNumber>
 #include <assert.h>
 
 #define MAKE_KEYVALUE(k) {JsonKey::k, #k}
@@ -51,6 +52,8 @@ enum class JsonKey : size_t
 
     ApplicationVersion,
     ConfigVersion,
+    AttachLsTransType,
+    ExportAllScriptStrings,
     NumKeys,
 };
 
@@ -88,6 +91,8 @@ static const std::map<JsonKey, const char*> jsonKeys = {
     MAKE_KEYVALUE(PackingInputDir),
     MAKE_KEYVALUE(ApplicationVersion),
     MAKE_KEYVALUE(ConfigVersion),
+    MAKE_KEYVALUE(AttachLsTransType),
+    MAKE_KEYVALUE(ExportAllScriptStrings),
 };
 
 inline const char* key(JsonKey key)
@@ -180,7 +185,7 @@ settings::Language &settings::fetchLanguage(QString bcp47Name)
         return *result;
     }
     this->languages.emplace_back(
-        settings::Language{ bcp47Name, settings::Font{ "", 22 }, false }
+        settings::Language{ bcp47Name, settings::Font{ "", "", QFont(), 22 }, false }
     );
     return this->languages[this->languages.size() - 1];
 }
@@ -207,10 +212,6 @@ settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
 
     if(result != list.end()){
         return *result;
-    }
-
-    if(fileName.indexOf(".") == -1){
-        qDebug() << "Hoge";
     }
 
     list.emplace_back(
@@ -294,6 +295,8 @@ QByteArray settings::createJson()
         langObj[key(JsonKey::FontName)] = l.font.name;
         langObj[key(JsonKey::FontSize)] = int(l.font.size);
         langObj[key(JsonKey::Enable)] = bool(l.enable);
+        langObj[key(JsonKey::FontPath)] = QFileInfo(l.font.filePath).fileName();
+
         langs.append(langObj);
     }
     root[key(JsonKey::Languages)] = langs;
@@ -356,43 +359,44 @@ QByteArray settings::createJson()
     }
     write[key(JsonKey::IgnorePictures)] = ignorePictures;
 
-    std::vector<QString> copyGlobalFontPathList;
-    std::vector<QString> copyLocalFontPathList;
-    for(const auto& fontInfo : this->fontIndexList)
-    {
-        auto [type, index, path] = fontInfo;
-        auto familyList = QFontDatabase::applicationFontFamilies(index);
-        for(const auto& family : familyList)
-        {
-            auto familyName = family.toLower();
-            if(projectType == settings::VXAce && familyName.contains("vl gothic")){
-                continue;
-            }
-            else if((projectType == settings::MV || projectType == settings::MZ) && familyName.contains("m+ 1m")) {
-                continue;
-            }
+    //フォントは言語側にファイル名も埋め込むのでここの処理はコメントアウト
+    // std::vector<QString> copyGlobalFontPathList;
+    // std::vector<QString> copyLocalFontPathList;
+    // for(const auto& fontInfo : this->fontIndexList)
+    // {
+    //     auto [type, index, path] = fontInfo;
+    //     auto familyList = QFontDatabase::applicationFontFamilies(index);
+    //     for(const auto& family : familyList)
+    //     {
+    //         auto familyName = family.toLower();
+    //         if(projectType == settings::VXAce && familyName.contains("vl gothic")){
+    //             continue;
+    //         }
+    //         else if((projectType == settings::MV || projectType == settings::MZ) && familyName.contains("m+ 1m")) {
+    //             continue;
+    //         }
 
-            auto result = std::find_if(this->languages.cbegin(), this->languages.cend(), [&familyName](const auto& x){
-                return x.enable && x.font.name.toLower() == familyName;
-            });
-            if(result != this->languages.cend()){
-                if(type == settings::Global){
-                    copyGlobalFontPathList.emplace_back(path);
-                } else if(type == settings::Local){
-                    copyLocalFontPathList.emplace_back(path);
-                }
-                break;
-            }
-        }
-    }
-    QJsonArray copyGlobalFonts;
-    QJsonArray copyLocalFonts;
-    for(const auto& path : copyGlobalFontPathList){ copyGlobalFonts.append(path); }
-    for(const auto& path : copyLocalFontPathList){ copyLocalFonts.append(path); }
-    QJsonObject copyFonts;
-    copyFonts[key(JsonKey::Global)] = copyGlobalFonts;
-    copyFonts[key(JsonKey::Local)] = copyLocalFonts;
-    write[key(JsonKey::FontPath)] = copyFonts;
+    //         auto result = std::find_if(this->languages.cbegin(), this->languages.cend(), [&familyName](const auto& x){
+    //             return x.enable && x.font.name.toLower() == familyName;
+    //         });
+    //         if(result != this->languages.cend()){
+    //             if(type == settings::Global){
+    //                 copyGlobalFontPathList.emplace_back(path);
+    //             } else if(type == settings::Local){
+    //                 copyLocalFontPathList.emplace_back(path);
+    //             }
+    //             break;
+    //         }
+    //     }
+    // }
+    // QJsonArray copyGlobalFonts;
+    // QJsonArray copyLocalFonts;
+    // for(const auto& path : copyGlobalFontPathList){ copyGlobalFonts.append(path); }
+    // for(const auto& path : copyLocalFontPathList){ copyLocalFonts.append(path); }
+    // QJsonObject copyFonts;
+    // copyFonts[key(JsonKey::Global)] = copyGlobalFonts;
+    // copyFonts[key(JsonKey::Local)] = copyLocalFonts;
+    // write[key(JsonKey::FontPath)] = copyFonts;
 
     root[key(JsonKey::Write)] = write;
 
@@ -438,19 +442,48 @@ void settings::load(QString path)
 
     QJsonDocument root = QJsonDocument::fromJson(QByteArray(file.readAll()));
 
+
+    auto projctVer = root[key(JsonKey::ApplicationVersion)].toString();
+    auto configVer = root[key(JsonKey::ConfigVersion)].toString();
+
     this->languages.clear();
     auto jsonLanguages = root[key(JsonKey::Languages)].toArray();
     if(jsonLanguages.empty() == false)
     {
-        for(auto l : jsonLanguages)
+        if(QVersionNumber::fromString(configVer) <= QVersionNumber::fromString("1.0.0"))
         {
-            auto obj = l.toObject();
-            auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
-                                 Font{ obj[key(JsonKey::FontName)].toString(),
-                                       static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
-                                 },
-                                 obj[key(JsonKey::Enable)].toBool(false)};
-            this->languages.emplace_back(data);
+            for(auto l : jsonLanguages)
+            {
+                auto obj = l.toObject();
+                QFont fontData(obj[key(JsonKey::FontName)].toString());
+                fontData.setPixelSize(obj[key(JsonKey::FontSize)].toInt());
+                auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
+                                     Font{ obj[key(JsonKey::FontName)].toString(),
+                                           "",
+                                           fontData,
+                                           static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
+                                     },
+                                     obj[key(JsonKey::Enable)].toBool(false)};
+                this->languages.emplace_back(data);
+            }
+            //フォント再登録のメッセージを出す？
+        }
+        else
+        {
+            for(auto l : jsonLanguages)
+            {
+                auto obj = l.toObject();
+                QFont fontData(obj[key(JsonKey::FontName)].toString());
+                fontData.setPixelSize(obj[key(JsonKey::FontSize)].toInt());
+                auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
+                                     Font{ obj[key(JsonKey::FontName)].toString(),
+                                           obj[key(JsonKey::FontPath)].toString(),
+                                           fontData,
+                                           static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
+                                     },
+                                     obj[key(JsonKey::Enable)].toBool(false)};
+                this->languages.emplace_back(data);
+            }
         }
     }
     this->defaultLanguage = root[key(JsonKey::DefaultLanguage)].toString("ja");

@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QMenu>
+#include <mutex>
 #include <unordered_map>
 #include "ComponentBase.h"
 
