@@ -4,7 +4,6 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFontDatabase>
-#include <unordered_map>
 
 LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* component, QWidget* parent)
     : QWidget(parent)
@@ -103,10 +102,29 @@ void LanguageSelectComponent::setPreviewText(QString text){
 
 void LanguageSelectComponent::setFont(QString fontFamily)
 {
+
     QFont f(fontFamily);
     this->font.fontData = f;
     this->font.fontData.setPixelSize(this->fontSize->value());
     this->fontPreview->setFont(this->font.fontData);
+    fontFamily = f.family().toLower();
+
+    for(const auto& [type, index, familyList, path] : this->setting->fontIndexList)
+    {
+        bool find = false;
+        for(auto& family : familyList)
+        {
+            if(family.toLower() != fontFamily){
+                continue;
+            }
+            this->font.filePath = path;
+            this->font.name = family;
+            find = true;
+            break;
+        }
+        if(find){ break; }
+    }
+
     this->update();
 
     auto shortName = settings::getLowerBcp47Name(this->locale);
@@ -174,6 +192,7 @@ void LanguageSelectComponent::setupData()
     std::vector<settings::Font> fontList;
     settings::Font defaultFont;
     const auto projType = this->setting->projectType;
+    int defaultPixelSize = 22;
     for(const auto& [type, index, family, path] : this->setting->fontIndexList)
     {
         auto familyList = QFontDatabase::applicationFontFamilies(index);
@@ -184,18 +203,20 @@ void LanguageSelectComponent::setupData()
                 defaultFont.fontData = QFont(family);
                 defaultFont.filePath = path;
                 defaultFont.name = familyName;
+                defaultPixelSize = 24;
             }
             else if((projType == settings::MV || projType == settings::MZ) && familyName.contains("m+ 1m")) {
                 defaultFont.fontData = QFont(family);
                 defaultFont.filePath = path;
                 defaultFont.name = familyName;
+                defaultPixelSize = projType == settings::MV ? 28 : 26;
             }
             auto font = QFont(family);
             font.setPixelSize(attachInfo.font.size);
             fontList.emplace_back(settings::Font{family, path, font, static_cast<std::uint32_t>(font.pixelSize())});
         }
     }
-    defaultFont.fontData.setPixelSize(22);
+    defaultFont.fontData.setPixelSize(defaultPixelSize);
     if(langData == langList.end()){
         attachInfo.font = defaultFont;
     }

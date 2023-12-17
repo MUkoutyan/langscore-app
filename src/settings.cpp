@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QVersionNumber>
+#include <QApplication>
 #include <assert.h>
 
 #define MAKE_KEYVALUE(k) {JsonKey::k, #k}
@@ -152,7 +153,7 @@ QString settings::translateDirectoryPath() const
         return this->gameProjectPath + "/Data/" + this->transFileOutputDirName;
     }
     else if(projectType == ProjectType::MV || projectType == ProjectType::MZ){
-        return this->gameProjectPath + "/data/" + this->transFileOutputDirName;
+        return this->gameProjectPath + "/data/" + this->transFileOutputDirName.toLower();
     }
 
     return this->gameProjectPath + "/data/" + this->transFileOutputDirName;
@@ -295,7 +296,17 @@ QByteArray settings::createJson()
         langObj[key(JsonKey::FontName)] = l.font.name;
         langObj[key(JsonKey::FontSize)] = int(l.font.size);
         langObj[key(JsonKey::Enable)] = bool(l.enable);
-        langObj[key(JsonKey::FontPath)] = QFileInfo(l.font.filePath).fileName();
+
+        QDir baseDir(qApp->applicationDirPath());
+        auto relativePath = baseDir.relativeFilePath(l.font.filePath);
+        if(relativePath != l.font.filePath){
+            langObj[key(JsonKey::FontPath)] = relativePath;
+        }
+        else{
+            QDir baseDir2(langscoreProjectDirectory);
+            auto relativePath2 = baseDir2.relativeFilePath(l.font.filePath);
+            langObj[key(JsonKey::FontPath)] = relativePath2;
+        }
 
         langs.append(langObj);
     }

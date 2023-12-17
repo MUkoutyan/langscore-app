@@ -766,7 +766,9 @@ void WriteModeComponent::setup()
         QFileInfoList files = QDir(qApp->applicationDirPath()+"/resources/fonts").entryInfoList(fontExtensions, QDir::Files);
         for(auto& info : files){
             auto path = info.absoluteFilePath();
-            this->setting->fontIndexList.emplace_back(settings::Global, QFontDatabase::addApplicationFont(path), info.fileName(), path);
+            auto fontIndex = QFontDatabase::addApplicationFont(path);
+            auto familiesList = QFontDatabase::applicationFontFamilies(fontIndex);
+            this->setting->fontIndexList.emplace_back(settings::Global, fontIndex, familiesList, path);
         }
     }
     //プロジェクトに登録されたフォント
@@ -774,7 +776,9 @@ void WriteModeComponent::setup()
         QFileInfoList files = QDir(this->setting->langscoreProjectDirectory+"/Fonts").entryInfoList(fontExtensions, QDir::Files);
         for(auto& info : files){
             auto path = info.absoluteFilePath();
-            this->setting->fontIndexList.emplace_back(settings::Local, QFontDatabase::addApplicationFont(path), info.fileName(), path);
+            auto fontIndex = QFontDatabase::addApplicationFont(path);
+            auto familiesList = QFontDatabase::applicationFontFamilies(fontIndex);
+            this->setting->fontIndexList.emplace_back(settings::Local, fontIndex, familiesList, path);
         }
     }
 
@@ -1415,7 +1419,7 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
         auto appFonts = QFontDatabase::applicationFontFamilies(fontIndex);
         for(const auto& appFont : appFonts){
             this->setting->fontIndexList.emplace_back(settings::Local, fontIndex, appFont, destPath);
-            fonts.emplace_back(settings::Font{"", path, appFont});
+            fonts.emplace_back(settings::Font{appFont, destPath, QFont(appFont)});
         }
     }
     for(auto* langButton : languageButtons){

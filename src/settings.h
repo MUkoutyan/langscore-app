@@ -90,7 +90,7 @@ public:
     };
     WriteProps writeObj;
     //FontType, fontIndex(from:addApplicationFont), FontFamily, fontFilePath
-    std::vector<std::tuple<FontType, int, QString, QString>> fontIndexList;
+    std::vector<std::tuple<FontType, int, QStringList, QString>> fontIndexList;
 
     //Packing
     QString packingInputDirectory;
