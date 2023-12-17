@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(langscore-app VERSION 0.6.7 LANGUAGES CXX)
-set(CONFIG_FILE_VERSION 1.0.0)
+project(langscore-app VERSION 0.8.0 LANGUAGES CXX)
+set(CONFIG_FILE_VERSION 1.1.0)
 configure_file(application_config.h.in application_config.h @ONLY)
 configure_file(version.rc.in version.rc @ONLY)
 
@@ -103,7 +103,7 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_link_libraries(langscore-app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(langscore-app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets icu.lib)
 
 set_target_properties(langscore-app PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER breezesinfonia.langscore.app
