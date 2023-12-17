@@ -761,6 +761,8 @@ void WriteModeComponent::setup()
 
 
     //フォントの設定
+    QFontDatabase::removeAllApplicationFonts();
+
     auto fontExtensions = QStringList() << "*.ttf" << "*.otf";
     {
         QFileInfoList files = QDir(qApp->applicationDirPath()+"/resources/fonts").entryInfoList(fontExtensions, QDir::Files);
