@@ -20,8 +20,20 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     auto okButton = this->ui->buttonBox->button(QDialogButtonBox::Ok);
     okButton->setText(tr("Write"));
 
-    auto scriptList = langscore::readCsv(settings->tempScriptFileDirectoryPath()+"/_list.csv");
-    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) == scriptList.cend()){
+    bool findLangscoreScript = false;
+    bool findLangscoreCustomScript = false;
+    if(settings->projectType == settings::VXAce)
+    {
+        auto scriptList = langscore::readCsv(settings->tempScriptFileDirectoryPath()+"/_list.csv");
+        findLangscoreScript = std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) == scriptList.cend();
+        findLangscoreCustomScript = std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) == scriptList.cend();
+    }
+    else if(settings->projectType == settings::MV || settings->projectType == settings::MZ){
+        findLangscoreScript = QFileInfo::exists(settings->gameProjectPath + "/js/plugins/Langscore.js");
+        findLangscoreCustomScript = QFileInfo::exists(settings->gameProjectPath + "/js/plugins/LangscoreCustom.js");
+    }
+
+    if(findLangscoreScript == false){
         this->ui->updateLsScript->setEnabled(false);
         //langscore_customスクリプトファイルがまだ追加されていません。
         this->ui->updateLsCustomScript->setToolTip(tr("The langscore script file has not yet been added."));
@@ -33,7 +45,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         });
     }
 
-    if(std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) == scriptList.cend()){
+    if(findLangscoreCustomScript == false){
         this->ui->updateLsCustomScript->setEnabled(false);
         //langscore_customスクリプトファイルがまだ追加されていません。
         this->ui->updateLsCustomScript->setToolTip(tr("The langscore_custom script file has not yet been added."));
