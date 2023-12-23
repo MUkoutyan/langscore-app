@@ -97,6 +97,9 @@ void AnalyzeDialog::dragEnterEvent(QDragEnterEvent *event)
 
 void AnalyzeDialog::openFile(QString gameProjDirPath)
 {
+    if(QFileInfo(gameProjDirPath).isFile()){
+        gameProjDirPath = QFileInfo(gameProjDirPath).dir().absolutePath();
+    }
     this->setting->setGameProjectPath(gameProjDirPath);
     if(this->setting->projectType == settings::ProjectType::None){
         return;
