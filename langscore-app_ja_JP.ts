@@ -34,7 +34,7 @@
     <message>
         <location filename="ColorDialog.cpp" line="8"/>
         <source>Color Dialog</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -123,7 +123,7 @@
     <message>
         <location filename="src/ui/FormTaskBar.cpp" line="146"/>
         <source>Color</source>
-        <translation type="unfinished"></translation>
+        <translation></translation>
     </message>
     <message>
         <location filename="src/ui/FormTaskBar.cpp" line="153"/>
