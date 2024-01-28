@@ -1565,6 +1565,12 @@ void WriteModeComponent::backup()
             "/Data/Translate"
         };
     }
+    else if(this->setting->projectType == settings::MZ || this->setting->projectType == settings::MV){
+        backupFiles = {
+            "/data/translates",
+            "/js/plugins.js"
+        };
+    }
 
     if(QDir(this->setting->langscoreProjectDirectory+"/backup").exists() == false){
         QDir(this->setting->langscoreProjectDirectory).mkdir("/backup");
