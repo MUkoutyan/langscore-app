@@ -11,35 +11,36 @@ invoker::invoker(ComponentBase *setting)
 void invoker::analyze(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--analyze"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--analyze"});
 }
 
 void invoker::updateData(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--update"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--update"});
 }
 
 void invoker::write(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--write"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--write"});
 }
 
 void invoker::validate(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--validate"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--validate"});
 }
 
 void invoker::packing(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", this->setting->langscoreProjectDirectory+"/config.json", "--packing"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--packing"});
 }
 
 void invoker::doProcess(QStringList option)
 {
+    this->passOption = option;
     auto process = new QProcess();
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process](){
         QString message = QString::fromLocal8Bit(process->readAllStandardOutput());

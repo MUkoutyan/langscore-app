@@ -24,6 +24,8 @@ public:
     void validate(bool sync = false);
     void packing(bool sync = false);
 
+    QStringList lastProcessOption() const noexcept { return passOption; }
+
 signals:
     void getStdOut(QString);
     void update();
@@ -32,5 +34,6 @@ signals:
 private:
     void doProcess(QStringList option);
     bool sync;
+    QStringList passOption;
 };
 
