@@ -59,6 +59,7 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
 
     connect(button, &QPushButton::clicked, this, [this](bool is){
         this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::Enable, is, !is));
+        emit this->ChangeUseLanguageState();
     });
     connect(defaultCheck, &QCheckBox::clicked, this, [this](bool is){
         this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::Default, is, !is));

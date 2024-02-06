@@ -806,6 +806,20 @@ void WriteModeComponent::setup()
         langComp->attachButtonGroup(buttonGroup);
         this->ui->langTabGrid->addWidget(langComp, count/3, count%3);
         langComp->update();
+        connect(langComp, &LanguageSelectComponent::ChangeUseLanguageState, this, [this](){
+            auto isDisabledALl = std::all_of(this->setting->languages.begin(), this->setting->languages.end(), [](const settings::Language& lang){
+                return lang.enable == false;
+            });
+            if(isDisabledALl){
+                this->ui->writeButton->setEnabled(false);
+                //CSVを書き出すには言語を選択して下さい
+                this->ui->writeButton->setText(tr("To export CSV, please select a language"));
+            }
+            else{
+                this->ui->writeButton->setEnabled(true);
+                this->ui->writeButton->setText(QCoreApplication::translate("WriteModeComponent", "Write Translate CSV", nullptr));
+            }
+        });
         languageButtons.emplace_back(langComp);
         count++;
     }
@@ -1567,7 +1581,7 @@ void WriteModeComponent::backup()
     }
     else if(this->setting->projectType == settings::MZ || this->setting->projectType == settings::MV){
         backupFiles = {
-            "/data/translates",
+            "/data/translate",
             "/js/plugins.js"
         };
     }

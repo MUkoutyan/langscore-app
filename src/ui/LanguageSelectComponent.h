@@ -21,6 +21,9 @@ public:
 
     void setFontList(std::vector<settings::Font> fonts, QString familyName);
 
+signals:
+    void ChangeUseLanguageState();
+
 private:
     QLocale locale;
     QPushButton* button;
