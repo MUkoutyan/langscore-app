@@ -11,8 +11,6 @@
 #include <QDir>
 #include <QFileInfo>
 
-#include <filesystem>
-
 #include <QDebug>
 
 AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
@@ -48,8 +46,16 @@ AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
 
         const auto& outputDirPath = this->setting->analyzeDirectoryPath();
         auto outputDir = QDir(outputDirPath);
-        if(outputDir.exists() == false){ return; }
         this->ui->analyzeButton->setEnabled(true);
+        if(outputDir.exists() == false){
+            this->ui->invokeLog->insertPlainText("Analyze Failed.");
+            this->ui->invokeLog->insertPlainText(this->invoker->lastProcessOption().join(' '));
+            //このテキストが表示される場合、Ci-en等からサポートに問い合わせてください。
+            this->ui->invokeLog->insertPlainText(tr("If you see this text, contact support through Ci-en or other means."));
+            this->ui->invokeLog->insertPlainText(tr("https://ci-en.net/creator/16302"));
+            return;
+        }
+        this->ui->invokeLog->insertPlainText("Analyze Process Done.");
 
         emit this->toWriteMode(this->setting->gameProjectPath);
     });
@@ -71,11 +77,26 @@ void AnalyzeDialog::dropEvent(QDropEvent *event)
     const QMimeData* mimeData = event->mimeData();
     //URLがあれば通す
     if(mimeData->hasUrls() == false){ return; }
+
+    std::array<std::string, 3> supportedExtention = {
+        ".rpgproject",".rvproj2",".rmmzproject"
+    };
+
     auto urls = mimeData->urls();
     for(const auto& url : urls){
-        if(settings::getProjectType(url.toLocalFile()) != settings::ProjectType::None){
-            this->openFile(url.toLocalFile());
-            return;
+        auto fi = QFileInfo(url.toLocalFile());
+        if(fi.isFile()){
+            auto extention = fi.filesystemFilePath().extension();
+            if(std::ranges::find(supportedExtention, extention) != supportedExtention.end()){
+                auto dir = fi.dir();
+                this->openFile(dir.filesystemAbsolutePath().string().c_str());
+            }
+        }
+        else if(fi.isDir()){
+            if(settings::getProjectType(url.toLocalFile()) != settings::ProjectType::None){
+                this->openFile(url.toLocalFile());
+                return;
+            }
         }
     }
 }
