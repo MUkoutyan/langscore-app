@@ -95,7 +95,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
         if(openPath.isEmpty()){ return; }
         settings.setValue("lastOpenGameProjDirectory", openPath);
         settings.sync();
-        emit this->requestOpenProj(openPath.toLocalFile());
+        emit this->requestOpenProj(openPath.toString());
     });
     connect(saveProj,     &QAction::triggered, this, &FormTaskBar::saveProj);
     connect(quit,         &QAction::triggered, this, &FormTaskBar::quit);
