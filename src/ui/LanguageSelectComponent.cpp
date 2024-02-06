@@ -108,18 +108,19 @@ void LanguageSelectComponent::setFont(QString fontFamily)
     this->font.fontData = f;
     this->font.fontData.setPixelSize(this->fontSize->value());
     this->fontPreview->setFont(this->font.fontData);
-    fontFamily = f.family().toLower();
+    fontFamily = f.family();
+    auto fontFamilyLower = fontFamily.toLower();
 
     for(const auto& [type, index, familyList, path] : this->setting->fontIndexList)
     {
         bool find = false;
         for(auto& family : familyList)
         {
-            if(family.toLower() != fontFamily){
+            if(family.toLower() != fontFamilyLower){
                 continue;
             }
             this->font.filePath = path;
-            this->font.name = family;
+            this->font.name = fontFamily;
             find = true;
             break;
         }
@@ -199,17 +200,17 @@ void LanguageSelectComponent::setupData()
         auto familyList = QFontDatabase::applicationFontFamilies(index);
         for(const auto& family : familyList)
         {
-            auto familyName = family.toLower();
-            if(projType == settings::VXAce && familyName.contains("vl gothic")){
+            auto familyNameLower = family.toLower();
+            if(projType == settings::VXAce && familyNameLower.contains("vl gothic")){
                 defaultFont.fontData = QFont(family);
                 defaultFont.filePath = path;
-                defaultFont.name = familyName;
+                defaultFont.name = family;
                 defaultPixelSize = 24;
             }
-            else if((projType == settings::MV || projType == settings::MZ) && familyName.contains("m+ 1m")) {
+            else if((projType == settings::MV || projType == settings::MZ) && familyNameLower.contains("m+ 1m")) {
                 defaultFont.fontData = QFont(family);
                 defaultFont.filePath = path;
-                defaultFont.name = familyName;
+                defaultFont.name = family;
                 defaultPixelSize = projType == settings::MV ? 28 : 26;
             }
             auto font = QFont(family);
