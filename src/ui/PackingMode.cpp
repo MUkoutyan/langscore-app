@@ -66,7 +66,7 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         if(status == QProcess::ExitStatus::CrashExit){
             this->ui->logText->writeText(tr("Crashed."));
         }
-        this->ui->packingButton->setEnabled(true);
+        this->ui->packingButton->setEnabled((setting->projectType == settings::VXAce));
         this->ui->moveToWrite->setEnabled(true);
         this->ui->treeWidget->blockSignals(false);
         this->ui->tableWidget->blockSignals(false);
@@ -246,6 +246,13 @@ void PackingMode::showEvent(QShowEvent*)
 
     if(this->setting->projectType == settings::VXAce){
         this->ui->outputFolder->setText(this->setting->gameProjectPath + "/Data/Translate");
+        this->ui->packingButton->setEnabled(true);
+        this->ui->packingButton->setText(QCoreApplication::translate("PackingMode", "Packing Translate File", nullptr));
+    }
+    else{
+        this->ui->outputFolder->setText(this->setting->gameProjectPath + "/data/translate");
+        this->ui->packingButton->setEnabled(false);
+        this->ui->packingButton->setText(tr("MV/MZではパッキングの必要はありません"));
     }
 }
 
@@ -270,9 +277,9 @@ void PackingMode::validate()
 
     auto searchPackingSourceDir = this->ui->packingSourceDirectory->text();
     if(setting->packingInputDirectory != searchPackingSourceDir){
-        //パッキング入力ディレクトリが異なるため、プロジェクトを保存する必要があります。
+        //パッキング入力ディレクトリを変更したため、プロジェクトを保存する必要があります。
         //保存しますか？
-        auto button = QMessageBox::question(this, tr("Confirmation of save a project."), tr("The packing input directory is different and the project must be saved."), QMessageBox::Save|QMessageBox::Cancel,QMessageBox::Cancel);
+        auto button = QMessageBox::question(this, tr("Confirmation of save a project."), tr("The packing input directory has changed and the project needs to be saved."), QMessageBox::Save|QMessageBox::Cancel,QMessageBox::Cancel);
         if(button == QMessageBox::Cancel){
             return;
         }
@@ -377,7 +384,7 @@ PackingMode::ErrorInfo PackingMode::convertErrorInfo(std::vector<QString> csvTex
     auto summaryRaw = csvText[ErrorTextCol::Summary].toInt(&isOk);
     if(isOk)
     {
-        if(ErrorInfo::EmptyCol <= summaryRaw && summaryRaw <= ErrorInfo::IncludeCR){
+        if(ErrorInfo::EmptyCol <= summaryRaw && summaryRaw <= ErrorInfo::NotEQLang){
             info.summary = static_cast<ErrorInfo::ErrorSummary>(summaryRaw);
         }
         else{
@@ -458,6 +465,9 @@ void PackingMode::updateTree()
                 else if(info.summary == ErrorInfo::IncludeCR){
                     text += tr(" Include \"\r\n\"");
                 }
+                else if(info.summary == ErrorInfo::NotEQLang){
+                    text += tr(" The specified language does not match the language in the CSV");
+                }
 
                 child->setText(0, tr("Line") + QString::number(info.row)+" : " + text);
             }(child);
@@ -484,7 +494,7 @@ void PackingMode::setPackingSourceDir(QString path)
     auto dir = QFileInfo(path);
     auto exists = dir.exists() && dir.isDir();
     this->ui->validateButton->setEnabled(exists);
-    this->ui->packingButton->setEnabled(exists);
+    this->ui->packingButton->setEnabled(exists && (setting->projectType == settings::VXAce));
     this->ui->packingSourceDirectory->blockSignals(true);
     auto palette = this->ui->packingSourceDirectory->palette();
     palette.setColor(QPalette::Text, exists ? this->palette().color(QPalette::Text) : Qt::red);

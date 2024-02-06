@@ -31,7 +31,7 @@ private:
     {
         enum ErrorType{ Error, Warning, Invalid };
         enum ErrorSummary {
-            None = -1, EmptyCol = 0, NotFoundEsc, UnclosedEsc, IncludeCR
+            None = -1, EmptyCol = 0, NotFoundEsc, UnclosedEsc, IncludeCR, NotEQLang
         };
 
         ErrorType type = Invalid;
