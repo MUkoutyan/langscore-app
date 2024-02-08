@@ -25,8 +25,8 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     if(settings->projectType == settings::VXAce)
     {
         auto scriptList = langscore::readCsv(settings->tempScriptFileDirectoryPath()+"/_list.csv");
-        findLangscoreScript = std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) == scriptList.cend();
-        findLangscoreCustomScript = std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) == scriptList.cend();
+        findLangscoreScript = std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) != scriptList.cend();
+        findLangscoreCustomScript = std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) != scriptList.cend();
     }
     else if(settings->projectType == settings::MV || settings->projectType == settings::MZ){
         findLangscoreScript = QFileInfo::exists(settings->gameProjectPath + "/js/plugins/Langscore.js");
