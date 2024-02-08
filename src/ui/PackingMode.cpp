@@ -252,7 +252,8 @@ void PackingMode::showEvent(QShowEvent*)
     else{
         this->ui->outputFolder->setText(this->setting->gameProjectPath + "/data/translate");
         this->ui->packingButton->setEnabled(false);
-        this->ui->packingButton->setText(tr("MV/MZではパッキングの必要はありません"));
+        //MV/MZではパッキングの必要はありません
+        this->ui->packingButton->setText(tr("No packing is required for MV/MZ."));
     }
 }
 
