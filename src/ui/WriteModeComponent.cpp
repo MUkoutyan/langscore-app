@@ -759,30 +759,7 @@ void WriteModeComponent::setup()
     this->ui->projectPath->setText(this->setting->gameProjectPath);
     this->ui->lsProjPath->setText(this->setting->langscoreProjectDirectory);
 
-
-    //フォントの設定
-    QFontDatabase::removeAllApplicationFonts();
-
-    auto fontExtensions = QStringList() << "*.ttf" << "*.otf";
-    {
-        QFileInfoList files = QDir(qApp->applicationDirPath()+"/resources/fonts").entryInfoList(fontExtensions, QDir::Files);
-        for(auto& info : files){
-            auto path = info.absoluteFilePath();
-            auto fontIndex = QFontDatabase::addApplicationFont(path);
-            auto familiesList = QFontDatabase::applicationFontFamilies(fontIndex);
-            this->setting->fontIndexList.emplace_back(settings::Global, fontIndex, familiesList, path);
-        }
-    }
-    //プロジェクトに登録されたフォント
-    {
-        QFileInfoList files = QDir(this->setting->langscoreProjectDirectory+"/Fonts").entryInfoList(fontExtensions, QDir::Files);
-        for(auto& info : files){
-            auto path = info.absoluteFilePath();
-            auto fontIndex = QFontDatabase::addApplicationFont(path);
-            auto familiesList = QFontDatabase::applicationFontFamilies(fontIndex);
-            this->setting->fontIndexList.emplace_back(settings::Local, fontIndex, familiesList, path);
-        }
-    }
+    this->setting->setupFontList();
 
     //Languages
     const std::vector<QLocale> languages = {
@@ -797,6 +774,7 @@ void WriteModeComponent::setup()
         {QLocale::Italian},
         {QLocale::Russian},
     };
+    this->setting->setupLanguages(languages);
 
     int count = 0;
     auto* buttonGroup = new QButtonGroup(this);
@@ -1439,7 +1417,7 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
         }
     }
     for(auto* langButton : languageButtons){
-        langButton->setFontList(fonts, "");
+        langButton->setSelectableFontList(fonts, "");
     }
 
 }

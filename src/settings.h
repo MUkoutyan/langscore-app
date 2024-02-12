@@ -22,7 +22,7 @@ public:
         QString name = "";
         QString filePath = "";
         QFont fontData;
-        std::uint32_t size = 22;
+        std::uint32_t size = 0;
     };
     struct Language{
         QString languageName = "";
@@ -95,6 +95,13 @@ public:
     //Packing
     QString packingInputDirectory;
 
+    void setupLanguages(const std::vector<QLocale> &locales);
+
+    void setupFontList();
+    std::vector<Font> createFontList() const;
+    QString getDefaultFontName() const;
+    std::uint32_t getDefaultFontSize() const;
+
     QString translateDirectoryPath() const;
     QString analyzeDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
@@ -119,6 +126,8 @@ public:
     void updateLangscoreProjectPath();
 
     static ProjectType getProjectType(const QString& path);
+
+    Font getDetafultFont() const;
 
 };
 

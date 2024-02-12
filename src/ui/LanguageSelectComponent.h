@@ -9,6 +9,8 @@
 
 #include "ComponentBase.h"
 
+//言語選択ボタンやフォント選択を構成するコンポーネント。
+//このクラスを使用して言語タブが構成される。
 class LanguageSelectComponent : public QWidget, public ComponentBase
 {
     Q_OBJECT
@@ -19,7 +21,7 @@ public:
     QFont currentFont();
     void attachButtonGroup(QButtonGroup* group);
 
-    void setFontList(std::vector<settings::Font> fonts, QString familyName);
+    void setSelectableFontList(std::vector<settings::Font> fonts, QString familyName);
 
 signals:
     void ChangeUseLanguageState();
@@ -28,7 +30,7 @@ private:
     QLocale locale;
     QPushButton* button;
     QCheckBox* defaultCheck;
-    QComboBox* fontList;
+    QComboBox* selectableFontList;
     QSpinBox* fontSize;
     settings::Font font;
     QLineEdit* fontPreview;

@@ -147,6 +147,138 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     updateLangscoreProjectPath();
 }
 
+void settings::setupLanguages(const std::vector<QLocale>& locales)
+{
+    for(const auto& locale : locales)
+    {
+        auto bcp47 = settings::getLowerBcp47Name(locale);
+        bool isDefault = (bcp47 == this->defaultLanguage);
+        this->languages.emplace_back(
+            settings::Language{bcp47, getDetafultFont(), isDefault }
+        );
+    }
+}
+
+void settings::setupFontList()
+{
+    //フォントの設定
+    QFontDatabase::removeAllApplicationFonts();
+
+    auto fontExtensions = QStringList() << "*.ttf" << "*.otf";
+    {
+        QFileInfoList files = QDir(qApp->applicationDirPath()+"/resources/fonts").entryInfoList(fontExtensions, QDir::Files);
+        for(auto& info : files){
+            auto path = info.absoluteFilePath();
+            auto fontIndex = QFontDatabase::addApplicationFont(path);
+            auto familiesList = QFontDatabase::applicationFontFamilies(fontIndex);
+            this->fontIndexList.emplace_back(settings::Global, fontIndex, familiesList, path);
+        }
+    }
+    //プロジェクトに登録されたフォント
+    {
+        QFileInfoList files = QDir(this->langscoreProjectDirectory+"/Fonts").entryInfoList(fontExtensions, QDir::Files);
+        for(auto& info : files){
+            auto path = info.absoluteFilePath();
+            auto fontIndex = QFontDatabase::addApplicationFont(path);
+            auto familiesList = QFontDatabase::applicationFontFamilies(fontIndex);
+            this->fontIndexList.emplace_back(settings::Local, fontIndex, familiesList, path);
+        }
+    }
+}
+
+std::vector<settings::Font> settings::createFontList() const
+{
+    std::vector<settings::Font> fontList;
+    settings::Font defaultFont = this->getDetafultFont();
+    const auto projType = this->projectType;
+    for(const auto& [type, index, family, path] : this->fontIndexList)
+    {
+        auto familyList = QFontDatabase::applicationFontFamilies(index);
+        for(const auto& family : familyList)
+        {
+            auto font = QFont(family);
+            std::uint32_t defaultPixelSize = font.pixelSize();
+
+            auto familyNameLower = family.toLower();
+            if(projType == settings::VXAce && familyNameLower.contains("vl gothic")){
+                defaultFont.fontData = QFont(family);
+                defaultFont.filePath = path;
+                defaultFont.name = family;
+                defaultPixelSize = this->getDefaultFontSize();
+            }
+            else if((projType == settings::MV || projType == settings::MZ) && familyNameLower.contains("m+ 1m")) {
+                defaultFont.fontData = QFont(family);
+                defaultFont.filePath = path;
+                defaultFont.name = family;
+                defaultPixelSize = this->getDefaultFontSize();
+            }
+            font.setPixelSize(defaultPixelSize);
+            fontList.emplace_back(settings::Font{family, path, font, defaultPixelSize});
+        }
+    }
+
+    return fontList;
+}
+
+settings::Font settings::getDetafultFont() const
+{
+    settings::Font defaultFont;
+    defaultFont.size = this->getDefaultFontSize();
+
+    if(this->projectType == settings::VXAce){
+        defaultFont.fontData = QFont("VL Gothic");
+        defaultFont.filePath = qApp->applicationDirPath()+"/resources/fonts/VL-Gothic-Regular.ttf";
+        defaultFont.name = "VL Gothic";
+    }
+    else if((this->projectType == settings::MV || this->projectType == settings::MZ)) {
+        defaultFont.fontData = QFont("M+ 1m regular");
+        defaultFont.filePath = qApp->applicationDirPath()+"/resources/fonts/mplus-1m-regular.ttf";
+        defaultFont.name = "M+ 1m regular";
+    }
+
+    return defaultFont;
+}
+
+QString settings::getDefaultFontName() const
+{
+    switch(this->projectType)
+    {
+    case settings::VXAce:
+        return "VL Gothic";
+        break;
+    case settings::MV:
+        return "M+ 1m regular";
+        break;
+    case settings::MZ:
+        return "VL Gothic";
+        break;
+    default:
+        break;
+    }
+
+    return "VL Gothic";
+}
+
+uint32_t settings::getDefaultFontSize() const
+{
+    switch(this->projectType)
+    {
+    case settings::VXAce:
+        return 22;
+        break;
+    case settings::MV:
+        return 28;
+        break;
+    case settings::MZ:
+        return 26;
+        break;
+    default:
+        break;
+    }
+
+    return 22;
+}
+
 QString settings::translateDirectoryPath() const
 {
     if(projectType == ProjectType::VXAce){
@@ -179,14 +311,14 @@ QString settings::tempGraphicsFileDirectoryPath() const
     return this->gameProjectPath + "/Graphics";
 }
 
-settings::Language &settings::fetchLanguage(QString bcp47Name)
+settings::Language& settings::fetchLanguage(QString bcp47Name)
 {
     auto result = std::find(this->languages.begin(), this->languages.end(), bcp47Name);
     if(result != this->languages.end()){
         return *result;
     }
     this->languages.emplace_back(
-        settings::Language{ bcp47Name, settings::Font{ "", "", QFont(), 22 }, false }
+        settings::Language{ bcp47Name, getDetafultFont(), false }
     );
     return this->languages[this->languages.size() - 1];
 }
@@ -294,6 +426,7 @@ QByteArray settings::createJson()
         QJsonObject langObj;
         langObj[key(JsonKey::LanguageName)] = l.languageName;
         langObj[key(JsonKey::FontName)] = l.font.name;
+        langObj[key(JsonKey::FontPath)] = l.font.filePath;
         langObj[key(JsonKey::FontSize)] = int(l.font.size);
         langObj[key(JsonKey::Enable)] = bool(l.enable);
 
@@ -370,45 +503,6 @@ QByteArray settings::createJson()
     }
     write[key(JsonKey::IgnorePictures)] = ignorePictures;
 
-    //フォントは言語側にファイル名も埋め込むのでここの処理はコメントアウト
-    // std::vector<QString> copyGlobalFontPathList;
-    // std::vector<QString> copyLocalFontPathList;
-    // for(const auto& fontInfo : this->fontIndexList)
-    // {
-    //     auto [type, index, path] = fontInfo;
-    //     auto familyList = QFontDatabase::applicationFontFamilies(index);
-    //     for(const auto& family : familyList)
-    //     {
-    //         auto familyName = family.toLower();
-    //         if(projectType == settings::VXAce && familyName.contains("vl gothic")){
-    //             continue;
-    //         }
-    //         else if((projectType == settings::MV || projectType == settings::MZ) && familyName.contains("m+ 1m")) {
-    //             continue;
-    //         }
-
-    //         auto result = std::find_if(this->languages.cbegin(), this->languages.cend(), [&familyName](const auto& x){
-    //             return x.enable && x.font.name.toLower() == familyName;
-    //         });
-    //         if(result != this->languages.cend()){
-    //             if(type == settings::Global){
-    //                 copyGlobalFontPathList.emplace_back(path);
-    //             } else if(type == settings::Local){
-    //                 copyLocalFontPathList.emplace_back(path);
-    //             }
-    //             break;
-    //         }
-    //     }
-    // }
-    // QJsonArray copyGlobalFonts;
-    // QJsonArray copyLocalFonts;
-    // for(const auto& path : copyGlobalFontPathList){ copyGlobalFonts.append(path); }
-    // for(const auto& path : copyLocalFontPathList){ copyLocalFonts.append(path); }
-    // QJsonObject copyFonts;
-    // copyFonts[key(JsonKey::Global)] = copyGlobalFonts;
-    // copyFonts[key(JsonKey::Local)] = copyLocalFonts;
-    // write[key(JsonKey::FontPath)] = copyFonts;
-
     root[key(JsonKey::Write)] = write;
 
 
@@ -470,7 +564,7 @@ void settings::load(QString path)
                 fontData.setPixelSize(obj[key(JsonKey::FontSize)].toInt());
                 auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
                                      Font{ obj[key(JsonKey::FontName)].toString(),
-                                           "",
+                                           obj[key(JsonKey::FontPath)].toString(),
                                            fontData,
                                            static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
                                      },
