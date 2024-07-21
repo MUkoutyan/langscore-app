@@ -152,6 +152,9 @@ void settings::setupLanguages(const std::vector<QLocale>& locales)
     for(const auto& locale : locales)
     {
         auto bcp47 = settings::getLowerBcp47Name(locale);
+        if(std::find(this->languages.cbegin(), this->languages.cend(), bcp47) != this->languages.cend()){
+            continue;
+        }
         bool isDefault = (bcp47 == this->defaultLanguage);
         this->languages.emplace_back(
             settings::Language{bcp47, getDetafultFont(), isDefault }
