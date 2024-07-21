@@ -38,12 +38,11 @@ private:
     bool initialAnalysis;
     bool explicitSave;
     int lastSavedHistoryIndex;
-    FormTaskBar::Theme currentTheme;
 
     void receive(DispatchType type, const QVariantList& args) override;
     int askCloseProject();
 
-    void attachTheme(FormTaskBar::Theme theme);
+    void attachTheme(ColorTheme::Theme theme);
 
 signals:
     void moveWiget(QPoint newPos);

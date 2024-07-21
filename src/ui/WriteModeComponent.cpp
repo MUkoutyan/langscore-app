@@ -3,6 +3,7 @@
 #include "LanguageSelectComponent.h"
 #include "WriteDialog.h"
 #include "MessageDialog.h"
+#include "ScriptViewer.h"
 #include "src/invoker.h"
 #include "../utility.hpp"
 #include "../graphics.hpp"
@@ -41,12 +42,6 @@ enum ScriptTableCol : int {
     TextPoint,
     Original,
     NumCols
-};
-
-static std::unordered_map<Qt::CheckState, QColor> tableTextColorForState = {
-    {Qt::Checked,           QColor("#fefefe")},
-    {Qt::PartiallyChecked,  QColor("#9a9a9a")},
-    {Qt::Unchecked,         QColor("#5a5a5a")},
 };
 
 namespace {
@@ -123,9 +118,24 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     , _invoker(new invoker(this))
     , invokeType(InvokeType::None)
     , lastWritePath("")
+    , scriptViewer(nullptr)
 {
+    tableTextColorForState = {
+        {Qt::Checked,           QColor(0xfefefe)},
+        {Qt::PartiallyChecked,  QColor(0x9a9a9a)},
+        {Qt::Unchecked,         QColor(0x5a5a5a)},
+    };
+    this->dispatchComponentList->emplace_back(this);
 
     ui->setupUi(this);
+    {
+        this->scriptViewer = new ScriptViewer(this, this);
+        auto index = this->ui->splitter->indexOf(this->ui->scriptViewer);
+        this->ui->splitter->replaceWidget(index, this->scriptViewer);
+        delete this->ui->scriptViewer;
+        this->ui->scriptViewer = this->scriptViewer;
+    }
+
     this->ui->modeDesc->hide();
     this->ui->logText->SetSettings(this->setting);
     this->setAcceptDrops(true);
@@ -421,7 +431,7 @@ void WriteModeComponent::clear()
     this->ui->tableWidget->clear();
     this->ui->tableWidget->setRowCount(0);
     this->ui->tableWidget_script->clear();
-    this->ui->scriptViewer->clear();
+    this->scriptViewer->clear();
     for(auto langButton : this->languageButtons){
         this->ui->langTabGrid->removeWidget(langButton);
         delete langButton;
@@ -456,7 +466,7 @@ void WriteModeComponent::treeItemSelected()
 
         auto scriptExt = ::GetScriptExtension(this->setting->projectType);
         auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + "/" + changedItemScriptFileName + scriptExt;
-        this->ui->scriptViewer->showFile(scriptFilePath);
+        this->scriptViewer->showFile(scriptFilePath);
 
         auto targetTable = this->ui->tableWidget_script;
         auto rows = targetTable->rowCount();
@@ -651,7 +661,7 @@ void WriteModeComponent::scriptTableSelected()
 
     auto [textRow,textCol] = ::parseScriptWithRowCol(textPointItem->text());
     auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + "/" + fileName + GetScriptExtension(this->setting->projectType);
-    this->ui->scriptViewer->showFile(scriptFilePath);
+    this->scriptViewer->showFile(scriptFilePath);
 
     auto scriptName = ::getScriptName(scriptNameItem);
     this->ui->scriptFileName->setText(scriptName + "(" + fileName + ")");
@@ -663,7 +673,7 @@ void WriteModeComponent::scriptTableSelected()
         textLen = text.length();
     }
     if(textRow != std::numeric_limits<size_t>::max()){
-        this->ui->scriptViewer->scrollWithHighlight(textRow, textCol, textLen);
+        this->scriptViewer->scrollWithHighlight(textRow, textCol, textLen);
     }
 }
 
@@ -805,6 +815,8 @@ void WriteModeComponent::setup()
     setupTree();
     setupScriptCsvText();
 
+    this->changeUIColor();
+
     this->setting->saveForProject();
 
     this->ui->tableWidget_script->blockSignals(false);
@@ -815,8 +827,6 @@ void WriteModeComponent::setup()
 
 void WriteModeComponent::setupTree()
 {
-    const auto topLevelItemBGColor  = QColor(128, 128, 128, 90);
-    const auto graphicFolderBGColor = QColor(128, 128, 128, 90);
     const auto analyzeFolder = this->setting->analyzeDirectoryPath();
     //Main
     {
@@ -827,9 +837,6 @@ void WriteModeComponent::setupTree()
         auto mainItem = new QTreeWidgetItem();
         mainItem->setText(0, "Main");
         mainItem->setData(0, Qt::UserRole, TreeItemType::Main);
-        mainItem->setBackground(0, topLevelItemBGColor);
-        mainItem->setBackground(1, topLevelItemBGColor);
-        mainItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(mainItem);
         for(const auto& file : files)
         {
@@ -904,9 +911,6 @@ void WriteModeComponent::setupTree()
         auto scriptItem    = new QTreeWidgetItem();
         scriptItem->setText(0, "Script");
         scriptItem->setData(0, Qt::UserRole, TreeItemType::Script);
-        scriptItem->setBackground(0, topLevelItemBGColor);
-        scriptItem->setBackground(1, topLevelItemBGColor);
-        scriptItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(scriptItem);
         auto scriptFolder  = this->setting->tempScriptFileDirectoryPath();
         std::vector<std::vector<QString>> scriptFiles;
@@ -974,9 +978,6 @@ void WriteModeComponent::setupTree()
         auto graphicsRootItem    = new QTreeWidgetItem();
         graphicsRootItem->setText(0, "Graphics");
         graphicsRootItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
-        graphicsRootItem->setBackground(0, topLevelItemBGColor);
-        graphicsRootItem->setBackground(1, topLevelItemBGColor);
-        graphicsRootItem->setForeground(0, Qt::white);
         this->ui->treeWidget->addTopLevelItem(graphicsRootItem);
 
         QDir graphicsFolder(this->setting->tempGraphicsFileDirectoryPath());
@@ -986,9 +987,6 @@ void WriteModeComponent::setupTree()
         {
             auto folderRoot = new QTreeWidgetItem();
             folderRoot->setText(TreeColIndex::Name, graphFolder.baseName());
-            folderRoot->setBackground(TreeColIndex::CheckBox, graphicFolderBGColor);
-            folderRoot->setBackground(TreeColIndex::Name, graphicFolderBGColor);
-            folderRoot->setForeground(TreeColIndex::Name, Qt::white);
             QDir childFolder(graphFolder.absoluteFilePath());
             QFileInfoList files = childFolder.entryInfoList(QStringList() << "*.*", QDir::Files);
             const auto numPictures = files.size();
@@ -1033,6 +1031,76 @@ void WriteModeComponent::setupTree()
             graphicsRootItem->addChild(folderRoot);
         }
     }
+
+}
+
+void WriteModeComponent::changeUIColor()
+{
+    QColor topLevelItemBGColor;
+    QColor graphicFolderBGColor;
+    QColor itemTextColor;
+
+    auto theme = this->getColorTheme().getCurrentTheme();
+    if(theme == ColorTheme::Dark)
+    {
+        topLevelItemBGColor = QColor(128, 128, 128, 90);
+        graphicFolderBGColor = QColor(128, 128, 128, 90);
+        itemTextColor = Qt::white;
+
+        tableTextColorForState = {
+            {Qt::Checked,           QColor(0xfefefe)},
+            {Qt::PartiallyChecked,  QColor(0x9a9a9a)},
+            {Qt::Unchecked,         QColor(0x5a5a5a)},
+        };
+    }
+    else{
+        topLevelItemBGColor = QColor(255, 255, 255, 128);
+        graphicFolderBGColor = QColor(255, 255, 255, 128);
+        itemTextColor = Qt::black;
+
+        tableTextColorForState = {
+            {Qt::Checked,           QColor(0x161616)},
+            {Qt::PartiallyChecked,  QColor(0x646464)},
+            {Qt::Unchecked,         QColor(0x9a9a9a)},
+        };
+    }
+
+    this->ui->treeWidget->blockSignals(true);
+    auto numToplevelItem = this->ui->treeWidget->topLevelItemCount();
+    for(int i=0; i<numToplevelItem; ++i)
+    {
+        auto item = this->ui->treeWidget->topLevelItem(i);
+        item->setBackground(0, topLevelItemBGColor);
+        item->setBackground(1, topLevelItemBGColor);
+        item->setForeground(0, itemTextColor);
+    }
+    this->ui->treeWidget->blockSignals(false);
+    this->ui->treeWidget->update();
+
+
+    this->ui->tableWidget_script->blockSignals(true);
+    auto rows = this->ui->tableWidget_script->rowCount();
+    for(int r=0; r<rows; ++r)
+    {
+        auto scriptNameItem = this->ui->tableWidget_script->item(r,ScriptTableCol::ScriptName);
+        auto scriptName = scriptNameItem->text();
+        auto treeCheckState = getTreeCheckStateBasedOnTable(scriptName);
+        setTableItemTextColor(r, tableTextColorForState[treeCheckState]);
+    }
+    this->ui->tableWidget_script->blockSignals(false);
+    this->ui->tableWidget_script->update();
+
+
+    {
+        auto icon = this->ui->scriptFilterButton->icon();
+        auto image = icon.pixmap(this->ui->scriptFilterButton->size()).toImage();
+        if(this->getColorTheme().getCurrentTheme() == ColorTheme::Dark){
+            graphics::ReverceHSVValue(image);
+        }
+        this->ui->scriptFilterButton->setIcon(QIcon(QPixmap::fromImage(image)));
+        this->ui->scriptFilterButton->update();
+    }
+
 }
 
 void WriteModeComponent::setupScriptCsvText()
@@ -1428,6 +1496,19 @@ void WriteModeComponent::changeEnabledUIState(bool enable)
     this->ui->tableWidget_script->setEnabled(enable);
     this->ui->writeButton->setEnabled(enable);
     this->ui->updateButton->setEnabled(enable);
+}
+
+void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
+{
+    if(type == ComponentBase::ChangeColor){
+        if(args.empty()){ return; }
+
+        bool isOk = false;
+        args[0].toInt(&isOk);
+        if(isOk == false){ return; }
+
+        this->changeUIColor();
+    }
 }
 
 void WriteModeComponent::dropEvent(QDropEvent *event)

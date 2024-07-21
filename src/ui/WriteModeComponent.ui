@@ -440,11 +440,7 @@ Unchecked text and images are excluded from translation.</string>
             </item>
            </layout>
           </widget>
-          <widget class="ScriptViewer" name="scriptViewer">
-           <property name="textInteractionFlags">
-            <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-           </property>
-          </widget>
+          <widget class="QPlainTextEdit" name="scriptViewer"/>
          </widget>
         </item>
        </layout>
@@ -535,11 +531,6 @@ Unchecked text and images are excluded from translation.</string>
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>ScriptViewer</class>
-   <extends>QTextEdit</extends>
-   <header>ScriptViewer.h</header>
-  </customwidget>
   <customwidget>
    <class>InvokerLogViewer</class>
    <extends>QPlainTextEdit</extends>

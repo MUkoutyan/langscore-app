@@ -14,8 +14,9 @@
 #include <QDir>
 
 
-FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
+FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *parent)
     : QWidget(parent)
+    , ComponentBase(setting)
     , ui(new Ui::FormTaskBar)
     , pressLeftButton(false)
     , history(history)
@@ -129,17 +130,17 @@ FormTaskBar::FormTaskBar(QUndoStack *history, QWidget *parent)
     themeGroup->addAction(lightAction);
     themeGroup->addAction(darkAction);
     themeGroup->addAction(systemThemeAction);
-    connect(lightAction,       &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::Light));
-    connect(darkAction,        &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::Dark));
-    connect(systemThemeAction, &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, Theme::System));
+    connect(lightAction,       &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::Light));
+    connect(darkAction,        &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::Dark));
+    connect(systemThemeAction, &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::System));
 
     {
-        auto&& settings = ComponentBase::getAppSettings();
-        auto theme = (Theme)settings.value("appTheme", 2).toInt();
+        auto theme = ComponentBase::getColorTheme().getCurrentTheme();
         switch(theme){
-            case Theme::Dark:   darkAction->setChecked(true); break;
-            case Theme::Light:  lightAction->setChecked(true); break;
-            case Theme::System: systemThemeAction->setChecked(true); break;
+            case ColorTheme::Theme::Dark:   darkAction->setChecked(true); break;
+            case ColorTheme::Theme::Light:  lightAction->setChecked(true); break;
+            case ColorTheme::Theme::None: [[fallthrough]];
+            case ColorTheme::Theme::System: systemThemeAction->setChecked(true); break;
         }
     }
 
@@ -236,33 +237,21 @@ void FormTaskBar::SetIconWithReverceColor(QPushButton *button, QString iconPath)
 {
     QImage img(iconPath);
 
-    auto&& settings = ComponentBase::getAppSettings();
-    auto theme = (Theme)settings.value("appTheme", 2).toInt();
-    if(theme == Theme::System)
-    {
-        QSettings regist("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
-        if(regist.value("AppsUseLightTheme")==0){
-            theme = Theme::Dark;
-        }
-        else{
-            theme = Theme::Light;
-        }
-    }
-    if(theme == Theme::Dark){
+    auto theme = ComponentBase::getColorTheme().getCurrentTheme();
+    if(theme == ColorTheme::Theme::Dark){
         graphics::ReverceHSVValue(img);
     }
     button->setIcon(QIcon(QPixmap::fromImage(img)));
 }
 
-void FormTaskBar::emitChangeTheme(Theme theme)
+void FormTaskBar::emitChangeTheme(ColorTheme::Theme theme)
 {
-    auto&& settings = ComponentBase::getAppSettings();
-    settings.setValue("appTheme", theme);
+    ComponentBase::getColorTheme().setTheme(theme);
 
     SetIconWithReverceColor(this->ui->closeButton, ":images/resources/image/close.svg");
     SetIconWithReverceColor(this->ui->maximumButton, ":images/resources/image/maxminze.svg");
     SetIconWithReverceColor(this->ui->minimumButton, ":images/resources/image/minimize.svg");
 
-    emit this->changeTheme(theme);
+    this->dispatch(ComponentBase::ChangeColor, {theme});
 }
 

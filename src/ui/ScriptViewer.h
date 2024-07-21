@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "src/ui/ComponentBase.h"
 #include <QTextEdit>
 #include <QPlainTextEdit>
 
@@ -10,7 +11,18 @@
 class HighlighterBase : public QSyntaxHighlighter
 {
 public:
-    using QSyntaxHighlighter::QSyntaxHighlighter;
+    enum ColorType {
+        KeywordColor,
+        ClassColor,
+        SingleLineCommentColor,
+        MultiLineCommentColor,
+        QuotationColor,
+        FunctionColor,
+        ColorTypeCount
+    };
+
+    HighlighterBase(QTextDocument *parent);
+    virtual void updateTextColor(ColorTheme::Theme theme) = 0;
 protected:
     void highlightBlock(const QString &text) override;
 
@@ -20,6 +32,7 @@ protected:
         QTextCharFormat format;
     };
     QList<HighlightingRule> highlightingRules;
+    QVector<QColor> colorList;
 
     QRegularExpression commentStartExpression;
     QRegularExpression commentEndExpression;
@@ -36,21 +49,23 @@ class RubyHighlighter : public HighlighterBase
 {
     Q_OBJECT
 public:
-    RubyHighlighter(QTextDocument *parent = nullptr);
+    RubyHighlighter(ColorTheme::Theme initTheme, QTextDocument *parent = nullptr);
+    void updateTextColor(ColorTheme::Theme theme) override;
 };
 
 class JSHighlighter : public HighlighterBase
 {
     Q_OBJECT
 public:
-    JSHighlighter(QTextDocument *parent = nullptr);
+    JSHighlighter(ColorTheme::Theme initTheme, QTextDocument *parent = nullptr);
+    void updateTextColor(ColorTheme::Theme theme) override;
 };
 
-class ScriptViewer : public QPlainTextEdit
+class ScriptViewer : public QPlainTextEdit, public ComponentBase
 {
     Q_OBJECT
 public:
-    ScriptViewer(QWidget *parent = nullptr);
+    ScriptViewer(ComponentBase* parentComponent, QWidget *parent = nullptr);
 
     void showFile(QString scriptFilePath);
     void scrollWithHighlight(int row, int col, int length);
@@ -61,15 +76,29 @@ public:
 
 private:
 
+    enum ViewerColorType {
+        Highlight,
+        LineArea,
+        LineAreaText,
+        NumColorType
+    };
+
     void resizeEvent(QResizeEvent* event) override;
 
     void updateLineNumArea(const QRect& rect, int dy);
     void updateLineNumAreaWidth();
 
+    void receive(DispatchType type, const QVariantList& args) override;
+
+    void changeColor(ColorTheme::Theme theme);
+
     QWidget* lineNumberArea;
     HighlighterBase* highlighter;
     QString currentFileName;
     QTextCursor highlightCursor;
+    QVector<QColor> viewerColors;
+    QString currentScriptExt;
+
 };
 
 

@@ -41,6 +41,10 @@ private:
     void setFontSize(int size);
     void setupData();
 
+    void changeColor(ColorTheme::Theme t);
+
+    void receive(DispatchType type, const QVariantList& args) override;
+
     struct LanguageButtonUndo : QUndoCommand
     {
         enum Type

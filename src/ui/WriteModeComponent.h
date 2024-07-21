@@ -16,6 +16,7 @@ namespace Ui {
 class WriteModeComponent;
 }
 
+class ScriptViewer;
 class LanguageSelectComponent;
 class invoker;
 class WriteModeComponent : public QWidget, public ComponentBase
@@ -57,6 +58,9 @@ private:
     invoker* _invoker;
     InvokeType invokeType;
     QString lastWritePath;
+    ScriptViewer* scriptViewer;
+
+    std::unordered_map<Qt::CheckState, QColor> tableTextColorForState;
 
     void setup();
     void setupScriptCsvText();
@@ -88,6 +92,8 @@ private:
     void setFontList(std::vector<QString> fontPaths);
 
     void changeEnabledUIState(bool enable);
+
+    void receive(DispatchType type, const QVariantList& args) override;
 
     void dropEvent(QDropEvent* event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -139,5 +145,6 @@ private:
     friend class LangscoreAppTest;
 #endif
 
+    void changeUIColor();
 };
 

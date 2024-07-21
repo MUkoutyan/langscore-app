@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QSettings>
 #include <QUndoStack>
+#include "ColorTheme.h"
 
 class ComponentBase
 {
@@ -11,7 +12,8 @@ public:
 
     enum DispatchType {
         StatusMessage,  //文字列, 秒数
-        SaveProject     //無し
+        SaveProject,    //無し
+        ChangeColor     //Theme
     };
 
     ComponentBase():setting(std::make_shared<settings>()), history(new QUndoStack), dispatchComponentList(std::make_shared<std::vector<ComponentBase*>>()){}
@@ -24,6 +26,10 @@ public:
 
     static QSettings getAppSettings() {
         return {qApp->applicationDirPath()+"/settings.ini", QSettings::IniFormat};
+    }
+
+    static ColorTheme& getColorTheme(){
+        return colorTheme;
     }
 
     void showStatusMessage(const QString &text, int timeout = 0);
@@ -49,7 +55,8 @@ protected:
         }
         commands.clear();
     }
-
+private:
+    static ColorTheme colorTheme;
 
 #if defined(LANGSCORE_GUIAPP_TEST)
     friend class LangscoreAppTest;

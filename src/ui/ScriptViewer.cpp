@@ -5,9 +5,22 @@
 #include <QPainter>
 
 
+HighlighterBase::HighlighterBase(QTextDocument *parent)
+    : QSyntaxHighlighter(parent)
+    , colorList(ColorTypeCount)
+{
+    // Default colors
+    colorList[KeywordColor] = QColor(0x398ecf);
+    colorList[ClassColor] = Qt::darkMagenta;
+    colorList[SingleLineCommentColor] = Qt::green;
+    colorList[MultiLineCommentColor] = Qt::green;
+    colorList[QuotationColor] = QColor(0xd69d77);
+    colorList[FunctionColor] = Qt::cyan;
+}
+
 void HighlighterBase::highlightBlock(const QString &text)
 {
-    for (const HighlightingRule &rule : qAsConst(highlightingRules)) {
+    for (const HighlightingRule &rule : std::as_const(highlightingRules)) {
         QRegularExpressionMatchIterator matchIterator = rule.pattern.globalMatch(text);
         while (matchIterator.hasNext()) {
             QRegularExpressionMatch match = matchIterator.next();
@@ -39,12 +52,33 @@ void HighlighterBase::highlightBlock(const QString &text)
 }
 
 
-RubyHighlighter::RubyHighlighter(QTextDocument *parent)
+RubyHighlighter::RubyHighlighter(ColorTheme::Theme initTheme, QTextDocument *parent)
     : HighlighterBase(parent)
 {
+    this->updateTextColor(initTheme);
+}
+
+void RubyHighlighter::updateTextColor(ColorTheme::Theme theme)
+{
+    if(theme == ColorTheme::Dark){
+        colorList[KeywordColor] = QColor(0x398ecf).lighter();
+        colorList[ClassColor] = QColor(Qt::darkMagenta).lighter();
+        colorList[SingleLineCommentColor] = Qt::green;
+        colorList[MultiLineCommentColor] = Qt::green;
+        colorList[QuotationColor] = QColor(0xd69d77).lighter();
+        colorList[FunctionColor] = Qt::cyan;
+    }
+    else if(theme == ColorTheme::Light){
+        colorList[KeywordColor] = QColor(0x398ecf).darker();
+        colorList[ClassColor] = Qt::darkMagenta;
+        colorList[SingleLineCommentColor] = QColor(Qt::green).darker();
+        colorList[MultiLineCommentColor] = QColor(Qt::green).darker();
+        colorList[QuotationColor] = QColor(0xd69d77).darker();
+        colorList[FunctionColor] = QColor(Qt::cyan).darker();
+    }
     HighlightingRule rule;
 
-    keywordFormat.setForeground(QColor("#398ecf"));
+    keywordFormat.setForeground(colorList[KeywordColor]);
     keywordFormat.setFontWeight(QFont::Bold);
 
     const QString keywordPatterns[] = {
@@ -61,19 +95,19 @@ RubyHighlighter::RubyHighlighter(QTextDocument *parent)
     }
 
     classFormat.setFontWeight(QFont::Bold);
-    classFormat.setForeground(Qt::darkMagenta);
+    classFormat.setForeground(colorList[ClassColor]);
     rule.pattern = QRegularExpression(QStringLiteral("\\bQ[A-Za-z]+\\b"));
     rule.format = classFormat;
     highlightingRules.append(rule);
 
-    singleLineCommentFormat.setForeground(Qt::green);
+    singleLineCommentFormat.setForeground(colorList[SingleLineCommentColor]);
     rule.pattern = QRegularExpression(QStringLiteral("#[^\n]*"));
     rule.format = singleLineCommentFormat;
     highlightingRules.append(rule);
 
-    multiLineCommentFormat.setForeground(Qt::green);
+    multiLineCommentFormat.setForeground(colorList[MultiLineCommentColor]);
 
-    quotationFormat.setForeground(QColor("#d69d77"));
+    quotationFormat.setForeground(colorList[QuotationColor]);
     rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
     rule.format = quotationFormat;
     highlightingRules.append(rule);
@@ -83,22 +117,29 @@ RubyHighlighter::RubyHighlighter(QTextDocument *parent)
     highlightingRules.append(rule);
 
     functionFormat.setFontItalic(true);
-    functionFormat.setForeground(Qt::cyan);
+    functionFormat.setForeground(colorList[FunctionColor]);
     rule.pattern = QRegularExpression(QStringLiteral("\\b[A-Za-z0-9_]+(?=\\()"));
     rule.format = functionFormat;
     highlightingRules.append(rule);
 
     commentStartExpression = QRegularExpression(QStringLiteral("begin"));
     commentEndExpression = QRegularExpression(QStringLiteral("end"));
+
+    this->rehighlight();
 }
 
 
-JSHighlighter::JSHighlighter(QTextDocument *parent)
+JSHighlighter::JSHighlighter(ColorTheme::Theme initTheme, QTextDocument *parent)
     : HighlighterBase(parent)
+{
+    this->updateTextColor(initTheme);
+}
+
+void JSHighlighter::updateTextColor(ColorTheme::Theme theme)
 {
     HighlightingRule rule;
 
-    keywordFormat.setForeground(QColor("#398ecf"));
+    keywordFormat.setForeground(colorList[KeywordColor]);
     keywordFormat.setFontWeight(QFont::Bold);
 
     QStringList keywordPatterns = {
@@ -116,20 +157,21 @@ JSHighlighter::JSHighlighter(QTextDocument *parent)
         highlightingRules.append(rule);
     }
 
+
     classFormat.setFontWeight(QFont::Bold);
-    classFormat.setForeground(Qt::darkMagenta);
+    classFormat.setForeground(colorList[ClassColor]);
     rule.pattern = QRegularExpression(QStringLiteral("\\bQ[A-Za-z]+\\b"));
     rule.format = classFormat;
     highlightingRules.append(rule);
 
-    singleLineCommentFormat.setForeground(Qt::green);
-    rule.pattern = QRegularExpression(QStringLiteral("//[^\n]*"));
+    singleLineCommentFormat.setForeground(colorList[SingleLineCommentColor]);
+    rule.pattern = QRegularExpression(QStringLiteral("#[^\n]*"));
     rule.format = singleLineCommentFormat;
     highlightingRules.append(rule);
 
-    multiLineCommentFormat.setForeground(Qt::green);
+    multiLineCommentFormat.setForeground(colorList[MultiLineCommentColor]);
 
-    quotationFormat.setForeground(QColor("#d69d77"));
+    quotationFormat.setForeground(colorList[QuotationColor]);
     rule.pattern = QRegularExpression(QStringLiteral("\".*\""));
     rule.format = quotationFormat;
     highlightingRules.append(rule);
@@ -139,26 +181,35 @@ JSHighlighter::JSHighlighter(QTextDocument *parent)
     highlightingRules.append(rule);
 
     functionFormat.setFontItalic(true);
-    functionFormat.setForeground(Qt::cyan);
+    functionFormat.setForeground(colorList[FunctionColor]);
     rule.pattern = QRegularExpression(QStringLiteral("\\b[A-Za-z0-9_]+(?=\\()"));
     rule.format = functionFormat;
     highlightingRules.append(rule);
 
     commentStartExpression = QRegularExpression(QStringLiteral("/*"));
     commentEndExpression = QRegularExpression(QStringLiteral("*/"));
+
+    this->rehighlight();
 }
 
 
 
-ScriptViewer::ScriptViewer(QWidget *parent)
+ScriptViewer::ScriptViewer(ComponentBase *parentComponent, QWidget *parent)
     : QPlainTextEdit(parent)
+    , ComponentBase(parentComponent)
     , lineNumberArea(new LineNumber(this))
     , highlighter(nullptr)
     , currentFileName("")
+    , viewerColors(NumColorType)
+    , currentScriptExt()
 {
-
+    this->dispatchComponentList->emplace_back(this);
     connect(this, &ScriptViewer::blockCountChanged, this, &ScriptViewer::updateLineNumAreaWidth);
     connect(this, &ScriptViewer::updateRequest, this, &ScriptViewer::updateLineNumArea);
+
+    viewerColors[Highlight]     = QColor(0xf0f00033);
+    viewerColors[LineArea]      = QColor(0x292929);
+    viewerColors[LineAreaText]  = QColor(0xa0a0a0);
 
     this->ensureCursorVisible();
     this->setLineWrapMode(LineWrapMode::NoWrap);
@@ -173,20 +224,30 @@ void ScriptViewer::showFile(QString scriptFilePath)
     QFile script(scriptFilePath);
     if(script.open(QFile::ReadOnly | QFile::Text))
     {
-        if(highlighter){
-            delete highlighter;
-            highlighter = nullptr;
+
+
+
+        auto ext = info.suffix();
+        if(currentScriptExt != ext)
+        {
+            if(highlighter){
+                delete highlighter;
+                highlighter = nullptr;
+            }
+            if(ext == "rb"){
+                highlighter = new RubyHighlighter(this->getColorTheme().getCurrentTheme(), this->document());
+            }
+            else if(ext == "js"){
+                highlighter = new JSHighlighter(this->getColorTheme().getCurrentTheme(), this->document());
+            }
+
+            highlightCursor.setCharFormat(QTextCharFormat());
+            highlightCursor = QTextCursor();
+
+            currentScriptExt = ext;
         }
 
-        if(info.suffix() == "rb"){
-            highlighter = new RubyHighlighter(this->document());
-        }
-        else if(info.suffix() == "js"){
-            highlighter = new JSHighlighter(this->document());
-        }
-
-        highlightCursor.setCharFormat(QTextCharFormat());
-        highlightCursor = QTextCursor();
+        this->changeColor(this->getColorTheme().getCurrentTheme());
 
         this->clear();
         this->setPlainText(script.readAll());
@@ -199,7 +260,7 @@ void ScriptViewer::showFile(QString scriptFilePath)
 void ScriptViewer::scrollWithHighlight(int row, int col, int length)
 {
     QTextCharFormat fmt;
-    fmt.setBackground(QColor("#33f0f000"));
+    fmt.setBackground(viewerColors[Highlight]);
 
     highlightCursor.setCharFormat(QTextCharFormat());
     auto textBlock = this->document()->findBlockByLineNumber(qMax(0, row-1));
@@ -236,7 +297,7 @@ void ScriptViewer::drawLineArea(QPaintEvent *event)
 {
     QPainter painter(lineNumberArea);
     auto drawRect = event->rect();
-    painter.fillRect(drawRect, QColor("#292929"));
+    painter.fillRect(drawRect, viewerColors[LineArea]);
 
     auto textBlock = this->firstVisibleBlock();
     auto blockNum = textBlock.blockNumber();
@@ -250,7 +311,7 @@ void ScriptViewer::drawLineArea(QPaintEvent *event)
         if(drawRect.bottom() < top){ break; }
 
         if(textBlock.isVisible() && drawRect.top() <= bottom){
-            painter.setPen(QColor("#a0a0a0"));
+            painter.setPen(viewerColors[LineAreaText]);
             //widthを少し小さくしてマージンにする
             painter.drawText(0, top, lineNumberArea->width()-6, fontHeight, Qt::AlignRight, QString::number(blockNum+1));
         }
@@ -297,4 +358,35 @@ void ScriptViewer::updateLineNumArea(const QRect& rect, int deltaY)
 
 void ScriptViewer::updateLineNumAreaWidth() {
     setViewportMargins(lineNumAreaWidth(), 0, 0, 0);
+}
+
+void ScriptViewer::receive(DispatchType type, const QVariantList &args)
+{
+    if(type == ComponentBase::ChangeColor){
+        if(args.empty()){ return; }
+
+        bool isOk = false;
+        args[0].toInt(&isOk);
+        if(isOk == false){ return; }
+
+        this->changeColor(this->getColorTheme().getCurrentTheme());
+    }
+}
+
+void ScriptViewer::changeColor(ColorTheme::Theme theme)
+{
+    if(theme == ColorTheme::Dark){
+        viewerColors[Highlight]     = QColor(QRgba64::fromRgba64(0x3300f0f0));
+        viewerColors[LineArea]      = QColor(0x292929);
+        viewerColors[LineAreaText]  = QColor(0xa0a0a0);
+    }
+    else if(theme == ColorTheme::Light){
+        viewerColors[Highlight]     = QColor(QRgba64::fromRgba64(0x33009090));
+        viewerColors[LineArea]      = QColor(0xcfcfcf);
+        viewerColors[LineAreaText]  = QColor(0x262626);
+    }
+    if(this->highlighter){
+        this->highlighter->updateTextColor(theme);
+    }
+    this->lineNumberArea->update();
 }

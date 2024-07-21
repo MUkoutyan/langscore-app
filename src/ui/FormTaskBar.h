@@ -6,25 +6,21 @@
 #include <QUndoStack>
 #include <QMenu>
 
+#include "ComponentBase.h"
+#include "ColorTheme.h"
+
 namespace Ui {
 class FormTaskBar;
 }
 
-class FormTaskBar : public QWidget
+class FormTaskBar : public QWidget, public ComponentBase
 {
     Q_OBJECT
 
 public:
 
-    enum Theme {
-        Dark = 0,
-        Light,
-        System,
 
-        None
-    };
-
-    explicit FormTaskBar(QUndoStack* history, QWidget *parent = nullptr);
+    explicit FormTaskBar(QUndoStack* history, ComponentBase* setting, QWidget *parent = nullptr);
     ~FormTaskBar();
 
 signals:
@@ -42,13 +38,13 @@ signals:
     void redo();
     void showUndoView();
 
-    void changeTheme(Theme);
+    void changeTheme(ColorTheme::Theme);
 
     void dragging(QMouseEvent* event, QPoint delta);
 
 public slots:
     void updateRecentMenu();
-    void emitChangeTheme(Theme);
+    void emitChangeTheme(ColorTheme::Theme);
 
 private:
     Ui::FormTaskBar *ui;

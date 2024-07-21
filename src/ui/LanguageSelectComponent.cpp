@@ -15,6 +15,7 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
     , fontSize(new QSpinBox(this))
     , fontPreview(new QLineEdit("", this))
 {
+    this->dispatchComponentList->emplace_back(this);
     this->setAcceptDrops(true);
 
     this->button->setFixedHeight(34);
@@ -36,9 +37,7 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
     this->fontSize->setSingleStep(1);
     this->fontSize->setValue(22);
 
-    this->button->setStyleSheet("QPushButton:checked{ background-color: #225b95; }");
-    this->selectableFontList->lineEdit()->setStyleSheet(this->button->styleSheet());
-    this->defaultCheck->setStyleSheet("QCheckBox:checked{ background-color: #225b95; }");
+    changeColor(this->getColorTheme().getCurrentTheme());
 
     auto* vLayout = new QVBoxLayout(this);
     vLayout->setSpacing(0);
@@ -182,12 +181,12 @@ void LanguageSelectComponent::setSelectableFontList(std::vector<settings::Font> 
 void LanguageSelectComponent::setupData()
 {
     auto bcp47Name = settings::getLowerBcp47Name(this->locale);
-    auto& langList = this->setting->languages;
-    auto langData = std::find(langList.begin(), langList.end(), bcp47Name);
+    const auto& langList = this->setting->languages;
+    auto langData = std::find(langList.cbegin(), langList.cend(), bcp47Name);
 
     bool isButtonEnable = false;
     QString fontName = "";
-    if(langData != langList.end()){
+    if(langData != langList.cend()){
         isButtonEnable = langData->enable;
         fontName = langData->font.name;
     }
@@ -205,6 +204,35 @@ void LanguageSelectComponent::setupData()
     this->setUseLang(isButtonEnable);
     std::vector<settings::Font> fontList = this->setting->createFontList();
     this->setSelectableFontList(std::move(fontList), fontName);
+}
+
+void LanguageSelectComponent::changeColor(ColorTheme::Theme theme)
+{
+    if(theme == ColorTheme::Theme::Dark){
+        this->button->setStyleSheet("QPushButton:checked{ background-color: #225b95; }");
+        this->defaultCheck->setStyleSheet("QCheckBox:checked{ background-color: #225b95; }");
+    }
+    else{
+        this->button->setStyleSheet("QPushButton:checked{ background-color: #3d9cdb; }");
+        this->defaultCheck->setStyleSheet("QCheckBox:checked{ background-color: #3d9cdb; }");
+    }
+    this->selectableFontList->lineEdit()->setStyleSheet(this->button->styleSheet());
+    this->button->update();
+    this->defaultCheck->update();
+}
+
+void LanguageSelectComponent::receive(DispatchType type, const QVariantList &args)
+{
+    if(type != ComponentBase::ChangeColor){ return; }
+
+    if(args.empty()){ return; }
+
+    bool isOk = false;
+    auto value = args[0].toInt(&isOk);
+    if(isOk == false){ return; }
+
+    auto theme = static_cast<ColorTheme::Theme>(value);
+    changeColor(theme);
 }
 
 void LanguageSelectComponent::LanguageButtonUndo::undo(){

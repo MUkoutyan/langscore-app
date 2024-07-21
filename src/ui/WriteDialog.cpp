@@ -39,6 +39,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->ui->updateLsCustomScript->setToolTip(tr("The langscore script file has not yet been added."));
     }
     else{
+        this->ui->updateLsScript->setEnabled(true);
         this->ui->updateLsScript->setChecked(settings->writeObj.overwriteLangscore);
         connect(this->ui->updateLsScript, &QCheckBox::clicked, this, [setting = settings](bool check){
             setting->writeObj.overwriteLangscore = check;
@@ -51,6 +52,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->ui->updateLsCustomScript->setToolTip(tr("The langscore_custom script file has not yet been added."));
     }
     else{
+        this->ui->updateLsCustomScript->setEnabled(true);
         this->ui->updateLsCustomScript->setChecked(settings->writeObj.overwriteLangscoreCustom);
         connect(this->ui->updateLsCustomScript, &QCheckBox::clicked, this, [setting = settings](bool check){
             setting->writeObj.overwriteLangscoreCustom = check;

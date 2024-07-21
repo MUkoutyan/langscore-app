@@ -27,7 +27,6 @@ MainWindow::MainWindow(QWidget *parent)
     , initialAnalysis(false)
     , explicitSave(false)
     , lastSavedHistoryIndex(0)
-    , currentTheme(FormTaskBar::Theme::None)
 {
     ui->setupUi(this);
     this->setObjectName("mainWindow");
@@ -89,7 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
             this->analyzeDialog->openFile(std::move(path));
         }
     });
-    connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
+    //connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
     connect(this->taskBar, &FormTaskBar::quit,            this, &MainWindow::close);
 
     connect(this->analyzeDialog, &AnalyzeDialog::toAnalyzeMode, this, [this](){
@@ -112,8 +111,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     {
-        auto theme = (FormTaskBar::Theme)(ComponentBase::getAppSettings().value("appTheme", 2).toInt());
-        attachTheme(theme);
+        attachTheme(ComponentBase::getColorTheme().getCurrentTheme());
     }
 }
 
@@ -204,6 +202,17 @@ void MainWindow::receive(DispatchType type, const QVariantList &args)
         this->setting->saveForProject();
         lastSavedHistoryIndex = this->history->index();
     }
+    else if(type == DispatchType::ChangeColor)
+    {
+        if(args.empty()){ return; }
+
+        bool isOk = false;
+        auto value = args[0].toInt(&isOk);
+        if(isOk == false){ return; }
+
+        auto theme = static_cast<ColorTheme::Theme>(value);
+        this->attachTheme(theme);
+    }
 }
 
 int MainWindow::askCloseProject()
@@ -219,25 +228,9 @@ int MainWindow::askCloseProject()
     return (int)button;
 }
 
-void MainWindow::attachTheme(FormTaskBar::Theme theme)
+void MainWindow::attachTheme(ColorTheme::Theme theme)
 {
-    if(theme == FormTaskBar::Theme::System)
-    {
-#ifdef Q_OS_WIN
-        QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",QSettings::NativeFormat);
-        if(settings.value("AppsUseLightTheme")==1){
-            theme = FormTaskBar::Theme::Light;
-        }
-        else{
-            theme = FormTaskBar::Theme::Dark;
-        }
-#endif
-    }
-
-    if(currentTheme == theme){ return; }
-    currentTheme = theme;
-
-    if(theme == FormTaskBar::Theme::Dark){
+    if(theme == ColorTheme::Theme::Dark){
         QPalette darkPalette;
         QColor darkColor = QColor(28, 28, 28);
         QColor disabledColor = QColor(127,127,127);
@@ -270,31 +263,35 @@ QTreeView::item:hover { background-color: #2202abd1;}
         this->setStyleSheet("#mainWindow{ border: 2px solid #323232; }");
         analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #3f3f3f;}");
     }
-    else if(theme == FormTaskBar::Theme::Light){
-        QPalette darkPalette;
+    else if(theme == ColorTheme::Theme::Light){
+        QPalette lightPalette;
         QColor whiteColor = QColor(240, 240, 240);
         QColor disabledColor = QColor(127,127,127);
-        darkPalette.setColor(QPalette::Window, whiteColor);
-        darkPalette.setColor(QPalette::WindowText, Qt::black);
-        darkPalette.setColor(QPalette::Base, QColor(230, 230, 230));
-        darkPalette.setColor(QPalette::AlternateBase, whiteColor);
-        darkPalette.setColor(QPalette::ToolTipBase, Qt::black);
-        darkPalette.setColor(QPalette::ToolTipText, Qt::black);
-        darkPalette.setColor(QPalette::Text, Qt::black);
-        darkPalette.setColor(QPalette::Disabled, QPalette::Text, disabledColor);
-        darkPalette.setColor(QPalette::Button, whiteColor);
-        darkPalette.setColor(QPalette::ButtonText, Qt::black);
-        darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
-        darkPalette.setColor(QPalette::BrightText, QColor(139, 25, 40));
-        darkPalette.setColor(QPalette::Link, QColor(99, 166, 233));
+        lightPalette.setColor(QPalette::Window, whiteColor);
+        lightPalette.setColor(QPalette::WindowText, Qt::black);
+        lightPalette.setColor(QPalette::Base, QColor(230, 230, 230));
+        lightPalette.setColor(QPalette::AlternateBase, QColor(220, 220, 220));
+        lightPalette.setColor(QPalette::ToolTipBase, Qt::black);
+        lightPalette.setColor(QPalette::ToolTipText, Qt::black);
+        lightPalette.setColor(QPalette::Text, Qt::black);
+        lightPalette.setColor(QPalette::Disabled, QPalette::Text, disabledColor);
+        lightPalette.setColor(QPalette::Button, whiteColor);
+        lightPalette.setColor(QPalette::ButtonText, Qt::black);
+        lightPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
+        lightPalette.setColor(QPalette::BrightText, QColor(139, 25, 40));
+        lightPalette.setColor(QPalette::Link, QColor(99, 166, 233));
 
-        darkPalette.setColor(QPalette::Highlight, QColor(99, 166, 233));
-        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
-        darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
+        lightPalette.setColor(QPalette::Highlight, QColor(99, 166, 233));
+        lightPalette.setColor(QPalette::HighlightedText, Qt::black);
+        lightPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
 
-        qApp->setPalette(darkPalette);
+        qApp->setPalette(lightPalette);
 
-        qApp->setStyleSheet("QToolTip { color: #222222; background-color: #efefef; border: 1px solid black; }");
+        qApp->setStyleSheet(R"(
+QToolTip { color: #222222; background-color: #efefef; border: 1px solid gray; }
+QTableView::item:hover { background-color: #2202abd1;}
+QTreeView::item:hover { background-color: #2202abd1;}
+)");
 
         this->setStyleSheet("#mainWindow{ border: 2px solid #aaaaaa; }");
         analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #999999;}");

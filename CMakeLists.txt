@@ -59,6 +59,8 @@ set(PROJECT_SOURCES
     src/ui/FramelessWindow.h
     src/ui/InvokerLogViewer.cpp
     src/ui/InvokerLogViewer.h
+    src/ui/ColorTheme.cpp
+    src/ui/ColorTheme.h
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h
@@ -102,6 +104,18 @@ else()
 
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
+
+# # Enable testing
+# enable_testing()
+
+# # Find the Qt6Test module
+# find_package(Qt6 REQUIRED COMPONENTS Test)
+
+# # Include directories for QtTest
+# include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${Qt6Test_INCLUDE_DIRS})
+
+# add_subdirectory(test)
+
 
 target_link_libraries(langscore-app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets icu.lib)
 

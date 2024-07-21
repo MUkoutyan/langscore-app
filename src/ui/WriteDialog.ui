@@ -100,6 +100,9 @@
    </item>
    <item>
     <widget class="QCheckBox" name="updateLsScript">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="text">
       <string>Overwrite langscore Script</string>
      </property>
@@ -107,6 +110,9 @@
    </item>
    <item>
     <widget class="QCheckBox" name="updateLsCustomScript">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="text">
       <string>Overwrite langscore_custom Script</string>
      </property>
