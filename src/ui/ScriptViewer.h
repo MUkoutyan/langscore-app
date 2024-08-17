@@ -66,6 +66,7 @@ class ScriptViewer : public QPlainTextEdit, public ComponentBase
     Q_OBJECT
 public:
     ScriptViewer(ComponentBase* parentComponent, QWidget *parent = nullptr);
+    ~ScriptViewer();
 
     void showFile(QString scriptFilePath);
     void scrollWithHighlight(int row, int col, int length);

@@ -203,7 +203,7 @@ ScriptViewer::ScriptViewer(ComponentBase *parentComponent, QWidget *parent)
     , viewerColors(NumColorType)
     , currentScriptExt()
 {
-    this->dispatchComponentList->emplace_back(this);
+    this->addDispatch(this);
     connect(this, &ScriptViewer::blockCountChanged, this, &ScriptViewer::updateLineNumAreaWidth);
     connect(this, &ScriptViewer::updateRequest, this, &ScriptViewer::updateLineNumArea);
 
@@ -214,6 +214,11 @@ ScriptViewer::ScriptViewer(ComponentBase *parentComponent, QWidget *parent)
     this->ensureCursorVisible();
     this->setLineWrapMode(LineWrapMode::NoWrap);
     this->updateLineNumAreaWidth();
+}
+
+ScriptViewer::~ScriptViewer()
+{
+    this->removeDispatch(this);
 }
 
 void ScriptViewer::showFile(QString scriptFilePath)

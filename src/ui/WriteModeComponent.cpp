@@ -125,7 +125,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         {Qt::PartiallyChecked,  QColor(0x9a9a9a)},
         {Qt::Unchecked,         QColor(0x5a5a5a)},
     };
-    this->dispatchComponentList->emplace_back(this);
+    this->addDispatch(this);
 
     ui->setupUi(this);
     {
@@ -339,6 +339,7 @@ QTreeView::item {
 }
 
 WriteModeComponent::~WriteModeComponent(){
+    this->removeDispatch(this);
 }
 
 void WriteModeComponent::show()

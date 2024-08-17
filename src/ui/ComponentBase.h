@@ -40,6 +40,18 @@ protected:
     QUndoStack* history;
     std::shared_ptr<std::vector<ComponentBase*>> dispatchComponentList;
 
+    void addDispatch(ComponentBase* c){
+        const auto& list = *dispatchComponentList;
+        if(std::find(list.begin(), list.end(), c) == list.cend()){
+            (*dispatchComponentList).emplace_back(c);
+        }
+    }
+
+    void removeDispatch(ComponentBase* c){
+        auto& list = *dispatchComponentList;
+        std::erase_if(list, [c](auto* _c){ return _c == c; });
+    }
+
     void dispatch(DispatchType type, QVariantList args){
         if(dispatchComponentList == nullptr){ return; }
         for(auto* c : *dispatchComponentList){

@@ -16,6 +16,7 @@ class LanguageSelectComponent : public QWidget, public ComponentBase
     Q_OBJECT
 public:
     LanguageSelectComponent(QLocale locale, ComponentBase* component, QWidget *parent);
+    ~LanguageSelectComponent();
 
     void setPreviewText(QString text);
     QFont currentFont();

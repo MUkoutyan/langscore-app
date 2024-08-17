@@ -15,7 +15,7 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
     , fontSize(new QSpinBox(this))
     , fontPreview(new QLineEdit("", this))
 {
-    this->dispatchComponentList->emplace_back(this);
+    this->addDispatch(this);
     this->setAcceptDrops(true);
 
     this->button->setFixedHeight(34);
@@ -70,6 +70,11 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
     connect(fontSize, &QSpinBox::valueChanged, this, [this](int value){
         this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::FontSize, value, this->fontSize->value()));
     });
+}
+
+LanguageSelectComponent::~LanguageSelectComponent()
+{
+    this->removeDispatch(this);
 }
 
 void LanguageSelectComponent::setUseLang(bool is)
