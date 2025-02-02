@@ -50,11 +50,21 @@ enum class JsonKey : size_t
     OverwriteLangscore,
     OverwriteLangscoreCustom,
     PackingInputDir,
+    PackingEnablePerLang,
+    PackingPerLangOutputDir,
 
     ApplicationVersion,
     ConfigVersion,
     AttachLsTransType,
     ExportAllScriptStrings,
+    EnableLanguagePatch,
+    IsFirstExported,
+
+    Validate,
+    ValidateTextMode,
+    ValidateSizeList, //文字幅検証用。(アイコン無し, アイコン有り, その他, ...)
+    ValidateCSVList,
+
     NumKeys,
 };
 
@@ -90,10 +100,18 @@ static const std::map<JsonKey, const char*> jsonKeys = {
     MAKE_KEYVALUE(OverwriteLangscore),
     MAKE_KEYVALUE(OverwriteLangscoreCustom),
     MAKE_KEYVALUE(PackingInputDir),
+    MAKE_KEYVALUE(PackingEnablePerLang),
+    MAKE_KEYVALUE(PackingPerLangOutputDir),
     MAKE_KEYVALUE(ApplicationVersion),
     MAKE_KEYVALUE(ConfigVersion),
     MAKE_KEYVALUE(AttachLsTransType),
     MAKE_KEYVALUE(ExportAllScriptStrings),
+    MAKE_KEYVALUE(EnableLanguagePatch),
+    MAKE_KEYVALUE(IsFirstExported),
+    MAKE_KEYVALUE(Validate),
+    MAKE_KEYVALUE(ValidateTextMode),
+    MAKE_KEYVALUE(ValidateSizeList),
+    MAKE_KEYVALUE(ValidateCSVList),
 };
 
 inline const char* key(JsonKey key)
@@ -121,6 +139,7 @@ settings::settings()
     , gameProjectPath("")
     , languages()
     , defaultLanguage("ja")
+    , isFirstExported(false)
     , langscoreProjectDirectory("")
 {
 }
@@ -314,6 +333,33 @@ QString settings::tempGraphicsFileDirectoryPath() const
     return this->gameProjectPath + "/Graphics";
 }
 
+bool settings::isWritedLangscorePlugin() const
+{
+    if(this->projectType == settings::VXAce)
+    {
+        auto scriptList = langscore::readCsv(this->tempScriptFileDirectoryPath()+"/_list.csv");
+        return std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore"; }) != scriptList.cend();
+    }
+    else if(this->projectType == settings::MV || this->projectType == settings::MZ){
+        return QFileInfo::exists(this->gameProjectPath + "/js/plugins/Langscore.js");
+    }
+    return false;
+}
+
+bool settings::isWritedLangscoreCustomPlugin() const
+{
+    if(this->projectType == settings::VXAce)
+    {
+        auto scriptList = langscore::readCsv(this->tempScriptFileDirectoryPath()+"/_list.csv");
+        return std::find_if(scriptList.cbegin(), scriptList.cend(), [](const auto& x){ return x[1] == "langscore_custom"; }) != scriptList.cend();
+    }
+    else if(this->projectType == settings::MV || this->projectType == settings::MZ){
+        return QFileInfo::exists(this->gameProjectPath + "/js/plugins/LangscoreCustom.js");
+    }
+
+    return false;
+}
+
 settings::Language& settings::fetchLanguage(QString bcp47Name)
 {
     auto result = std::find(this->languages.begin(), this->languages.end(), bcp47Name);
@@ -460,12 +506,13 @@ QByteArray settings::createJson()
     root[key(JsonKey::Analyze)] = analyze;
 
     QJsonObject write;
-    write[key(JsonKey::UsCustomFuncComment)] = "Scripts/{0}#{1},{2}";
-    write[key(JsonKey::ExportDirectory)] = QDir(this->langscoreProjectDirectory).relativeFilePath(writeObj.exportDirectory);
-    write[key(JsonKey::ExportByLang)] = writeObj.exportByLanguage;
-    write[key(JsonKey::OverwriteLangscore)] = writeObj.overwriteLangscore;
-    write[key(JsonKey::OverwriteLangscoreCustom)] = writeObj.overwriteLangscoreCustom;
-    write[key(JsonKey::WriteType)] = writeObj.writeMode;
+    write[key(JsonKey::UsCustomFuncComment)]        = "Scripts/{0}#{1},{2}";
+    write[key(JsonKey::ExportDirectory)]            = QDir(this->langscoreProjectDirectory).relativeFilePath(writeObj.exportDirectory);
+    write[key(JsonKey::ExportByLang)]               = writeObj.exportByLanguage;
+    write[key(JsonKey::OverwriteLangscore)]         = writeObj.overwriteLangscore;
+    write[key(JsonKey::OverwriteLangscoreCustom)]   = writeObj.overwriteLangscoreCustom;
+    write[key(JsonKey::EnableLanguagePatch)]        = writeObj.enableLanguagePatch;
+    write[key(JsonKey::WriteType)]                  = writeObj.writeMode;
 
     QJsonArray basicDataList;
     for(const auto& info : writeObj.basicDataInfo)
@@ -477,6 +524,7 @@ QByteArray settings::createJson()
     }
 
     write[key(JsonKey::RPGMakerBasicData)] = basicDataList;
+    write[key(JsonKey::IsFirstExported)]   = this->isFirstExported;
 
     QJsonArray scripts;
     for(const auto& info : writeObj.scriptInfo)
@@ -508,8 +556,23 @@ QByteArray settings::createJson()
 
     root[key(JsonKey::Write)] = write;
 
-
     root[key(JsonKey::PackingInputDir)] = this->packingInputDirectory;
+
+    QJsonObject validateJsonObjs;
+    validateJsonObjs[key(JsonKey::ValidateTextMode)] = static_cast<int>(this->validateObj.mode);
+    validateJsonObjs[key(JsonKey::ValidateSizeList)] = QJsonArray({this->validateObj.validationNumber});
+
+    QJsonArray jsonCsvDataList;
+    for(const auto& obj : validateObj.csvDataList) {
+        QJsonObject csvData;
+        csvData[key(JsonKey::Name)] = obj.name;
+        csvData[key(JsonKey::ValidateTextMode)] = obj.mode;
+        csvData[key(JsonKey::ValidateSizeList)] = QJsonArray({obj.validationNumber});
+        jsonCsvDataList.append(csvData);
+    }
+    validateJsonObjs[key(JsonKey::ValidateCSVList)] = jsonCsvDataList;
+
+    root[key(JsonKey::Validate)] = validateJsonObjs;
 
     QJsonDocument doc(root);
     return doc.toJson();
@@ -553,6 +616,7 @@ void settings::load(QString path)
 
     auto projctVer = root[key(JsonKey::ApplicationVersion)].toString();
     auto configVer = root[key(JsonKey::ConfigVersion)].toString();
+
 
     this->languages.clear();
     auto jsonLanguages = root[key(JsonKey::Languages)].toArray();
@@ -598,12 +662,16 @@ void settings::load(QString path)
 
     auto write = root[key(JsonKey::Write)].toObject();
 
-    writeObj.exportDirectory = write[key(JsonKey::ExportDirectory)].toString("");
-    writeObj.exportByLanguage = write[key(JsonKey::ExportByLang)].toBool(false);
+    writeObj.exportDirectory     = write[key(JsonKey::ExportDirectory)].toString("");
+    writeObj.exportByLanguage    = write[key(JsonKey::ExportByLang)].toBool(false);
+    writeObj.enableLanguagePatch = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
     //保存したいようなフラグではないため、設定値を読み込まない
-//    writeObj.overwriteLangscore = write[key(JsonKey::OverwriteLangscore)].toBool(false);
+//    writeObj.isWriteCSV               = write[key(JsonKey::IsWriteCsv)].toBool(false);
+//    writeObj.overwriteLangscore       = write[key(JsonKey::OverwriteLangscore)].toBool(false);
 //    writeObj.overwriteLangscoreCustom = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
 //    writeObj.writeMode = -1;
+
+    this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
 
     auto basicScripts = write[key(JsonKey::RPGMakerBasicData)].toArray();
     for(auto jsonInfo : basicScripts)
@@ -676,6 +744,30 @@ void settings::load(QString path)
     }
 
     this->packingInputDirectory = root[key(JsonKey::PackingInputDir)].toString();
+
+    auto validateJsonObj = root[key(JsonKey::Validate)];
+    this->validateObj.mode = static_cast<ValidateTextMode>(validateJsonObj[key(JsonKey::ValidateTextMode)].toInt());
+    auto numberArray = validateJsonObj[key(JsonKey::ValidateSizeList)].toArray();
+    for(auto value : numberArray) {
+        this->validateObj.validationNumber = value.toInt();
+        break;
+    }
+
+    auto jsonCsvDataList = validateJsonObj[key(JsonKey::ValidateCSVList)].toArray();
+    for(auto csvDataValue : jsonCsvDataList)
+    {
+        auto obj = csvDataValue.toObject();
+        ValidationProps::CSVData data;
+        data.name = obj[key(JsonKey::Name)].toString();
+        data.mode = static_cast<ValidateTextMode>(obj[key(JsonKey::ValidateTextMode)].toInt());
+        auto numberArray = obj[key(JsonKey::ValidateSizeList)].toArray();
+        for(auto val : numberArray) {
+            data.validationNumber = val.toInt();
+            break;
+        }
+        this->validateObj.csvDataList.emplace_back(std::move(data));
+    }
+
 }
 
 void settings::updateLangscoreProjectPath()

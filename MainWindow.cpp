@@ -236,6 +236,7 @@ void MainWindow::attachTheme(ColorTheme::Theme theme)
         QColor disabledColor = QColor(127,127,127);
         darkPalette.setColor(QPalette::Window, darkColor);
         darkPalette.setColor(QPalette::WindowText, Qt::white);
+        darkPalette.setColor(QPalette::Disabled, QPalette::WindowText, disabledColor);
         darkPalette.setColor(QPalette::Base, QColor(52, 52, 52));
         darkPalette.setColor(QPalette::AlternateBase, darkColor);
         darkPalette.setColor(QPalette::ToolTipBase, Qt::white);

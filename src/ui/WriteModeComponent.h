@@ -38,14 +38,18 @@ public slots:
     void scriptTableSelected();
     void scriptTableItemChanged(QTableWidgetItem *item);
 
+    void exportPlugin();
     void exportTranslateFiles();
+    void firstExportTranslateFiles();
 
 private:
 
     enum InvokeType {
         None,
-        Write,
-        Update
+        ExportFirstTime,
+        ExportCSV,
+        UpdatePlugin,
+        Reanalisys
     };
 
     Ui::WriteModeComponent* ui;
@@ -59,6 +63,9 @@ private:
     InvokeType invokeType;
     QString lastWritePath;
     ScriptViewer* scriptViewer;
+
+    //fetchScriptTableSameFileRowsの高速化のためのキャッシュ
+    std::unordered_map<QString, std::vector<int>> scriptNameToTableIndexMap;
 
     std::unordered_map<Qt::CheckState, QColor> tableTextColorForState;
 

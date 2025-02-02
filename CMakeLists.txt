@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(langscore-app VERSION 0.8.4 LANGUAGES CXX)
+project(langscore-app VERSION 0.8.5 LANGUAGES CXX)
 set(CONFIG_FILE_VERSION 1.1.0)
 configure_file(application_config.h.in application_config.h @ONLY)
 configure_file(version.rc.in version.rc @ONLY)
@@ -14,10 +14,20 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_PREFIX_PATH ${QT_DIR})
+
+#mutex.lockでのクラッシュへの対応
+#https://stackoverflow.com/questions/78598141/first-stdmutexlock-crashes-in-application-built-with-latest-visual-studio
+add_definitions(-D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
-set(TS_FILES langscore-app_ja_JP.ts)
+set(LANGUAGES "en" "ja" "zh_CN" "zh_TW")
+set(TS_FILES)
+foreach(LANG ${LANGUAGES})
+    list(APPEND TS_FILES "${CMAKE_CURRENT_SOURCE_DIR}/translations/langscore-app_${LANG}.ts")
+endforeach()
 
 set(PROJECT_SOURCES
     main.cpp
@@ -51,6 +61,12 @@ set(PROJECT_SOURCES
     src/ui/WriteDialog.h
     src/ui/WriteDialog.cpp
     src/ui/WriteDialog.ui
+    src/ui/UpdatePluginDialog.h
+    src/ui/UpdatePluginDialog.cpp
+    src/ui/UpdatePluginDialog.ui
+    src/ui/FirstWriteDialog.h
+    src/ui/FirstWriteDialog.cpp
+    src/ui/FirstWriteDialog.ui
     src/ui/PopupDialogBase.h
     src/ui/PopupDialogBase.cpp
     src/ui/MessageDialog.cpp
@@ -72,6 +88,12 @@ include_directories(
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+
+    qt_add_lupdate(
+        SOURCE_TARGETS langscore-app
+        TS_FILES ${TS_FILES}
+    )
+    
     qt_add_executable(langscore-app
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
@@ -139,19 +161,61 @@ qt_deploy_runtime_dependencies(
     VERBOSE
 )")
 
+add_dependencies(langscore-app update_translations)
+
 install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
                                    #                           and ./binHelperApp.exe
         BUNDLE  DESTINATION .      # Install to CMAKE_INSTALL_PREFIX/MyApp.app/Contents/MacOS/MyApp
 )
 install(SCRIPT ${deploy_script})    # Add its runtime dependencies
 
-file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe
-            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe
-            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/resource
-            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-file(COPY ${PROJECT_SOURCE_DIR}/resources/fonts DESTINATION ${PROJECT_BINARY_DIR}/resources)
+if(WIN32)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)  # Qt6 の場合
+    # find_package(Qt5 REQUIRED COMPONENTS Widgets)  # Qt5 の場合
+
+    # Qtのbinディレクトリを取得
+    get_target_property(QT_BIN_DIR Qt6::qmake IMPORTED_LOCATION) # Qt6
+    # get_target_property(QT_BIN_DIR Qt5::qmake IMPORTED_LOCATION) # Qt5
+    get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
+    
+    # windeployqtのパス
+    set(WINDEPLOYQT_EXECUTABLE "${QT_BIN_DIR}/windeployqt6.exe")
+
+    # 出力ディレクトリを指定（CMAKE_RUNTIME_OUTPUT_DIRECTORYが未指定ならデフォルトのビルドディレクトリを使う）
+    set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")  # MyApp は実行ファイルターゲット名
+
+    # windeployqtを実行するカスタムコマンド
+    add_custom_command(TARGET langscore-app POST_BUILD
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release "$<TARGET_FILE:langscore-app>"
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --debug "$<TARGET_FILE:langscore-app>"
+        COMMENT "Running windeployqt on langscore-app"
+    )
+
+    add_custom_target(copy_files ALL
+        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icudt76.dll ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icuuc76.dll ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/resource ${PROJECT_BINARY_DIR}/bin/resource
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts ${PROJECT_BINARY_DIR}/resources/fonts
+        COMMENT "Copying necessary files after build"
+    )
+
+    add_dependencies(copy_files langscore-app)
+endif()
+
+#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe
+#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe
+#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icudt76.dll
+#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icuuc76.dll
+#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/resource
+#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
+#file(COPY ${PROJECT_SOURCE_DIR}/resources/fonts DESTINATION ${PROJECT_BINARY_DIR}/resources)
+
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(langscore-app)

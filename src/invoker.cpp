@@ -14,16 +14,28 @@ void invoker::analyze(bool sync)
     return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--analyze"});
 }
 
-void invoker::updateData(bool sync)
+void invoker::reanalysis(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--update"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--reanalysis"});
 }
 
-void invoker::write(bool sync)
+void invoker::exportFirstTime(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--write"});
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--exportCSV", "--updatePlugin"});
+}
+
+void invoker::exportCSV(bool sync)
+{
+    this->sync = sync;
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--exportCSV"});
+}
+
+void invoker::updatePlugin(bool sync)
+{
+    this->sync = sync;
+    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--updatePlugin"});
 }
 
 void invoker::validate(bool sync)
@@ -43,11 +55,11 @@ void invoker::doProcess(QStringList option)
     this->passOption = option;
     auto process = new QProcess();
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process](){
-        QString message = QString::fromLocal8Bit(process->readAllStandardOutput());
+        QString message = QString::fromUtf8(process->readAllStandardOutput());
         emit this->getStdOut(message);
     });
     connect(process, &QProcess::readyReadStandardError, this, [this, process](){
-        QString message = QString::fromLocal8Bit(process->readAllStandardError());
+        QString message = QString::fromUtf8(process->readAllStandardError());
         emit this->getStdOut(message);
     });
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, [process, this](int exitCode, QProcess::ExitStatus status){
@@ -55,7 +67,9 @@ void invoker::doProcess(QStringList option)
         process->deleteLater();
     });
 
-    process->start(qApp->applicationDirPath()+"/bin/divisi.exe", option);
+    auto divisiPath = qApp->applicationDirPath()+"/bin/divisi.exe";
+    emit this->getStdOut("run : " + divisiPath + " " + option.join(" "));
+    process->start(divisiPath, option);
     if (!process->waitForStarted(-1)) {
         emit this->getStdOut(process->errorString());
         delete process;

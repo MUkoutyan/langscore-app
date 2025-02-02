@@ -37,6 +37,7 @@ public:
     QString gameProjectPath;
     std::vector<Language> languages;
     QString defaultLanguage;
+    bool isFirstExported;
 
     //Analyze
     QString langscoreProjectDirectory;
@@ -82,6 +83,7 @@ public:
         bool exportByLanguage = false;
         bool overwriteLangscore = false;
         bool overwriteLangscoreCustom = false;
+        bool enableLanguagePatch = false;
         std::vector<ScriptInfo> scriptInfo;
         std::vector<BasicData> basicDataInfo;
 
@@ -89,11 +91,32 @@ public:
         int writeMode = -1;
     };
     WriteProps writeObj;
+
     //FontType, fontIndex(from:addApplicationFont), FontFamily, fontFilePath
     std::vector<std::tuple<FontType, int, QStringList, QString>> fontIndexList;
 
     //Packing
     QString packingInputDirectory;
+
+    enum ValidateTextMode {
+        Ignore,
+        TextCount,
+        TextWidth,
+    };
+
+    struct ValidationProps
+    {
+        struct CSVData {
+            QString name = "";  //PackingInputDir + nameでパスになる
+            ValidateTextMode mode = ValidateTextMode::Ignore;
+            int validationNumber = 0;
+        };
+        //全体共通の値
+        ValidateTextMode mode = ValidateTextMode::Ignore;
+        int validationNumber = 0;
+        std::vector<CSVData> csvDataList;
+    };
+    ValidationProps validateObj;
 
     void setupLanguages(const std::vector<QLocale> &locales);
 
@@ -106,6 +129,9 @@ public:
     QString analyzeDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
     QString tempGraphicsFileDirectoryPath() const;
+
+    bool isWritedLangscorePlugin() const;
+    bool isWritedLangscoreCustomPlugin() const;
 
     Language& fetchLanguage(QString bcp47Name);
     void removeLanguage(QString bcp47Name);

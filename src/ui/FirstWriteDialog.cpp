@@ -1,21 +1,16 @@
-﻿#include "WriteDialog.h"
-#include "ui_WriteDialog.h"
-#include "../csv.hpp"
+﻿#include "FirstWriteDialog.h"
+#include "ui_FirstWriteDialog.h"
 #include <QFileDialog>
 #include <QActionGroup>
-#include <QDirIterator>
 
-WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
+FirstWriteDialog::FirstWriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     PopupDialogBase(parent),
-    ui(new Ui::WriteDialog),
+    ui(new Ui::FirstWriteDialog),
     _writeMode(0)
 {
     ui->setupUi(this);
 
-    //無効機能
-    this->ui->keepBoth->setHidden(true);
-
-    this->setObjectName("writeDialog");
+    this->setObjectName("FirstWriteDialog");
 
     auto okButton = this->ui->buttonBox->button(QDialogButtonBox::Ok);
     okButton->setText(tr("Write"));
@@ -29,16 +24,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->ui->lineEdit->setText(path);
     });
 
-    this->ui->buttonGroup->setId(this->ui->keepSource, 2);
-    this->ui->buttonGroup->setId(this->ui->keepBoth, 4);
-    this->ui->buttonGroup->setId(this->ui->acceptTarget, 0);
-
-    connect(this->ui->buttonGroup, &QButtonGroup::idToggled, this, [this](int id, bool check){
-        this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
-        this->_writeMode = id;
-    });
-
-    connect(this->ui->lineEdit, &QLineEdit::textChanged, this, &WriteDialog::changeOutputPath);
+    connect(this->ui->lineEdit, &QLineEdit::textChanged, this, &FirstWriteDialog::changeOutputPath);
     QFileInfo outputDirInfo(settings->writeObj.exportDirectory);
     if(outputDirInfo.isRelative()){
         //langscoreのフォルダからの相対パスと解釈する。
@@ -50,22 +36,20 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->setOutputPath(outputDirInfo.absoluteFilePath());
     }
 
-    this->ui->exportByLangCheck->setChecked(settings->writeObj.enableLanguagePatch);
-
     this->update();
 }
 
-WriteDialog::~WriteDialog()
+FirstWriteDialog::~FirstWriteDialog()
 {
     delete ui;
 }
 
-void WriteDialog::setOutputPath(QString directoryPath)
+void FirstWriteDialog::setOutputPath(QString directoryPath)
 {
     this->ui->lineEdit->setText(directoryPath);
 }
 
-QString WriteDialog::outputPath() const
+QString FirstWriteDialog::outputPath() const
 {
     auto result = this->ui->lineEdit->text();
     if(result.last(1) == "/"){
@@ -74,23 +58,22 @@ QString WriteDialog::outputPath() const
     return result;
 }
 
-bool WriteDialog::writeByLanguagePatch() const {
+bool FirstWriteDialog::writeByLanguagePatch() const {
     return this->ui->exportByLangCheck->isChecked();
 }
 
-int WriteDialog::writeMode() const
+int FirstWriteDialog::writeMode() const
 {
     return this->_writeMode;
 }
 
-bool WriteDialog::backup() const
+bool FirstWriteDialog::backup() const
 {
     return this->ui->backupCheck->isChecked();
 }
 
-void WriteDialog::changeOutputPath(const QString &text)
+void FirstWriteDialog::changeOutputPath(const QString &text)
 {
-    this->ui->baseWidget->setHidden(true);
     this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
     auto fileInfo = QFileInfo(text);
     if(fileInfo.exists() == false){
@@ -98,27 +81,18 @@ void WriteDialog::changeOutputPath(const QString &text)
     }
 
     if(fileInfo.isDir() == false){
-        this->ui->baseWidget->setVisible(true);
-        this->ui->keepSource->setVisible(false);
-//        this->ui->keepBoth->setVisible(false);
-        this->ui->acceptTarget->setVisible(false);
         this->setToolTip(tr("The path must be a directory!"));
         return;
     }
-    QDirIterator it(text, QStringList() << "*.csv", QDir::Files, QDirIterator::Subdirectories);
-    while (it.hasNext())
-    {
-        auto info = it.fileInfo();
-        it.next();
+    auto dir = QDir(text);
+    auto fileInfoList = dir.entryInfoList(QDir::Filter::Files | QDir::Filter::NoDotAndDotDot);
+    for(const auto& info : fileInfoList){
         if(info.suffix() != "csv"){ continue; }
 
-        this->ui->baseWidget->setVisible(true);
-        this->ui->keepSource->setVisible(true);
-        this->ui->keepBoth->setVisible(true);
-        this->ui->acceptTarget->setVisible(true);
         if(this->ui->buttonGroup->checkedButton() == nullptr){
             this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
         }
-        break;
+
+        return;
     }
 }

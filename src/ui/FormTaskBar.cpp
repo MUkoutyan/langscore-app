@@ -12,6 +12,8 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QDir>
+#include <QUrl>
+#include <QDesktopServices>
 
 
 FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *parent)
@@ -153,7 +155,21 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     });
 #endif
 
-    auto versionAction = systemMenu->addAction(tr("Version : ") + qApp->applicationVersion());
+    auto helpMenu = AddMenu(tr("Help"));
+
+    auto openManualMenu = helpMenu->addAction(tr("Manual... (Web site)"));
+    connect(openManualMenu, &QAction::triggered, this, []()
+    {
+        QDesktopServices::openUrl(QUrl("https://mukoutyan.github.io/langscore-manual/"));
+    });
+
+    auto openHistoryMenu = helpMenu->addAction(tr("History... (Web site)"));
+    connect(openHistoryMenu, &QAction::triggered, this, []()
+    {
+        QDesktopServices::openUrl(QUrl("https://mukoutyan.github.io/langscore-manual/060_history.html#history"));
+    });
+
+    auto versionAction = helpMenu->addAction(tr("Version : ") + qApp->applicationVersion());
     versionAction->setEnabled(false);
 
     this->ui->horizontalLayout_2->setStretch(2, 1);

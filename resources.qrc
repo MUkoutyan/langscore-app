@@ -13,6 +13,6 @@
         <file alias="VLGothic">resources/fonts/VL-Gothic-Regular.ttf</file>
     </qresource>
     <qresource prefix="/i18n">
-        <file>langscore-app_ja_JP.qm</file>
+        <file>translations/langscore-app_ja.qm</file>
     </qresource>
 </RCC>

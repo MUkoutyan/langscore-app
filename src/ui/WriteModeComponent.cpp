@@ -1,7 +1,9 @@
 ﻿#include "WriteModeComponent.h"
 #include "ui_WriteModeComponent.h"
 #include "LanguageSelectComponent.h"
+#include "FirstWriteDialog.h"
 #include "WriteDialog.h"
+#include "UpdatePluginDialog.h"
 #include "MessageDialog.h"
 #include "ScriptViewer.h"
 #include "src/invoker.h"
@@ -152,7 +154,9 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     connect(this->ui->treeWidget, &QTreeWidget::itemChanged, this, &WriteModeComponent::treeItemChanged);
     connect(this->ui->tableWidget_script, &QTableWidget::itemSelectionChanged, this, &WriteModeComponent::scriptTableSelected);
     connect(this->ui->tableWidget_script, &QTableWidget::itemChanged, this, &WriteModeComponent::scriptTableItemChanged);
+    connect(this->ui->writeCSVAndPluginButton, &QPushButton::clicked, this, &WriteModeComponent::firstExportTranslateFiles);
     connect(this->ui->writeButton, &QPushButton::clicked, this, &WriteModeComponent::exportTranslateFiles);
+    connect(this->ui->updatePluginButton, &QPushButton::clicked, this, &WriteModeComponent::exportPlugin);
 
     connect(this->ui->scriptFilterButton, &QToolButton::clicked, this->ui->scriptFilterButton, &QToolButton::showMenu);
 
@@ -291,9 +295,9 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         auto baseMessage = tr("Update to the latest content...");
         this->dispatch(StatusMessage, {baseMessage});
         this->dispatch(SaveProject,{});
-        this->_invoker->updateData();
+        this->_invoker->reanalysis();
 
-        invokeType = InvokeType::Update;
+        invokeType = InvokeType::Reanalisys;
     });
 
     connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
@@ -303,13 +307,18 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         this->changeEnabledUIState(true);
         this->ui->logText->insertPlainText(tr("Done."));
 
-        if(invokeType == InvokeType::Update){
+        if(invokeType == InvokeType::Reanalisys){
             this->clear();
             this->setup();
             this->dispatch(StatusMessage, {tr(" Complete."), 3000});
         }
-        else if(invokeType == InvokeType::Write){
+        else if(invokeType == InvokeType::ExportCSV || invokeType == InvokeType::Reanalisys){
             QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
+            this->setting->isFirstExported = true;
+
+            this->ui->writeCSVAndPluginButton->setVisible(false);
+            this->ui->updatePluginButton->setVisible(true);
+            this->ui->writeButton->setVisible(true);
         }
         invokeType = InvokeType::None;
     });
@@ -722,6 +731,39 @@ void WriteModeComponent::scriptTableItemChanged(QTableWidgetItem *item)
     }
 }
 
+void WriteModeComponent::exportPlugin()
+{
+    if(this->setting->writeObj.exportDirectory.isEmpty()){
+        this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
+    }
+    this->setGraphicsEffect(new QGraphicsBlurEffect);
+    this->changeEnabledUIState(false);
+
+    UpdatePluginDialog dialog(this->setting, this);
+
+    auto execCode = dialog.exec();
+    this->setGraphicsEffect(nullptr);
+    if(execCode == QDialog::Rejected){
+        this->changeEnabledUIState(true);
+        return;
+    }
+
+    QDir lsProjDir(this->setting->langscoreProjectDirectory);
+    auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
+    this->setting->writeObj.exportDirectory     = relativePath;
+    this->setting->writeObj.enableLanguagePatch = dialog.isEnableLanguagePatch();
+    this->setting->setPackingDirectory(relativePath);
+
+    this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+
+    this->ui->logText->clear();
+    this->ui->logText->insertPlainText(tr("Update Plugin...\n"));
+
+    this->dispatch(SaveProject,{});
+    _invoker->updatePlugin();
+    invokeType = InvokeType::UpdatePlugin;
+}
+
 void WriteModeComponent::exportTranslateFiles()
 {
     if(this->setting->writeObj.exportDirectory.isEmpty()){
@@ -743,7 +785,7 @@ void WriteModeComponent::exportTranslateFiles()
     lastWritePath = dialog.outputPath();
     auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
     this->setting->writeObj.exportDirectory = relativePath;
-    this->setting->writeObj.exportByLanguage = dialog.writeByLanguage();
+    this->setting->writeObj.enableLanguagePatch = dialog.writeByLanguagePatch();
     this->setting->writeObj.writeMode = dialog.writeMode();
     this->setting->setPackingDirectory(relativePath);
 
@@ -755,9 +797,46 @@ void WriteModeComponent::exportTranslateFiles()
     this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
 
     this->dispatch(SaveProject,{});
-    _invoker->write();
-    invokeType = InvokeType::Write;
+    _invoker->exportCSV();
+    invokeType = InvokeType::ExportCSV;
 
+}
+
+void WriteModeComponent::firstExportTranslateFiles()
+{
+    if(this->setting->writeObj.exportDirectory.isEmpty()){
+        this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
+    }
+    this->setGraphicsEffect(new QGraphicsBlurEffect);
+    this->changeEnabledUIState(false);
+
+    FirstWriteDialog dialog(this->setting, this);
+
+    auto execCode = dialog.exec();
+    this->setGraphicsEffect(nullptr);
+    if(execCode == QDialog::Rejected){
+        this->changeEnabledUIState(true);
+        return;
+    }
+
+    QDir lsProjDir(this->setting->langscoreProjectDirectory);
+    lastWritePath = dialog.outputPath();
+    auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
+    this->setting->writeObj.exportDirectory = relativePath;
+    this->setting->writeObj.enableLanguagePatch = dialog.writeByLanguagePatch();
+    this->setting->writeObj.writeMode = dialog.writeMode();
+    this->setting->setPackingDirectory(relativePath);
+
+    if(dialog.backup()){ backup(); }
+
+    this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+
+    this->ui->logText->clear();
+    this->ui->logText->insertPlainText(tr("Write Translate Files(First)...\n"));
+
+    this->dispatch(SaveProject,{});
+    _invoker->exportFirstTime();
+    invokeType = InvokeType::ExportFirstTime;
 }
 
 void WriteModeComponent::setup()
@@ -822,6 +901,17 @@ void WriteModeComponent::setup()
 
     this->ui->tableWidget_script->blockSignals(false);
     this->ui->treeWidget->blockSignals(false);
+
+    if(setting->isFirstExported == false){
+        this->ui->writeCSVAndPluginButton->setVisible(true);
+        this->ui->updatePluginButton->setVisible(false);
+        this->ui->writeButton->setVisible(false);
+    }
+    else{
+        this->ui->writeCSVAndPluginButton->setVisible(false);
+        this->ui->updatePluginButton->setVisible(true);
+        this->ui->writeButton->setVisible(true);
+    }
 
     this->update();
 }
@@ -1215,6 +1305,12 @@ void WriteModeComponent::setupScriptCsvText()
             item->setFlags(scriptTableItemFlags);
             item->setData(Qt::UserRole, withoutExtension(lineParsedResult.scriptFileName));
             targetTable->setItem(r, ScriptTableCol::ScriptName, item);
+            if(scriptNameToTableIndexMap.find(scriptName) == scriptNameToTableIndexMap.end()) {
+                scriptNameToTableIndexMap.emplace(scriptName, std::vector<int>{r});
+            }
+            else {
+                scriptNameToTableIndexMap[scriptName].emplace_back(r);
+            }
         }
         //テキストの位置
 
@@ -1553,18 +1649,9 @@ void WriteModeComponent::dragEnterEvent(QDragEnterEvent *event)
 std::vector<int> WriteModeComponent::fetchScriptTableSameFileRows(QString scriptName)
 {
     std::vector<int> result;
-    const auto tableRows = this->ui->tableWidget_script->rowCount();
-    for(int i=0; i<tableRows; ++i)
-    {
-        if(auto scriptNameItem = this->scriptTableItem(i, ScriptTableCol::ScriptName))
-        {
-            auto itemText = ::getScriptName(scriptNameItem);
-            if(scriptName == itemText){
-                result.emplace_back(i);
-            }
-        }
+    if(scriptNameToTableIndexMap.find(scriptName) == scriptNameToTableIndexMap.end()) {
+        result = scriptNameToTableIndexMap[scriptName];
     }
-
     return result;
 }
 

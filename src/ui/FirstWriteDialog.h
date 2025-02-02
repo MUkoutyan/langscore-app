@@ -4,16 +4,16 @@
 #include "../settings.h"
 
 namespace Ui {
-class WriteDialog;
+class FirstWriteDialog;
 }
 
-class WriteDialog : public PopupDialogBase
+class FirstWriteDialog : public PopupDialogBase
 {
     Q_OBJECT
 
 public:
-    explicit WriteDialog(std::shared_ptr<settings> setting, QWidget *parent = nullptr);
-    ~WriteDialog();
+    explicit FirstWriteDialog(std::shared_ptr<settings> setting, QWidget *parent = nullptr);
+    ~FirstWriteDialog();
 
     void setOutputPath(QString directoryPath);
     QString outputPath() const ;
@@ -23,7 +23,7 @@ public:
     bool backup() const;
 
 private:
-    Ui::WriteDialog *ui;
+    Ui::FirstWriteDialog *ui;
     int _writeMode;
 
 private slots:
