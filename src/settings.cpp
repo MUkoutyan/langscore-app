@@ -13,112 +13,13 @@
 #include <QApplication>
 #include <assert.h>
 
-#define MAKE_KEYVALUE(k) {JsonKey::k, #k}
+#include "config_keys.h"
 
-
-
-enum class JsonKey : size_t
-{
-    Languages = 0i64,
-    LanguageName,
-    Enable,
-    Disable,
-    FontName,
-    FontSize,
-    FontPath,
-    Global,
-    Local,
-    Project,
-    Analyze,
-    Write,
-    Name,
-    Ignore,
-    IgnorePoints,
-    Row,
-    Col,
-    WriteType,
-    Text,
-    IgnorePictures,
-    DefaultLanguage,
-    TmpDir,
-    UsCustomFuncComment,
-    ExportDirectory,
-    ExportByLang,
-    RPGMakerOutputPath,
-    RPGMakerBasicData,
-    RPGMakerScripts,
-    OverwriteLangscore,
-    OverwriteLangscoreCustom,
-    PackingInputDir,
-    PackingEnablePerLang,
-    PackingPerLangOutputDir,
-
-    ApplicationVersion,
-    ConfigVersion,
-    AttachLsTransType,
-    ExportAllScriptStrings,
-    EnableLanguagePatch,
-    IsFirstExported,
-
-    Validate,
-    ValidateTextMode,
-    ValidateSizeList, //文字幅検証用。(アイコン無し, アイコン有り, その他, ...)
-    ValidateCSVList,
-
-    NumKeys,
-};
-
-static const std::map<JsonKey, const char*> jsonKeys = {
-    MAKE_KEYVALUE(Languages),
-    MAKE_KEYVALUE(LanguageName),
-    MAKE_KEYVALUE(Enable),
-    MAKE_KEYVALUE(Disable),
-    MAKE_KEYVALUE(FontName),
-    MAKE_KEYVALUE(FontSize),
-    MAKE_KEYVALUE(FontPath),
-    MAKE_KEYVALUE(Global),
-    MAKE_KEYVALUE(Local),
-    MAKE_KEYVALUE(Project),
-    MAKE_KEYVALUE(Analyze),
-    MAKE_KEYVALUE(Write),
-    MAKE_KEYVALUE(Name),
-    MAKE_KEYVALUE(Ignore),
-    MAKE_KEYVALUE(IgnorePoints),
-    MAKE_KEYVALUE(Row),
-    MAKE_KEYVALUE(Col),
-    MAKE_KEYVALUE(WriteType),
-    MAKE_KEYVALUE(Text),
-    MAKE_KEYVALUE(IgnorePictures),
-    MAKE_KEYVALUE(DefaultLanguage),
-    MAKE_KEYVALUE(TmpDir),
-    MAKE_KEYVALUE(UsCustomFuncComment),
-    MAKE_KEYVALUE(ExportDirectory),
-    MAKE_KEYVALUE(ExportByLang),
-    MAKE_KEYVALUE(RPGMakerOutputPath),
-    MAKE_KEYVALUE(RPGMakerBasicData),
-    MAKE_KEYVALUE(RPGMakerScripts),
-    MAKE_KEYVALUE(OverwriteLangscore),
-    MAKE_KEYVALUE(OverwriteLangscoreCustom),
-    MAKE_KEYVALUE(PackingInputDir),
-    MAKE_KEYVALUE(PackingEnablePerLang),
-    MAKE_KEYVALUE(PackingPerLangOutputDir),
-    MAKE_KEYVALUE(ApplicationVersion),
-    MAKE_KEYVALUE(ConfigVersion),
-    MAKE_KEYVALUE(AttachLsTransType),
-    MAKE_KEYVALUE(ExportAllScriptStrings),
-    MAKE_KEYVALUE(EnableLanguagePatch),
-    MAKE_KEYVALUE(IsFirstExported),
-    MAKE_KEYVALUE(Validate),
-    MAKE_KEYVALUE(ValidateTextMode),
-    MAKE_KEYVALUE(ValidateSizeList),
-    MAKE_KEYVALUE(ValidateCSVList),
-};
+using namespace langscore;
 
 inline const char* key(JsonKey key)
 {
-    assert(jsonKeys.size() == size_t(JsonKey::NumKeys));
-    if(jsonKeys.find(key) == jsonKeys.end()){ return nullptr; }
-    return jsonKeys.at(key);
+    return configKey(key);
 }
 
 namespace {
@@ -259,6 +160,23 @@ settings::Font settings::getDetafultFont() const
     }
 
     return defaultFont;
+}
+
+settings::TextValidateTypeMap settings::getValidationCsvData(QString fileName)
+{
+    return this->getValidationCsvDataRef(fileName);
+}
+
+settings::TextValidateTypeMap& settings::getValidationCsvDataRef(QString fileName)
+{
+    auto it = std::ranges::find_if(writeObj.basicDataInfo, [&fileName](const auto& data) {
+        return data.name.contains(fileName);
+    });
+    if(it != writeObj.basicDataInfo.end()) {
+        return it->validateInfo;
+    }
+    static settings::TextValidateTypeMap Invalid{};
+    return Invalid;
 }
 
 QString settings::getDefaultFontName() const
@@ -520,6 +438,42 @@ QByteArray settings::createJson()
         QJsonObject script;
         script[key(JsonKey::Name)] = info.name;
         script[key(JsonKey::Ignore)] = info.ignore;
+
+
+        QJsonObject jsonCsvDataList;
+        QJsonArray textCategory;
+        for(const auto& [typeName, lang_infos] : info.validateInfo)
+        {
+
+            QJsonObject typesObj;
+            typesObj[key(JsonKey::Name)] = typeName;
+
+            int numEmbededTypes = 0;
+            for(const auto& [lang, info] : lang_infos)
+            {
+                if(info.mode == ValidateTextMode::Ignore) { continue; }
+                if(info.count == 0 && info.width == 0) {
+                    continue;
+                }
+
+                QJsonObject validateTypeObj;
+                validateTypeObj[key(JsonKey::ValidateTextMode)] = info.mode;
+                QJsonObject validateSizeListObj;
+                validateSizeListObj[key(JsonKey::ValidateTextLength)] = info.count;
+                validateSizeListObj[key(JsonKey::ValidateTextWidth)] = info.width;
+                validateTypeObj[key(JsonKey::ValidateSizeList)] = validateSizeListObj;
+
+                typesObj[lang] = validateTypeObj;
+                numEmbededTypes++;
+            }
+            if(0 < numEmbededTypes){
+                textCategory.append(typesObj);
+            }
+        }
+        if(textCategory.empty() == false) {
+            script[key(JsonKey::ValidateTextCategory)] = textCategory;
+        }
+
         basicDataList.append(script);
     }
 
@@ -559,18 +513,44 @@ QByteArray settings::createJson()
     root[key(JsonKey::PackingInputDir)] = this->packingInputDirectory;
 
     QJsonObject validateJsonObjs;
-    validateJsonObjs[key(JsonKey::ValidateTextMode)] = static_cast<int>(this->validateObj.mode);
-    validateJsonObjs[key(JsonKey::ValidateSizeList)] = QJsonArray({this->validateObj.validationNumber});
-
-    QJsonArray jsonCsvDataList;
-    for(const auto& obj : validateObj.csvDataList) {
-        QJsonObject csvData;
-        csvData[key(JsonKey::Name)] = obj.name;
-        csvData[key(JsonKey::ValidateTextMode)] = obj.mode;
-        csvData[key(JsonKey::ValidateSizeList)] = QJsonArray({obj.validationNumber});
-        jsonCsvDataList.append(csvData);
+    validateJsonObjs[key(JsonKey::ValidateTextMode)] = static_cast<int>(this->validateObj.textInfo.mode);
+    {
+        QJsonObject validationCountObj;
+        validationCountObj[key(JsonKey::ValidateTextLength)] = this->validateObj.textInfo.count;
+        validationCountObj[key(JsonKey::ValidateTextWidth)] = this->validateObj.textInfo.width;
+        validateJsonObjs[key(JsonKey::ValidateSizeList)] = validationCountObj;
     }
-    validateJsonObjs[key(JsonKey::ValidateCSVList)] = jsonCsvDataList;
+
+    //QJsonArray jsonCsvDataList;
+    //for(const auto& csvData : validateObj.csvDataList) {
+    //    QJsonObject csvDataObj;
+    //    csvDataObj[key(JsonKey::Name)] = csvData.name;
+
+    //    QJsonObject typesObj;
+    //    int numEmbededTypes = 0;
+    //    for(auto it = csvData.types.begin(); it != csvData.types.end(); ++it) 
+    //    {
+    //        if(it.value().mode == ValidateTextMode::Ignore) { continue; }
+    //        if(it.value().validationCount == 0 && it.value().validationWidth == 0) {
+    //            continue;
+    //        }
+
+    //        QJsonObject validateTypeObj;
+    //        validateTypeObj[key(JsonKey::ValidateTextMode)] = it.value().mode;
+    //        QJsonObject validateSizeListObj;
+    //        validateSizeListObj[key(JsonKey::ValidateTextLength)] = it.value().validationCount;
+    //        validateSizeListObj[key(JsonKey::ValidateTextWidth)] = it.value().validationWidth;
+    //        validateTypeObj[key(JsonKey::ValidateSizeList)] = validateSizeListObj;
+    //        typesObj[it.key()] = validateTypeObj;
+    //        numEmbededTypes++;
+    //    }
+    //    if(0 < numEmbededTypes) 
+    //    {
+    //        csvDataObj[key(JsonKey::ValidateTextCategory)] = typesObj;
+    //        jsonCsvDataList.append(csvDataObj);
+    //    }
+    //}
+    //validateJsonObjs[key(JsonKey::ValidateCSVList)] = jsonCsvDataList;
 
     root[key(JsonKey::Validate)] = validateJsonObjs;
 
@@ -679,10 +659,28 @@ void settings::load(QString path)
         auto jsonScript = jsonInfo.toObject();
 
         auto name = jsonScript[key(JsonKey::Name)].toString();
+        auto isIgnore = jsonScript[key(JsonKey::Ignore)].toBool();
 
         try{
             auto& info = this->fetchBasicDataInfo(name);
-            info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
+            info.ignore = isIgnore;
+
+            //if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isObject()) {
+            //    QJsonObject typesObj = jsonScript[key(JsonKey::ValidateTextCategory)].toObject();
+            //    for(auto it = typesObj.begin(); it != typesObj.end(); ++it) {
+            //        if(!it.value().isObject()) continue;
+            //        QJsonObject validateTypeObj = it.value().toObject();
+
+            //        ValidateTextInfo validateType;
+            //        validateType.mode = static_cast<ValidateTextMode>(validateTypeObj[key(JsonKey::ValidateTextMode)].toInt());
+            //        if(validateTypeObj.contains(key(JsonKey::ValidateSizeList)) && validateTypeObj[key(JsonKey::ValidateSizeList)].isObject()) {
+            //            QJsonObject validateSizeListObj = validateTypeObj[key(JsonKey::ValidateSizeList)].toObject();
+            //            validateType.count = validateSizeListObj[key(JsonKey::ValidateTextLength)].toInt();
+            //            validateType.width = validateSizeListObj[key(JsonKey::ValidateTextWidth)].toInt();
+            //        }
+            //        info.validateInfo[it.key()] = validateType;
+            //    }
+            //}
         }
         catch(const char* mes){
 //            std::cerr << mes << std::endl;
@@ -746,27 +744,39 @@ void settings::load(QString path)
     this->packingInputDirectory = root[key(JsonKey::PackingInputDir)].toString();
 
     auto validateJsonObj = root[key(JsonKey::Validate)];
-    this->validateObj.mode = static_cast<ValidateTextMode>(validateJsonObj[key(JsonKey::ValidateTextMode)].toInt());
-    auto numberArray = validateJsonObj[key(JsonKey::ValidateSizeList)].toArray();
-    for(auto value : numberArray) {
-        this->validateObj.validationNumber = value.toInt();
-        break;
+    this->validateObj.textInfo.mode = static_cast<ValidateTextMode>(validateJsonObj[key(JsonKey::ValidateTextMode)].toInt());
+    {
+        auto numberObject = validateJsonObj[key(JsonKey::ValidateSizeList)];
+        this->validateObj.textInfo.count = numberObject[key(JsonKey::ValidateTextLength)].toInt();
+        this->validateObj.textInfo.width = numberObject[key(JsonKey::ValidateTextWidth)].toInt();
     }
 
-    auto jsonCsvDataList = validateJsonObj[key(JsonKey::ValidateCSVList)].toArray();
-    for(auto csvDataValue : jsonCsvDataList)
-    {
-        auto obj = csvDataValue.toObject();
-        ValidationProps::CSVData data;
-        data.name = obj[key(JsonKey::Name)].toString();
-        data.mode = static_cast<ValidateTextMode>(obj[key(JsonKey::ValidateTextMode)].toInt());
-        auto numberArray = obj[key(JsonKey::ValidateSizeList)].toArray();
-        for(auto val : numberArray) {
-            data.validationNumber = val.toInt();
-            break;
-        }
-        this->validateObj.csvDataList.emplace_back(std::move(data));
-    }
+    //auto jsonCsvDataList = validateJsonObj[key(JsonKey::ValidateCSVList)].toArray();
+    //for(auto csvDataValue : jsonCsvDataList)
+    //{
+    //    auto obj = csvDataValue.toObject();
+    //    ValidationInfoList data;
+    //    data.name = obj[key(JsonKey::Name)].toString();
+
+    //    if(obj.contains(key(JsonKey::ValidateTextCategory)) && obj[key(JsonKey::ValidateTextCategory)].isObject()) {
+    //        QJsonObject typesObj = obj[key(JsonKey::ValidateTextCategory)].toObject();
+    //        for(auto it = typesObj.begin(); it != typesObj.end(); ++it) {
+    //            if(!it.value().isObject()) continue;
+    //            QJsonObject validateTypeObj = it.value().toObject();
+
+    //            ValidateTextInfo validateType;
+    //            validateType.mode = static_cast<ValidateTextMode>(validateTypeObj[key(JsonKey::ValidateTextMode)].toInt());
+    //            if(validateTypeObj.contains(key(JsonKey::ValidateSizeList)) && validateTypeObj[key(JsonKey::ValidateSizeList)].isObject()) {
+    //                QJsonObject validateSizeListObj = validateTypeObj[key(JsonKey::ValidateSizeList)].toObject();
+    //                validateType.count = validateSizeListObj[key(JsonKey::ValidateTextLength)].toInt();
+    //                validateType.width = validateSizeListObj[key(JsonKey::ValidateTextWidth)].toInt();
+    //            }
+    //            data.types[it.key()] = validateType;
+    //        }
+    //    }
+
+    //    this->validateObj.csvDataList.emplace_back(std::move(data));
+    //}
 
 }
 

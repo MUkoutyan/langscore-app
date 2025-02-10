@@ -34,6 +34,7 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     , _invoker(new invoker(this))
     , _mutex()
     , csvTableViewModel(new PackingCSVTableViewModel())
+    , clipDetectSettingTree(new ClipDetectSettingTree(this->setting, this->history, this))
     , _finishInvoke(false)
     , errorInfoIndex(0)
     , currentShowCSV("")
@@ -55,6 +56,8 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
 
     this->ui->validateButton->setEnabled(false);
     this->ui->packingButton->setEnabled(false);
+
+    this->ui->verticalLayout_4->addWidget(this->clipDetectSettingTree);
 
 
     connect(this->ui->moveToWrite, &QToolButton::clicked, this, &PackingMode::toPrevPage);
@@ -181,22 +184,72 @@ void PackingMode::setupCsvTable(QString filePath)
 {
     if(currentShowCSV == filePath){ return; }
 
-    const auto SetInvalidCsvMessage = [this](int row, QString detail)
+    const auto SetInvalidCsvMessage = [this, &filePath](int row, QString detail)
     {
-        QString text;
-        if(detail.isEmpty()) {
-            //%1行目辺りの記述が原因かもしれません。
-            text += tr("This may be due to the description around the %1 line.").arg(row);
+        QStringList texts;
+        auto file = QFile(filePath);
+        if(file.open(QIODevice::ReadOnly)) {
+            texts = QString(file.readAll()).split("\n");
         }
-        else {
-            //%1行目の%2辺りの記述が原因かもしれません。
-            text += tr("The description around\n%2\nin the %1 row may be cause.").arg(row).arg(detail);
+
+        auto splitedDetail = detail.split("\n");
+        if(splitedDetail.empty() == false) 
+        {
+            auto splitedDetailLineSize = splitedDetail.size();
+            int lineNumber = -1;
+            //テキストの行数を取得
+            for(int i = 0; i < texts.size(); ++i) 
+            {
+                //末尾から検索
+                const auto& checkText = splitedDetail.back();
+
+                auto index = texts[i].indexOf(checkText);
+                if(index == -1) { continue; }
+
+                if(splitedDetailLineSize <= 1) {
+                    lineNumber = i+1;
+                    break;
+                }
+                else
+                {
+                    auto checkIndex = qMax(0, i - splitedDetailLineSize + 1);
+                    if(texts[checkIndex].contains(splitedDetail[0]))
+                    {
+                        for(int i = 1; i < splitedDetailLineSize - 1; ++i) {
+                            if(!texts[checkIndex + i].contains(splitedDetail[i])) {
+                                checkIndex = -1;
+                                break;
+                            }
+                        }
+                    }
+                    else {
+                        checkIndex = -1;
+                    }
+                    if(checkIndex != -1) {
+                        lineNumber = checkIndex+1;
+                        break;
+                    }
+                }
+            }
+
+            QString text;
+            if(detail.isEmpty()) {
+                //%1行目(テキストなら%2行目)辺りの記述が原因かもしれません。
+                text += tr("This may be due to the description around the %1 line.(line %2 for text)").arg(row).arg(lineNumber);
+            }
+            else {
+                //%1辺りの記述が原因かもしれません。(csv:%2行目 text:%3行目)
+                text += tr("The description around\n%1\nmay be the cause.(csv:%2 line, text:%3 line)").arg(detail).arg(row).arg(lineNumber);
+            }
+            this->ui->invalidCsvAboutText->setText(text);
         }
         this->ui->invalidCsvAboutText->show();
-        this->ui->invalidCsvAboutText->setText(text);
 
         this->ui->tableView->hide();
         this->ui->invalidCsvView->show();
+
+        lastSelectedInvalidCSVPath = filePath;
+        this->currentShowCSV = filePath;
     };
 
     if(this->errors.find(filePath) != this->errors.end()) {
@@ -209,7 +262,6 @@ void PackingMode::setupCsvTable(QString filePath)
             
             auto& info = *find_result;
             SetInvalidCsvMessage(info.row, info.detail);
-            lastSelectedInvalidCSVPath = filePath;
             return;
         }
     }
@@ -325,6 +377,8 @@ void PackingMode::showEvent(QShowEvent*)
         //MV/MZではパッキングの必要はありません
         this->ui->packingButton->setText(tr("No packing is required for MV/MZ."));
     }
+    
+    this->clipDetectSettingTree->setup();
 }
 
 void PackingMode::validate()
@@ -364,19 +418,21 @@ void PackingMode::validate()
     this->setupCsvTree();
 
     //設定ファイル側に整合性チェック用データが何も埋められていなくても保存対象にする。
-    if(this->setting->validateObj.csvDataList.empty() || needSave)
-    {
-        needSave = true;
-        this->setting->validateObj.csvDataList.clear();
-        auto numTreeItems = this->ui->treeWidget->topLevelItemCount();
+    //if(this->setting->validateObj.textInfo.empty() || needSave)
+    //{
+    //    needSave = true;
+    //    this->setting->validateObj.csvDataList.clear();
+    //    auto numTreeItems = this->ui->treeWidget->topLevelItemCount();
 
-        for(int i=0; i<numTreeItems; ++i)
-        {
-            auto item = this->ui->treeWidget->topLevelItem(i);
-            auto fileName = item->text(0);
-            this->setting->validateObj.csvDataList.emplace_back(fileName, settings::ValidateTextMode::Ignore, 0);
-        }
-    }
+    //    for(int i=0; i<numTreeItems; ++i)
+    //    {
+    //        auto item = this->ui->treeWidget->topLevelItem(i);
+    //        auto fileName = item->text(0);
+    //        settings::ValidationCSVInfo data;
+    //        data.name = fileName;
+    //        this->setting->validateObj.csvDataList.emplace_back(std::move(data));
+    //    }
+    //}
 
     if(needSave) {
         setting->saveForProject();

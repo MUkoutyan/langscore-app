@@ -6,11 +6,34 @@
 #include <unordered_map>
 #include <QFile>
 #include <QAbstractTableModel>
+#include <QStyledItemDelegate>
+#include <QSpinBox>
+#include <QComboBox>
 #include "ComponentBase.h"
+#include "ClipDetectSettingTree.h"
 
 namespace Ui {
 class PackingMode;
 }
+
+
+//class CustomDelegate : public QStyledItemDelegate
+//{
+//    Q_OBJECT
+//public:
+//    CustomDelegate(QObject* parent = nullptr);
+//
+//    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+//
+//    void setEditorData(QWidget* editor, const QModelIndex& index) const override;
+//
+//    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
+//
+//    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+//
+//signals:
+//    void detectModeIndexChanged(const QModelIndex& index, int value) const;
+//};
 
 struct ValidationErrorInfo
 {
@@ -104,6 +127,7 @@ private:
     std::unordered_map<QString, QTreeWidgetItem*> treeTopItemList;
     std::mutex _mutex;
     PackingCSVTableViewModel* csvTableViewModel;
+    ClipDetectSettingTree* clipDetectSettingTree;
     QTimer* updateTimer;
     bool _finishInvoke;
     size_t errorInfoIndex;

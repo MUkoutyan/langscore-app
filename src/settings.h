@@ -18,6 +18,18 @@ public:
         MZ
     };
 
+    enum FontType {
+        Global,
+        Local
+    };
+
+    enum ValidateTextMode {
+        Ignore,
+        TextCount,
+        TextWidth,
+    };
+
+
     struct Font {
         QString name = "";
         QString filePath = "";
@@ -33,15 +45,20 @@ public:
         }
     };
 
-    ProjectType projectType;
-    QString gameProjectPath;
-    std::vector<Language> languages;
-    QString defaultLanguage;
-    bool isFirstExported;
+    struct ValidateTextInfo {
+        ValidateTextMode mode = ValidateTextMode::Ignore;
+        int width = 0;
+        int count = 0;
+    };
 
-    //Analyze
-    QString langscoreProjectDirectory;
-    QString transFileOutputDirName = "Translate";
+    using TextValidationLangMap = std::map<QString, ValidateTextInfo>;
+    using TextValidateTypeMap = std::map<QString, TextValidationLangMap>;
+
+    struct ValidationProps
+    {
+        //全体共通の値
+        ValidateTextInfo textInfo;
+    };
 
     //Write
     struct BasicData
@@ -49,6 +66,8 @@ public:
         QString name = "";
         bool ignore = false;
         int writeMode = 0;
+        //key: typeName
+        TextValidateTypeMap validateInfo;
     };
 
     struct TextPoint
@@ -59,21 +78,16 @@ public:
         bool disable = false;	//元スクリプト変更によって位置が噛み合わなくなった場合true
         bool ignore = false;
         int writeMode = 0;
-        bool operator==(const std::pair<size_t,size_t>& x) const noexcept {
+        bool operator==(const std::pair<size_t, size_t>& x) const noexcept {
             return row == x.first && col == x.second;
         }
         bool operator==(const QString& x) const noexcept {
             return x == argName;
         }
     };
-    struct ScriptInfo : public BasicData
-    {
-        std::vector<TextPoint> ignorePoint;
-    };
 
-    enum FontType {
-        Global,
-        Local
+    struct ScriptInfo : public BasicData {
+        std::vector<TextPoint> ignorePoint;
     };
 
     struct WriteProps
@@ -90,6 +104,17 @@ public:
         std::vector<QString> ignorePicturePath;
         int writeMode = -1;
     };
+
+    ProjectType projectType;
+    QString gameProjectPath;
+    std::vector<Language> languages;
+    QString defaultLanguage;
+    bool isFirstExported;
+
+    //Analyze
+    QString langscoreProjectDirectory;
+    QString transFileOutputDirName = "Translate";
+
     WriteProps writeObj;
 
     //FontType, fontIndex(from:addApplicationFont), FontFamily, fontFilePath
@@ -97,25 +122,6 @@ public:
 
     //Packing
     QString packingInputDirectory;
-
-    enum ValidateTextMode {
-        Ignore,
-        TextCount,
-        TextWidth,
-    };
-
-    struct ValidationProps
-    {
-        struct CSVData {
-            QString name = "";  //PackingInputDir + nameでパスになる
-            ValidateTextMode mode = ValidateTextMode::Ignore;
-            int validationNumber = 0;
-        };
-        //全体共通の値
-        ValidateTextMode mode = ValidateTextMode::Ignore;
-        int validationNumber = 0;
-        std::vector<CSVData> csvDataList;
-    };
     ValidationProps validateObj;
 
     void setupLanguages(const std::vector<QLocale> &locales);
@@ -154,6 +160,9 @@ public:
     static ProjectType getProjectType(const QString& path);
 
     Font getDetafultFont() const;
+
+    TextValidateTypeMap getValidationCsvData(QString fileName);
+    TextValidateTypeMap& getValidationCsvDataRef(QString fileName);
 
 };
 
