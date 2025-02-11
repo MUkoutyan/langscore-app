@@ -250,7 +250,7 @@ void MainWindow::attachTheme(ColorTheme::Theme theme)
         darkPalette.setColor(QPalette::Link, QColor(74, 124, 149));
 
         darkPalette.setColor(QPalette::Highlight, QColor(74, 124, 149));
-        darkPalette.setColor(QPalette::HighlightedText, Qt::black);
+        darkPalette.setColor(QPalette::HighlightedText, Qt::white);
         darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
 
         qApp->setPalette(darkPalette);
