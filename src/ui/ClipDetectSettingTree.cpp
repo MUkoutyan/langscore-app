@@ -117,6 +117,10 @@ ClipDetectSettingTreeModel::ClipDetectSettingTreeModel(std::shared_ptr<settings>
        {QString("message"),          QObject::tr("message")},
        {QString("other"),            QObject::tr("other")},
     };
+
+    connect(this->history, &QUndoStack::indexChanged, this, [this](int idx) {
+        this->tree->viewport()->update();
+    });
 }
 
 QModelIndex ClipDetectSettingTreeModel::index(int row, int column, const QModelIndex& parent) const
@@ -359,26 +363,66 @@ bool ClipDetectSettingTreeModel::setData(const QModelIndex& index, const QVarian
 
     TreeNode* item = getItem(index);
 
-    if(role == ValidateInfo) {
-        //auto oldValue = data(index, role).value<settings::ValidateTextInfo>();
-        //auto newValue = value.value<settings::ValidateTextInfo>();
-        auto oldValue = data(index, role);
+    if(role == ValidateInfo) 
+    {
+        auto oldValue = data(index, ValidateInfo);
         auto newValue = value;
-        if(item->isGroup) {
-            history->push(new DetectTreeUndo(this, index, role, oldValue, newValue));
-            return true;
-        }
-        else {
-            if(oldValue != newValue) {
-                history->push(new DetectTreeUndo(this, index, role, oldValue, newValue));
-                return true;
-            }
-        }
+        auto langName = this->getLangName(index);
+        this->history->beginMacro("Change Detect Settings Values");
+        this->setValidateInfo(item, langName, newValue, oldValue);
+        this->history->endMacro();
+        return true;
     }
 
     return QAbstractItemModel::setData(index, value, role);
 }
 
+
+void ClipDetectSettingTreeModel::setValidateInfo(TreeNode* item, QString langName, const QVariant& newValue, const QVariant& oldValue)
+{
+    if(item->isGroup) {
+        history->push(new DetectTreeUndo(this, item, langName, oldValue, newValue));
+    }
+    else {
+        if(oldValue != newValue) {
+            history->push(new DetectTreeUndo(this, item, langName, oldValue, newValue));
+        }
+    }
+
+    auto info = newValue.value<settings::ValidateTextInfo>();
+    if(item->type == TreeNode::Batch)
+    {
+        item->getValidateTextInfo(langName) = info;
+        auto rootItem = this->getRootItem();
+        for(const auto& child : rootItem->children)
+        {
+            if(child->type != TreeNode::Files) { continue; }
+
+            std::vector<TreeNode*> matchingNodes;
+            this->findFilesNodesByName(child.get(), item->name, matchingNodes);
+            for(TreeNode* filesNode : matchingNodes) {
+                filesNode->getValidateTextInfo(langName) = info;
+                if(filesNode->settingData) {
+                    (*filesNode->settingData)[langName] = info;
+                }
+            }
+        }
+    }
+    else if(item->type == TreeNode::Files)
+    {
+        auto oldValue = item->getValidateTextInfo(langName);
+        if(item->isGroup == false && info != oldValue) {
+            item->getValidateTextInfo(langName) = info;
+            if(item->settingData) {
+                (*item->settingData)[langName] = info;
+            }
+        }
+        for(auto& child : item->children) {
+            setValidateInfo(child.get(), langName, newValue, QVariant::fromValue(child->getValidateTextInfo(langName)));
+        }
+    }
+
+}
 
 Qt::ItemFlags ClipDetectSettingTreeModel::flags(const QModelIndex& index) const
 {
@@ -572,6 +616,122 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     this->endResetModel();
 }
 
+void ClipDetectSettingTreeModel::SetMode(ClipDetectSettingTreeModel::TreeNode* node, const QModelIndex& index, settings::ValidateTextMode value, QUndoStack* history)
+{
+    if(node == nullptr) { return; }
+
+
+    auto langName = this->getLangName(index);
+    if(node->type == TreeNode::Batch)
+    {
+        node->getValidateTextInfo(langName).mode = value;
+
+        auto rootItem = this->getRootItem();
+        for(const auto& child : rootItem->children)
+        {
+            if(child->type != TreeNode::Files) { continue; }
+
+            std::vector<TreeNode*> matchingNodes;
+            this->findFilesNodesByName(child.get(), node->name, matchingNodes);
+            for(TreeNode* filesNode : matchingNodes) {
+                filesNode->getValidateTextInfo(langName).mode = value;
+                if(filesNode->settingData) {
+                    (*filesNode->settingData)[langName].mode = value;
+                }
+            }
+        }
+    }
+    else if(node->type == TreeNode::Files)
+    {
+        auto oldValue = node->getValidateTextInfo(langName).mode;
+        if(node->isGroup == false && value != oldValue) {
+            node->getValidateTextInfo(langName).mode = value;
+            if(node->settingData) {
+                (*node->settingData)[langName].mode = value;
+            }
+        }
+        for(auto& child : node->children) {
+            SetMode(child.get(), index, value, history);
+        }
+    }
+
+}
+
+void ClipDetectSettingTreeModel::SetCount(ClipDetectSettingTreeModel::TreeNode* node, const QModelIndex& index, int value, QUndoStack* history)
+{
+    if(node == nullptr) { return; }
+
+    auto langName = this->getLangName(index);
+    if(node->type == TreeNode::Batch)
+    {
+        node->getValidateTextInfo(langName).count = value;
+        auto rootItem = this->getRootItem();
+        for(const auto& child : rootItem->children)
+        {
+            if(child->type != TreeNode::Files) { continue; }
+
+            std::vector<TreeNode*> matchingNodes;
+            this->findFilesNodesByName(child.get(), node->name, matchingNodes);
+            for(TreeNode* filesNode : matchingNodes) {
+                filesNode->getValidateTextInfo(langName).count = value;
+                if(filesNode->settingData) {
+                    (*filesNode->settingData)[langName].count = value;
+                }
+            }
+        }
+    }
+    else if(node->type == TreeNode::Files)
+    {
+        auto oldValue = node->getValidateTextInfo(langName).count;
+        if(node->isGroup == false && value != oldValue) {
+            node->getValidateTextInfo(langName).count = value;
+            if(node->settingData) {
+                (*node->settingData)[langName].count = value;
+            }
+        }
+        for(auto& child : node->children) {
+            SetCount(child.get(), index, value, history);
+        }
+    }
+}
+
+void ClipDetectSettingTreeModel::SetWidth(ClipDetectSettingTreeModel::TreeNode* node, const QModelIndex& index, int value, QUndoStack* history)
+{
+    if(node == nullptr) { return; }
+
+    auto langName = this->getLangName(index);
+    if(node->type == TreeNode::Batch)
+    {
+        node->getValidateTextInfo(langName).width = value;
+        auto rootItem = this->getRootItem();
+        for(const auto& child : rootItem->children)
+        {
+            if(child->type != TreeNode::Files) { continue; }
+
+            std::vector<TreeNode*> matchingNodes;
+            this->findFilesNodesByName(child.get(), node->name, matchingNodes);
+            for(TreeNode* filesNode : matchingNodes) {
+                filesNode->getValidateTextInfo(langName).width = value;
+                if(filesNode->settingData) {
+                    (*filesNode->settingData)[langName].width = value;
+                }
+            }
+        }
+    }
+    else if(node->type == TreeNode::Files) {
+        auto oldValue = node->getValidateTextInfo(langName).width;
+        if(node->isGroup == false && value != oldValue) {
+            node->getValidateTextInfo(langName).width = value;
+            if(node->settingData) {
+                (*node->settingData)[langName].width = value;
+            }
+        }
+        for(auto& child : node->children) {
+            SetWidth(child.get(), index, value, history);
+        }
+    }
+}
+
 QModelIndex ClipDetectSettingTreeModel::getLastDescendantIndex(const QModelIndex& parentIndex, int column) const {
     QModelIndex last = parentIndex;
     while(rowCount(last) > 0) {
@@ -612,166 +772,25 @@ QString ClipDetectSettingTreeModel::getLangName(const QModelIndex& index) const
     return this->enableLangNames[namesIndex];
 }
 
-
 void ClipDetectSettingTreeModel::DetectTreeUndo::undo()
 {
-    TreeNode* item = parent->getItem(index);
-    if(item == nullptr) { return; }
-
-    if(role == ValidateInfo) 
-    {
-        auto info = oldValue.value<settings::ValidateTextInfo>();
-        this->SetMode(item, info.mode, parent->history);
-
-        auto langName = parent->getLangName(index);
-        if(info.mode == settings::ValidateTextMode::TextCount) {
-            this->SetCount(item, info.count, parent->history);
-        }
-        else if(info.mode == settings::ValidateTextMode::TextWidth) {
-            this->SetWidth(item, info.width, parent->history);
-        }
-    }
-    QModelIndex lastIndex = parent->getLastDescendantIndex(index, index.column());
-    parent->tree->viewport()->update();
-
+    auto value = oldValue.value<settings::ValidateTextInfo>();
+    this->setValue(value);
 }
 
 void ClipDetectSettingTreeModel::DetectTreeUndo::redo()
 {
-    TreeNode* item = parent->getItem(index);
-    if(item == nullptr) { return; }
-
-    if(role == ValidateInfo)
-    {
-        auto info = newValue.value<settings::ValidateTextInfo>();
-        this->SetMode(item, info.mode, parent->history);
-
-        auto langName = parent->getLangName(index);
-        if(info.mode == settings::ValidateTextMode::TextCount) {
-            this->SetCount(item, info.count, parent->history);
-        }
-        else if(info.mode == settings::ValidateTextMode::TextWidth) {
-            this->SetWidth(item, info.width, parent->history);
-        }
-    }
-    QModelIndex lastIndex = parent->getLastDescendantIndex(index, index.column());
-    parent->tree->viewport()->update();
+    auto value = newValue.value<settings::ValidateTextInfo>();
+    this->setValue(value);
 }
 
-
-
-void ClipDetectSettingTreeModel::DetectTreeUndo::SetMode(ClipDetectSettingTreeModel::TreeNode* node, settings::ValidateTextMode value, QUndoStack* history)
+void ClipDetectSettingTreeModel::DetectTreeUndo::setValue(settings::ValidateTextInfo value)
 {
-    if(node == nullptr) { return; }
-
-
-    auto langName = parent->getLangName(index);
-    if(node->type == TreeNode::Batch) 
-    {
-        node->getValidateTextInfo(langName).mode = value;
-
-        auto rootItem = parent->getRootItem();
-        for(const auto& child : rootItem->children)
-        {
-            if(child->type != TreeNode::Files) { continue; }
-
-            std::vector<TreeNode*> matchingNodes;
-            parent->findFilesNodesByName(child.get(), node->name, matchingNodes);
-            for(TreeNode* filesNode : matchingNodes) {
-                filesNode->getValidateTextInfo(langName).mode = value;
-                if(filesNode->settingData) {
-                    (*filesNode->settingData)[langName].mode = value;
-                }
-            }
-        }
-    }
-    else if(node->type == TreeNode::Files) 
-    {
-        auto oldValue = node->getValidateTextInfo(langName).mode;
-        if(node->isGroup == false && value != oldValue) {
-            node->getValidateTextInfo(langName).mode = value;
-            if(node->settingData) {
-                (*node->settingData)[langName].mode = value;
-            }
-        }
-        for(auto& child : node->children) {
-            SetMode(child.get(), value, history);
-        }
-    }
-
-}
-
-void ClipDetectSettingTreeModel::DetectTreeUndo::SetCount(ClipDetectSettingTreeModel::TreeNode* node, int value, QUndoStack* history)
-{
-    if(node == nullptr) { return; }
-
-    auto langName = parent->getLangName(index);
-    if(node->type == TreeNode::Batch) 
-    {
-        node->getValidateTextInfo(langName).count = value;
-        auto rootItem = parent->getRootItem();
-        for(const auto& child : rootItem->children)
-        {
-            if(child->type != TreeNode::Files) { continue; }
-
-            std::vector<TreeNode*> matchingNodes;
-            parent->findFilesNodesByName(child.get(), node->name, matchingNodes);
-            for(TreeNode* filesNode : matchingNodes) {
-                filesNode->getValidateTextInfo(langName).count = value;
-                if(filesNode->settingData) {
-                    (*filesNode->settingData)[langName].count = value;
-                }
-            }
-        }
-    }
-    else if(node->type == TreeNode::Files) 
-    {
-        auto oldValue = node->getValidateTextInfo(langName).count;
-        if(node->isGroup == false && value != oldValue) {
-            node->getValidateTextInfo(langName).count = value;
-            if(node->settingData) {
-                (*node->settingData)[langName].count = value;
-            }
-        }
-        for(auto& child : node->children) {
-            SetCount(child.get(), value, history);
-        }
-    }
-}
-
-void ClipDetectSettingTreeModel::DetectTreeUndo::SetWidth(ClipDetectSettingTreeModel::TreeNode* node, int value, QUndoStack* history)
-{
-    if(node == nullptr) { return; }
-
-    auto langName = parent->getLangName(index);
-    if(node->type == TreeNode::Batch) 
-    {
-        node->getValidateTextInfo(langName).width = value;
-        auto rootItem = parent->getRootItem();
-        for(const auto& child : rootItem->children)
-        {
-            if(child->type != TreeNode::Files) { continue; }
-
-            std::vector<TreeNode*> matchingNodes;
-            parent->findFilesNodesByName(child.get(), node->name, matchingNodes);
-            for(TreeNode* filesNode : matchingNodes) {
-                filesNode->getValidateTextInfo(langName).width = value;
-                if(filesNode->settingData) {
-                    (*filesNode->settingData)[langName].width = value;
-                }
-            }
-        }
-    }
-    else if(node->type == TreeNode::Files) {
-        auto oldValue = node->getValidateTextInfo(langName).width;
-        if(node->isGroup == false && value != oldValue) {
-            node->getValidateTextInfo(langName).width = value;
-            if(node->settingData) {
-                (*node->settingData)[langName].width = value;
-            }
-        }
-        for(auto& child : node->children) {
-            SetWidth(child.get(), value, history);
+    auto oldValue = item->getValidateTextInfo(langName);
+    if(item->isGroup == false && value != oldValue) {
+        item->getValidateTextInfo(langName) = value;
+        if(item->settingData) {
+            (*item->settingData)[langName] = value;
         }
     }
 }

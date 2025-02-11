@@ -51,8 +51,8 @@ public:
     struct DetectTreeUndo : QUndoCommand
     {
         using ValueType = bool;
-        DetectTreeUndo(ClipDetectSettingTreeModel* parent, const QModelIndex& index, int role, const QVariant& oldValue, const QVariant& newValue)
-            : parent(parent), index(index), role(role), oldValue(oldValue), newValue(newValue)
+        DetectTreeUndo(ClipDetectSettingTreeModel* parent, TreeNode* item, QString langName, const QVariant& oldValue, const QVariant& newValue)
+            : parent(parent), item(item), langName(langName), oldValue(oldValue), newValue(newValue)
         {
             setText("Change Detect Settings Value");
         }
@@ -62,17 +62,15 @@ public:
         void undo() override;
         void redo() override;
 
-    private:
-        void SetMode(ClipDetectSettingTreeModel::TreeNode* node, settings::ValidateTextMode value, QUndoStack* undoStack);
-        void SetCount(ClipDetectSettingTreeModel::TreeNode* node, int value, QUndoStack* undoStack);
-        void SetWidth(ClipDetectSettingTreeModel::TreeNode* node, int value, QUndoStack* undoStack);
 
     private:
         ClipDetectSettingTreeModel* parent;
-        int role;
-        QModelIndex index;
+        TreeNode* item;
+        QString langName;
         QVariant oldValue;
         QVariant newValue;
+
+        void setValue(settings::ValidateTextInfo info);
 
     };
 
@@ -113,6 +111,11 @@ private:
 
     QString getLangName(const QModelIndex& index) const;
 
+    void setValidateInfo(TreeNode* node, QString langName, const QVariant& newValue, const QVariant& oldValue);
+
+    void SetMode(TreeNode* node, const QModelIndex& index, settings::ValidateTextMode value, QUndoStack* undoStack);
+    void SetCount(TreeNode* node, const QModelIndex& index, int value, QUndoStack* undoStack);
+    void SetWidth(TreeNode* node, const QModelIndex& index, int value, QUndoStack* undoStack);
 };
 
 class ClipDetectSettingTree : public QTreeView
