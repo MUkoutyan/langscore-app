@@ -664,23 +664,50 @@ void settings::load(QString path)
         try{
             auto& info = this->fetchBasicDataInfo(name);
             info.ignore = isIgnore;
+            info.name = name;
 
-            //if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isObject()) {
-            //    QJsonObject typesObj = jsonScript[key(JsonKey::ValidateTextCategory)].toObject();
-            //    for(auto it = typesObj.begin(); it != typesObj.end(); ++it) {
-            //        if(!it.value().isObject()) continue;
-            //        QJsonObject validateTypeObj = it.value().toObject();
+            if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isArray())
+            {
+                auto typesArray = jsonScript[key(JsonKey::ValidateTextCategory)].toArray();
+                for(const auto& valueTypesData : typesArray)
+                {
+                    if(valueTypesData.isObject() == false) { continue; }
 
-            //        ValidateTextInfo validateType;
-            //        validateType.mode = static_cast<ValidateTextMode>(validateTypeObj[key(JsonKey::ValidateTextMode)].toInt());
-            //        if(validateTypeObj.contains(key(JsonKey::ValidateSizeList)) && validateTypeObj[key(JsonKey::ValidateSizeList)].isObject()) {
-            //            QJsonObject validateSizeListObj = validateTypeObj[key(JsonKey::ValidateSizeList)].toObject();
-            //            validateType.count = validateSizeListObj[key(JsonKey::ValidateTextLength)].toInt();
-            //            validateType.width = validateSizeListObj[key(JsonKey::ValidateTextWidth)].toInt();
-            //        }
-            //        info.validateInfo[it.key()] = validateType;
-            //    }
-            //}
+                    auto valueTypes = valueTypesData.toObject();
+                    auto keys = valueTypes.keys();
+                    QString typeName = "";
+                    TextValidateTypeMap validateTypeMap;
+                    TextValidationLangMap langMap;
+                    for(const auto& _key : keys)
+                    {
+                        if(_key == key(JsonKey::Name)) 
+                        {
+                            typeName = valueTypes[_key].toString();
+                        }
+                        else 
+                        {
+                            if(langMap.find(_key) == langMap.end()) {
+                                langMap[_key] = {};
+                            }
+
+                            auto langValue = valueTypes[_key].toObject();
+
+                            ValidateTextInfo validateType;
+                            validateType.mode = static_cast<ValidateTextMode>(langValue[key(JsonKey::ValidateTextMode)].toInt());
+                            if(langValue.contains(key(JsonKey::ValidateSizeList)) && langValue[key(JsonKey::ValidateSizeList)].isObject()) {
+                                QJsonObject validateSizeListObj = langValue[key(JsonKey::ValidateSizeList)].toObject();
+                                validateType.count = validateSizeListObj[key(JsonKey::ValidateTextLength)].toInt();
+                                validateType.width = validateSizeListObj[key(JsonKey::ValidateTextWidth)].toInt();
+                            }
+                            langMap[_key] = validateType;
+                        }
+                    }
+
+                    if(info.validateInfo.find(typeName) == info.validateInfo.end()) {
+                        info.validateInfo[typeName] = std::move(langMap);
+                    }
+                }
+            }
         }
         catch(const char* mes){
 //            std::cerr << mes << std::endl;

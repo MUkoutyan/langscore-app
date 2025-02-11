@@ -49,6 +49,41 @@ public:
         ValidateTextMode mode = ValidateTextMode::Ignore;
         int width = 0;
         int count = 0;
+
+        bool operator==(const ValidateTextInfo& infos) const noexcept {
+            return !(this->operator!=(infos));
+        }
+        bool operator!=(const ValidateTextInfo& infos) const noexcept 
+        {
+            if(infos.mode != this->mode) { return true; }
+            switch(this->mode) {
+            case ValidateTextMode::Ignore:
+                return false;
+            case ValidateTextMode::TextCount:
+                return infos.count != this->count;
+            case ValidateTextMode::TextWidth:
+                return infos.width != this->width;
+            }
+            return false;
+        }
+
+        int value() const noexcept {
+            if(this->mode == ValidateTextMode::TextCount) {
+                return this->count;
+            }
+            else if(this->mode == ValidateTextMode::TextWidth) {
+                return this->width;
+            }
+            return 0;
+        }
+        void setValue(int v) noexcept {
+            if(this->mode == ValidateTextMode::TextCount) {
+                this->count = v;
+            }
+            else if(this->mode == ValidateTextMode::TextWidth) {
+                this->width = v;
+            }
+        }
     };
 
     using TextValidationLangMap = std::map<QString, ValidateTextInfo>;
