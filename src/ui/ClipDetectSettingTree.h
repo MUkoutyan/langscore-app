@@ -22,6 +22,7 @@ public:
 
 private:
     ClipDetectSettingTreeModel* model;
+    std::array<QString, 3> textValidateModeText;
 
 };
 

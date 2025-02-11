@@ -17,15 +17,15 @@ constexpr static int ValidateInfo = Qt::UserRole + 1;
 
 Q_DECLARE_METATYPE(settings::ValidateTextInfo);
 
-static std::array<QString, 3> textValidateModeText = {
-    QObject::tr("Not Detect"),
-    QObject::tr("Text Length"),
-    QObject::tr("Text Width"),
-};
 
 ClipDetectSettingTreeDelegate::ClipDetectSettingTreeDelegate(ClipDetectSettingTreeModel* model, QObject* parent) 
     : QStyledItemDelegate(parent)
     , model(model)
+    , textValidateModeText({
+        tr("Not Detect"),
+        tr("Text Length"),
+        tr("Text Width"),
+    })
 {
 }
 
@@ -341,7 +341,7 @@ QVariant ClipDetectSettingTreeModel::data(const QModelIndex& index, int role) co
     {
         if(index.column() != 0 && item->isGroup) {
             auto color = QColor(Qt::white);
-            color.setAlpha(192);
+            color.setAlpha(162);
             return color;
         }
     }
@@ -503,7 +503,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     rootItem.reset(new TreeNode());
     // Batchという親アイテムを作成
     auto batchTopItem = std::make_unique<TreeNode>();
-    batchTopItem->name          = "Batch assignment";
+    batchTopItem->name          = tr("Batch assignment");
     batchTopItem->type          = TreeNode::Batch;
     batchTopItem->validateLangMap  = langMap;
     batchTopItem->isGroup       = true;
@@ -529,7 +529,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
 
     // Filesという親アイテムを作成
     auto filesTopItem = std::make_unique<TreeNode>();
-    filesTopItem->name          = "Files";
+    filesTopItem->name          = tr("Specify by file");
     filesTopItem->type          = TreeNode::Files;
     filesTopItem->validateLangMap  = langMap;
     filesTopItem->isGroup       = true;
