@@ -6,40 +6,29 @@
 #include <QSpinBox>
 #include <QMouseEvent>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QDir>
+
+#include <unordered_map>
 
 using namespace langscore;
 
-constexpr static int ValidateTypeRole = Qt::UserRole + 1;
-constexpr static int ValidateNumber = ValidateTypeRole + 1;
+constexpr static int ValidateInfo = Qt::UserRole + 1;
 
+Q_DECLARE_METATYPE(settings::ValidateTextInfo);
 
-std::array<QString, 3> textValidateModeText = {
+static std::array<QString, 3> textValidateModeText = {
     QObject::tr("Not Detect"),
     QObject::tr("Text Length"),
     QObject::tr("Text Width"),
 };
 
-ClipDetectSettingTreeDelegate::ClipDetectSettingTreeDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
+ClipDetectSettingTreeDelegate::ClipDetectSettingTreeDelegate(ClipDetectSettingTreeModel* model, QObject* parent) 
+    : QStyledItemDelegate(parent)
+    , model(model)
+{
+}
 
-//QWidget* ClipDetectSettingTreeDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const 
-//{
-//    if (index.column() == 1) {
-//        QComboBox* editor = new QComboBox(parent);
-//        editor->addItems(QStringList{textValidateModeText.begin(), textValidateModeText.end()});
-//        connect(editor, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, editor, index](int value) {
-//            emit detectModeIndexChanged(index, value);
-//        });
-//        connect(editor, &QComboBox::currentTextChanged, editor, &QComboBox::close);
-//        return editor;
-//    } else if (index.column() == 2) {
-//        QSpinBox* editor = new QSpinBox(parent);
-//        editor->setMinimum(0);
-//        editor->setMaximum(200);
-//        return editor;
-//    }
-//    return QStyledItemDelegate::createEditor(parent, option, index);
-//}
 
 QWidget* ClipDetectSettingTreeDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
@@ -54,12 +43,14 @@ QWidget* ClipDetectSettingTreeDelegate::createEditor(QWidget* parent, const QSty
 
         QSpinBox* spinBox = new QSpinBox(editor);
         spinBox->setMinimum(0);
-        spinBox->setMaximum(200);
+        spinBox->setMaximum(10000);
         layout->addWidget(spinBox);
 
         connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, comboBox, spinBox, index](int value) {
-            emit detectModeIndexChanged(index, value);
             spinBox->setEnabled(value != 0);
+        });
+        connect(spinBox, &QSpinBox::valueChanged, this, [this, comboBox, spinBox, index](int value) {
+            qDebug() << "valueChanged : " << value;
         });
 
         return editor;
@@ -68,30 +59,18 @@ QWidget* ClipDetectSettingTreeDelegate::createEditor(QWidget* parent, const QSty
 }
 
 
-//void ClipDetectSettingTreeDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const {
-//    if (QSpinBox* spinBox = qobject_cast<QSpinBox*>(editor)) {
-//        spinBox->setValue(index.model()->data(index, ValidateNumber).toInt());
-//    } else if (QComboBox* comboBox = qobject_cast<QComboBox*>(editor)) {
-//        comboBox->setCurrentText(textValidateModeText[index.model()->data(index, ValidateTypeRole).toInt()]);
-//        comboBox->showPopup();
-//    } else {
-//        QStyledItemDelegate::setEditorData(editor, index);
-//    }
-//}
-
 void ClipDetectSettingTreeDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const {
     if(index.column() >= 1) {
         QComboBox* comboBox = editor->findChild<QComboBox*>();
         QSpinBox* spinBox = editor->findChild<QSpinBox*>();
 
         if(comboBox && spinBox) {
-            auto comboBoxIndex = index.model()->data(index, ValidateTypeRole).toInt();
-            comboBox->setCurrentText(textValidateModeText[comboBoxIndex]);
-            spinBox->setValue(index.model()->data(index, ValidateNumber).toInt());
-            if(comboBoxIndex == 0) {
+            const auto& info = index.model()->data(index, ValidateInfo).value<settings::ValidateTextInfo>();
+            comboBox->setCurrentText(textValidateModeText[info.mode]);
+            spinBox->setValue(info.value());
+            if(info.mode == settings::ValidateTextMode::Ignore) {
                 spinBox->setEnabled(false);
             }
-            //comboBox->showPopup();
         }
     }
     else {
@@ -99,26 +78,18 @@ void ClipDetectSettingTreeDelegate::setEditorData(QWidget* editor, const QModelI
     }
 }
 
-//void ClipDetectSettingTreeDelegate::setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const 
-//{
-//    if (QSpinBox* spinBox = qobject_cast<QSpinBox*>(editor)) {
-//        model->setData(index, spinBox->value(), ValidateNumber);
-//    } else if (QComboBox* comboBox = qobject_cast<QComboBox*>(editor)) {
-//        model->setData(index, comboBox->currentIndex(), ValidateTypeRole);
-//    } else {
-//        QStyledItemDelegate::setModelData(editor, model, index);
-//    }
-//}
-
 void ClipDetectSettingTreeDelegate::setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const
 {
-    if(index.column() >= 1) {
+    if(1 <= index.column()) {
         QComboBox* comboBox = editor->findChild<QComboBox*>();
         QSpinBox* spinBox = editor->findChild<QSpinBox*>();
 
         if(comboBox && spinBox) {
-            model->setData(index, comboBox->currentIndex(), ValidateTypeRole);
-            model->setData(index, spinBox->value(), ValidateNumber);
+
+            settings::ValidateTextInfo info;
+            info.mode = static_cast<settings::ValidateTextMode>(comboBox->currentIndex());
+            info.setValue(spinBox->value());
+            model->setData(index, QVariant::fromValue(info), ValidateInfo);
         }
     }
     else {
@@ -128,13 +99,6 @@ void ClipDetectSettingTreeDelegate::setModelData(QWidget* editor, QAbstractItemM
 
 QSize ClipDetectSettingTreeDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const {
     QSize size = QStyledItemDelegate::sizeHint(option, index);
-    size.setHeight(24);
-    if(index.column() == 0) {
-        size.setWidth(160);
-    }
-    else {
-        size.setWidth(320);
-    }
     return size;
 }
 
@@ -142,15 +106,17 @@ void ClipDetectSettingTreeDelegate::updateEditorGeometry(QWidget* editor, const 
     editor->setGeometry(option.rect);
 }
 
-void ClipDetectSettingTreeDelegate::detectModeIndexChanged(const QModelIndex& index, int value) const
-{
-}
-
 ClipDetectSettingTreeModel::ClipDetectSettingTreeModel(std::shared_ptr<settings> settings, QUndoStack* history, ClipDetectSettingTree* parent)
     : QAbstractItemModel(parent), tree(parent), history(history), setting(settings), rootItem(nullptr)
-
 {
-    //setupClipDetectTree();
+    typeNameTranslateList = {
+       {QString("name"),             QObject::tr("name")},
+       {QString("description"),      QObject::tr("description")},
+       {QString("messageWithIcon"),  QObject::tr("messageWithIcon")},
+       {QString("battleMessage"),    QObject::tr("battleMessage")},
+       {QString("message"),          QObject::tr("message")},
+       {QString("other"),            QObject::tr("other")},
+    };
 }
 
 QModelIndex ClipDetectSettingTreeModel::index(int row, int column, const QModelIndex& parent) const
@@ -223,6 +189,48 @@ int ClipDetectSettingTreeModel::columnCount(const QModelIndex& parent) const
     return 1 + enableLangNames.size();
 }
 
+static bool HasNotDefaultParameter(ClipDetectSettingTreeModel::TreeNode const* const node)
+{
+    for(auto& [lang, infos] : node->validateLangMap) {
+        if(infos != settings::ValidateTextInfo{}) {
+            return true;
+        }
+    }
+
+    for(const auto& child : node->children) {
+        auto result = HasNotDefaultParameter(child.get());
+        if(result) { return true; }
+    }
+
+    return false;
+}
+
+static bool IsChildrenSameParameters(QString langName, ClipDetectSettingTreeModel::TreeNode const* const node, settings::ValidateTextInfo& baseInfo, bool& first)
+{
+    for(const auto& child : node->children)
+    {
+        if(child->isGroup) {
+            if(IsChildrenSameParameters(langName, child.get(), baseInfo, first) == false){
+                return false;
+            }
+            continue;
+        }
+        if(child->validateLangMap.find(langName) != child->validateLangMap.end())
+        {
+            auto& info = child->validateLangMap[langName];
+            if(first) {
+                baseInfo = info;
+                first = false;
+                continue;
+            }
+            if(baseInfo != info) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 QVariant ClipDetectSettingTreeModel::data(const QModelIndex& index, int role) const
 {
     if(!index.isValid()) {
@@ -231,41 +239,113 @@ QVariant ClipDetectSettingTreeModel::data(const QModelIndex& index, int role) co
 
     TreeNode* item = getItem(index);
 
-    if(role == Qt::DisplayRole) {
-        if(index.column() == 0) {
+    if(role == Qt::DisplayRole) 
+    {
+        if(index.column() == 0) 
+        {
+            if(item->children.empty()) {
+                if(typeNameTranslateList.find(item->name) != typeNameTranslateList.end()) {
+                    return typeNameTranslateList.at(item->name);
+                }
+            }
+            else if(item->parent && item->parent->name == "Maps") 
+            {
+                int mapID = -1;
+                if(QRegularExpression("Map\\d\\d\\d").match(item->name).hasMatch())
+                {
+                    auto fileID = item->name;
+                    fileID.remove("Map");
+                    bool isOK = false;
+                    mapID = fileID.toInt(&isOK);
+                    if(isOK == false) {
+                        mapID = -1;
+                    }
+                    else {
+                        auto result = std::find_if(mapInfosCsv.cbegin(), mapInfosCsv.cend(), [mapID](const auto& x) {
+                            return x[0].toInt() == mapID;
+                            });
+                        if(result != mapInfosCsv.cend()) {
+                            return item->name + "(" + (*result)[2] + ")";
+                        }
+                    }
+                }
+            }
+
             return item->name;
         }
         else 
         {
+            if(item->isGroup && item->type == TreeNode::Batch) {
+                return QVariant();
+            }
+            const auto GetText = [](const settings::ValidateTextInfo& validateInfo) {
+                QString text = "";
+                if(validateInfo.mode == settings::ValidateTextMode::TextCount) {
+                    text = tr("Text Length") + QString(" : %1").arg(validateInfo.count);
+                }
+                else if(validateInfo.mode == settings::ValidateTextMode::TextWidth) {
+                    text = tr("Text Width") + QString(" : %1").arg(validateInfo.width);
+                }
+                else {
+                    text = tr("Not Detect");
+                }
+                return text;
+            };
             auto langName = this->getLangName(index);
-            const auto& validateInfo = item->getValidateTextInfo(langName);
-            QString text = "";
-            if(validateInfo.mode == settings::ValidateTextMode::TextCount) {
-                text = tr("Text Count : %1").arg(validateInfo.count);
+            if(item->isGroup)
+            {
+                settings::ValidateTextInfo baseInfo;
+                bool isFirst = true;
+                auto sameItems = IsChildrenSameParameters(langName, item, baseInfo, isFirst);
+
+                if(sameItems) {
+                    return GetText(baseInfo);
+                }
+                else {
+                    //複数の設定
+                    return tr("Multiple settings");
+                }
             }
-            else if(validateInfo.mode == settings::ValidateTextMode::TextWidth) {
-                text = tr("Text Width : %1").arg(validateInfo.width);
+            else 
+            {
+                const auto& validateInfo = item->getValidateTextInfo(langName);
+                return GetText(validateInfo);
             }
-            else {
-                text = tr("Not Detect");
-            }
-            return text;
         }
     }
-    else if(role == ValidateNumber) 
+    else if(role == Qt::SizeHintRole) 
+    {
+        auto defaultSize = QSize(400, 24);
+        if(item->isGroup) {
+            defaultSize.setHeight(double(defaultSize.height()) * 1.4);
+            return defaultSize;
+        }
+        return defaultSize;
+    }
+    else if(role == Qt::FontRole)
+    {
+        if(index.column() == 0) {
+            QFont font;
+            auto result = HasNotDefaultParameter(item);
+            font.setItalic(result);
+            font.setBold(result);
+            return font;
+            
+        }
+    }
+    else if(role == Qt::ForegroundRole)
+    {
+        if(index.column() != 0 && item->isGroup) {
+            auto color = QColor(Qt::white);
+            color.setAlpha(192);
+            return color;
+        }
+    }
+    else if(role == ValidateInfo) 
     {
         auto langName = this->getLangName(index);
         const auto& validateInfo = item->getValidateTextInfo(langName);
-        if(validateInfo.mode == settings::ValidateTextMode::TextCount) {
-            return validateInfo.count;
-        }
-        else if(validateInfo.mode == settings::ValidateTextMode::TextWidth) {
-            return validateInfo.width;
-        }
-    }
-    else if(role == ValidateTypeRole) {
-        auto langName = this->getLangName(index);
-        return static_cast<int>(item->getValidateTextInfo(langName).mode);
+        return QVariant::fromValue(validateInfo);
     }
 
     return QVariant();
@@ -279,68 +359,34 @@ bool ClipDetectSettingTreeModel::setData(const QModelIndex& index, const QVarian
 
     TreeNode* item = getItem(index);
 
-    if(role == ValidateTypeRole) {
-        auto oldValue = static_cast<settings::ValidateTextMode>(data(index, role).toInt());
-        auto newValue = static_cast<settings::ValidateTextMode>(value.toInt());
-        if(oldValue != newValue) {
+    if(role == ValidateInfo) {
+        //auto oldValue = data(index, role).value<settings::ValidateTextInfo>();
+        //auto newValue = value.value<settings::ValidateTextInfo>();
+        auto oldValue = data(index, role);
+        auto newValue = value;
+        if(item->isGroup) {
             history->push(new DetectTreeUndo(this, index, role, oldValue, newValue));
-            emit dataChanged(index, index, {role});
             return true;
         }
-    }
-    else if(role == ValidateNumber) {
-        auto oldValue = data(index, role).toInt();
-        if(oldValue != value.toInt()) {
-            history->push(new DetectTreeUndo(this, index, role, oldValue, value));
-            emit dataChanged(index, index, {role});
-            return true;
+        else {
+            if(oldValue != newValue) {
+                history->push(new DetectTreeUndo(this, index, role, oldValue, newValue));
+                return true;
+            }
         }
     }
 
     return QAbstractItemModel::setData(index, value, role);
 }
 
-//bool ClipDetectSettingTreeModel::setData(const QModelIndex& index, const QVariant& value, int role)
-//{
-//    if(!index.isValid()) {
-//        return false;
-//    }
-//
-//    TreeNode* item = getItem(index);
-//
-//    int col = index.column();
-//    if(role == Qt::EditRole)
-//    {
-//        if(col == 1) {
-//            auto oldValue = static_cast<settings::ValidateTextMode>(data(index, role).toInt());
-//            auto newValue = static_cast<settings::ValidateTextMode>(value.toInt());
-//            if(oldValue != newValue) {
-//                history->push(new DetectTreeUndo(this, index, oldValue, newValue));
-//            }
-//            return true;
-//        }
-//        else if(col == 2) {
-//            auto oldValue = data(index, role);
-//            if(item->validateType.mode == settings::ValidateTextMode::TextCount) {
-//                if(oldValue != value) {
-//                    history->push(new DetectTreeUndo(this, index, oldValue, value));
-//                }
-//                return true;
-//            }
-//            else if(item->validateType.mode == settings::ValidateTextMode::TextWidth) {
-//                if(oldValue != value) {
-//                    history->push(new DetectTreeUndo(this, index, oldValue, value));
-//                }
-//                return true;
-//            }
-//        }
-//    }
-//    return QAbstractItemModel::setData(index, value, role);
-//}
-
 
 Qt::ItemFlags ClipDetectSettingTreeModel::flags(const QModelIndex& index) const
 {
+    if(auto item = this->getItem(index)) {
+        if(item->isGroup && item->type == TreeNode::Batch) {
+            return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
+        }
+    }
     if(index.isValid() == false) {
         return Qt::NoItemFlags;
     }
@@ -368,6 +414,7 @@ QVariant ClipDetectSettingTreeModel::headerData(int section, Qt::Orientation ori
     return QVariant();
 }
 
+
 void ClipDetectSettingTreeModel::setupClipDetectTree()
 {
     QStringList currentEnableLangNames;
@@ -382,6 +429,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     enableLangNames = std::move(currentEnableLangNames);
 
     auto csvList = QDir{setting->analyzeDirectoryPath()}.entryInfoList({"*.csv"});
+    this->mapInfosCsv = readCsv(setting->analyzeDirectoryPath() + "/MapInfos.csv");
 
     // 解析CSVから文字列のタイプを取得する。
     std::map<QString, std::set<QString>> csvNameTypeMap;
@@ -411,30 +459,37 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     rootItem.reset(new TreeNode());
     // Batchという親アイテムを作成
     auto batchTopItem = std::make_unique<TreeNode>();
-    batchTopItem->name = "Batch assignment";
-    batchTopItem->type = TreeNode::Batch;
-    batchTopItem->validateType = langMap;
-    batchTopItem->parent = rootItem.get();
+    batchTopItem->name          = "Batch assignment";
+    batchTopItem->type          = TreeNode::Batch;
+    batchTopItem->validateLangMap  = langMap;
+    batchTopItem->isGroup       = true;
+    batchTopItem->parent        = rootItem.get();
     rootItem->children.emplace_back(std::move(batchTopItem));
     auto batchTopItemPtr = rootItem->children.back().get();
+
+    //tuple : isFirst, isSame
+    std::unordered_map<QString, std::tuple<bool, bool, TreeNode*>> checkSameParameter;
 
     // Batch内にnameTypeListのツリーを作成
     for(auto& nameType : batchNameTypeList)
     {
-        auto batchItem = std::make_unique<TreeNode>();
-        batchItem->name = nameType;
-        batchItem->type = TreeNode::Batch;
-        batchItem->validateType = langMap;
-        batchItem->parent = batchTopItemPtr;
+        auto batchItem  = std::make_unique<TreeNode>();
+        batchItem->name             = nameType;
+        batchItem->type             = TreeNode::Batch;
+        batchItem->validateLangMap  = langMap;
+        batchItem->parent           = batchTopItemPtr;
         batchTopItemPtr->children.emplace_back(std::move(batchItem));
+
+        checkSameParameter.emplace(nameType, std::forward_as_tuple(true, true, batchTopItemPtr->children.back().get()));
     }
 
     // Filesという親アイテムを作成
     auto filesTopItem = std::make_unique<TreeNode>();
-    filesTopItem->name = "Files";
-    filesTopItem->type = TreeNode::Files;
-    filesTopItem->validateType = langMap;
-    filesTopItem->parent = rootItem.get();
+    filesTopItem->name          = "Files";
+    filesTopItem->type          = TreeNode::Files;
+    filesTopItem->validateLangMap  = langMap;
+    filesTopItem->isGroup       = true;
+    filesTopItem->parent        = rootItem.get();
     rootItem->children.emplace_back(std::move(filesTopItem));
     auto filesTopItemPtr = rootItem->children.back().get();
 
@@ -450,43 +505,65 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
         {
             if(mapsTopItemPtr == nullptr) {
                 auto mapsTopItem = std::make_unique<TreeNode>();
-                mapsTopItem->name = "Maps";
-                mapsTopItem->type = TreeNode::Files;
-                mapsTopItem->validateType = langMap;
-                mapsTopItem->parent = filesTopItemPtr;
+                mapsTopItem->name           = "Maps";
+                mapsTopItem->type           = TreeNode::Files;
+                mapsTopItem->validateLangMap   = langMap;
+                mapsTopItem->isGroup        = true;
+                mapsTopItem->parent         = filesTopItemPtr;
                 filesTopItemPtr->children.emplace_back(std::move(mapsTopItem));
                 mapsTopItemPtr = filesTopItemPtr->children.back().get();
             }
-            auto topItem = std::make_unique<TreeNode>();
-            topItem->name = fileName;
-            topItem->type = TreeNode::Files;
-            topItem->validateType = langMap;
-            topItem->parent = mapsTopItemPtr;
-            mapsTopItemPtr->children.emplace_back(std::move(topItem));
+            auto mapItem = std::make_unique<TreeNode>();
+            mapItem->name           = fileName;
+            mapItem->type           = TreeNode::Files;
+            mapItem->validateLangMap   = langMap;
+            mapItem->isGroup        = true;
+            mapItem->parent         = mapsTopItemPtr;
+            mapsTopItemPtr->children.emplace_back(std::move(mapItem));
             topItemPtr = mapsTopItemPtr->children.back().get();
         }
         else {
             auto topItem = std::make_unique<TreeNode>();
-            topItem->name = fileName;
-            topItem->type = TreeNode::Files;
-            topItem->validateType = langMap;
-            topItem->parent = filesTopItemPtr;
+            topItem->name       = fileName;
+            topItem->type       = TreeNode::Files;
+            topItem->validateLangMap = langMap;
+            topItem->isGroup    = true;
+            topItem->parent     = filesTopItemPtr;
             filesTopItemPtr->children.emplace_back(std::move(topItem));
             topItemPtr = filesTopItemPtr->children.back().get();
         }
 
-        auto& csvData = this->setting->getValidationCsvDataRef(fileName);
+        auto& validateInfo = this->setting->getValidationCsvDataRef(fileName);
         const auto& nameTypeList = csvNameTypeMap.at(fileName);
         for(auto& nameType : nameTypeList)
         {
             auto childItem = std::make_unique<TreeNode>();
             childItem->name = nameType;
             childItem->type = TreeNode::Files;
-            if(csvData.find(nameType) == csvData.end()) {
-                csvData[nameType] = langMap;
+            if(validateInfo.find(nameType) == validateInfo.end()) {
+                validateInfo[nameType] = langMap;
             }
-            childItem->validateType = csvData.at(nameType);
-            childItem->settingData = &csvData[nameType];
+            childItem->validateLangMap = validateInfo.at(nameType);
+
+            auto& [isFirst, isSame, node] = checkSameParameter[nameType];
+            if(isSame)
+            {
+                if(isFirst) {
+                    node->validateLangMap = childItem->validateLangMap;
+                    isFirst = false;
+                }
+                else {
+                    for(const auto& [lang, info] : node->validateLangMap)
+                    {
+                        if(childItem->validateLangMap[lang] != info) {
+                            isSame = false;
+                            childItem->validateLangMap[lang] = settings::ValidateTextInfo{};
+                        }
+                    }
+                }
+            }
+
+            childItem->settingData = &validateInfo[nameType];
             childItem->parent = topItemPtr;
             topItemPtr->children.emplace_back(std::move(childItem));
         }
@@ -505,7 +582,7 @@ QModelIndex ClipDetectSettingTreeModel::getLastDescendantIndex(const QModelIndex
 
 void ClipDetectSettingTreeModel::findFilesNodesByName(TreeNode* current, const QString& targetName, std::vector<TreeNode*>& result) const {
     if(current->type == TreeNode::Files && current->name == targetName) {
-        result.push_back(current);
+        result.emplace_back(current);
     }
     for(const auto& child : current->children) {
         findFilesNodesByName(child.get(), targetName, result);
@@ -536,72 +613,25 @@ QString ClipDetectSettingTreeModel::getLangName(const QModelIndex& index) const
 }
 
 
-ClipDetectSettingTree::ClipDetectSettingTree(std::shared_ptr<settings> setting, QUndoStack* history, QWidget* parent)
-    : QTreeView(parent) 
-    , setting(setting)
-    , model(new ClipDetectSettingTreeModel(setting, history, this))
-{
-    this->setModel(model);
-
-    this->setAlternatingRowColors(true);
-    this->setAnimated(true);
-
-    ClipDetectSettingTreeDelegate* delegate = new ClipDetectSettingTreeDelegate(this);
-    this->setItemDelegateForColumn(1, delegate); // 2列目にデリゲートを設定
-    this->setItemDelegateForColumn(2, delegate); // 3列目にデリゲートを設定
-
-    connect(history, &QUndoStack::indexChanged, this, [this](int) { this->update(); });
-}
-
-void ClipDetectSettingTree::setup()
-{
-    this->model->setupClipDetectTree();
-}
-
-void ClipDetectSettingTree::mousePressEvent(QMouseEvent* event) 
-{
-    QModelIndex index = indexAt(event->pos());
-
-    if(index.isValid()) {
-        // 前回クリックしたセルと異なる場合、最初のクリックでは確定のみ行う
-        if(index != lastClickedIndex) {
-            // QComboBox の場合、即時確定する
-            if(indexWidget(lastClickedIndex) != nullptr) {
-                qDebug() << "close";
-                closePersistentEditor(lastClickedIndex); // 現在のエディタを閉じる（確定する）
-                lastClickedIndex = index;
-                return; // このクリックでは新しいエディタを開かない
-            }
-        }
-
-        // 2回目のクリック（または同じセルのクリック）でエディタを開く
-        lastClickedIndex = index;
-        edit(index);
-    }
-
-    QTreeView::mousePressEvent(event);
-}
-
-
 void ClipDetectSettingTreeModel::DetectTreeUndo::undo()
 {
     TreeNode* item = parent->getItem(index);
     if(item == nullptr) { return; }
 
-    if(role == ValidateTypeRole) {
-        this->SetMode(item, static_cast<settings::ValidateTextMode>(oldValue.toInt()), parent->history);
-    }
-    else if(role == ValidateNumber) {
+    if(role == ValidateInfo) 
+    {
+        auto info = oldValue.value<settings::ValidateTextInfo>();
+        this->SetMode(item, info.mode, parent->history);
+
         auto langName = parent->getLangName(index);
-        if(item->getValidateTextInfo(langName).mode == settings::ValidateTextMode::TextCount) {
-            this->SetCount(item, oldValue.toInt(), parent->history);
+        if(info.mode == settings::ValidateTextMode::TextCount) {
+            this->SetCount(item, info.count, parent->history);
         }
-        else if(item->getValidateTextInfo(langName).mode == settings::ValidateTextMode::TextWidth) {
-            this->SetWidth(item, oldValue.toInt(), parent->history);
+        else if(info.mode == settings::ValidateTextMode::TextWidth) {
+            this->SetWidth(item, info.width, parent->history);
         }
     }
     QModelIndex lastIndex = parent->getLastDescendantIndex(index, index.column());
-    emit parent->dataChanged(index, lastIndex);
     parent->tree->viewport()->update();
 
 }
@@ -611,20 +641,20 @@ void ClipDetectSettingTreeModel::DetectTreeUndo::redo()
     TreeNode* item = parent->getItem(index);
     if(item == nullptr) { return; }
 
-    if(role == ValidateTypeRole) {
-        this->SetMode(item, static_cast<settings::ValidateTextMode>(newValue.toInt()), parent->history);
-    }
-    else if(role == ValidateNumber) {
+    if(role == ValidateInfo)
+    {
+        auto info = newValue.value<settings::ValidateTextInfo>();
+        this->SetMode(item, info.mode, parent->history);
+
         auto langName = parent->getLangName(index);
-        if(item->getValidateTextInfo(langName).mode == settings::ValidateTextMode::TextCount) {
-            this->SetCount(item, newValue.toInt(), parent->history);
+        if(info.mode == settings::ValidateTextMode::TextCount) {
+            this->SetCount(item, info.count, parent->history);
         }
-        else if(item->getValidateTextInfo(langName).mode == settings::ValidateTextMode::TextWidth) {
-            this->SetWidth(item, newValue.toInt(), parent->history);
+        else if(info.mode == settings::ValidateTextMode::TextWidth) {
+            this->SetWidth(item, info.width, parent->history);
         }
     }
     QModelIndex lastIndex = parent->getLastDescendantIndex(index, index.column());
-    emit parent->dataChanged(index, lastIndex);
     parent->tree->viewport()->update();
 }
 
@@ -658,7 +688,7 @@ void ClipDetectSettingTreeModel::DetectTreeUndo::SetMode(ClipDetectSettingTreeMo
     else if(node->type == TreeNode::Files) 
     {
         auto oldValue = node->getValidateTextInfo(langName).mode;
-        if(value != oldValue) {
+        if(node->isGroup == false && value != oldValue) {
             node->getValidateTextInfo(langName).mode = value;
             if(node->settingData) {
                 (*node->settingData)[langName].mode = value;
@@ -697,7 +727,7 @@ void ClipDetectSettingTreeModel::DetectTreeUndo::SetCount(ClipDetectSettingTreeM
     else if(node->type == TreeNode::Files) 
     {
         auto oldValue = node->getValidateTextInfo(langName).count;
-        if(value != oldValue) {
+        if(node->isGroup == false && value != oldValue) {
             node->getValidateTextInfo(langName).count = value;
             if(node->settingData) {
                 (*node->settingData)[langName].count = value;
@@ -734,7 +764,7 @@ void ClipDetectSettingTreeModel::DetectTreeUndo::SetWidth(ClipDetectSettingTreeM
     }
     else if(node->type == TreeNode::Files) {
         auto oldValue = node->getValidateTextInfo(langName).width;
-        if(value != oldValue) {
+        if(node->isGroup == false && value != oldValue) {
             node->getValidateTextInfo(langName).width = value;
             if(node->settingData) {
                 (*node->settingData)[langName].width = value;
@@ -746,17 +776,76 @@ void ClipDetectSettingTreeModel::DetectTreeUndo::SetWidth(ClipDetectSettingTreeM
     }
 }
 
-void ClipDetectSettingTreeModel::DetectTreeUndo::propagateBatchChange(TreeNode* batchNode)
-{
-    // ルートの直下に Batch と Files がある前提なので、
-    // Files 側のトップアイテムを取得する
-}
-
 settings::ValidateTextInfo& ClipDetectSettingTreeModel::TreeNode::getValidateTextInfo(QString langName)
 {
     //有効な言語追加時の追従が大変なのでここで追加もする(良くはない)
-    if(this->validateType.find(langName) == this->validateType.end()) {
-        this->validateType[langName] = {};
+    if(this->validateLangMap.find(langName) == this->validateLangMap.end()) {
+        this->validateLangMap[langName] = {};
     }
-    return this->validateType.at(langName);
+    return this->validateLangMap.at(langName);
 }
+
+
+
+ClipDetectSettingTree::ClipDetectSettingTree(std::shared_ptr<settings> setting, QUndoStack* history, QWidget* parent)
+    : QTreeView(parent)
+    , setting(setting)
+    , model(new ClipDetectSettingTreeModel(setting, history, this))
+{
+    this->setModel(model);
+
+    this->setAlternatingRowColors(true);
+    this->header()->setStretchLastSection(true);
+    this->header()->setSectionResizeMode(QHeaderView::Interactive);
+    
+    this->setAnimated(true);
+    //行の高さを均一にしない
+    this->setUniformRowHeights(false);
+
+    ClipDetectSettingTreeDelegate* delegate = new ClipDetectSettingTreeDelegate(model, this);
+    this->setItemDelegateForColumn(1, delegate);
+    this->setItemDelegateForColumn(2, delegate);
+
+    connect(history, &QUndoStack::indexChanged, this, [this](int) { this->update(); });
+}
+
+void ClipDetectSettingTree::setup()
+{
+    this->model->setupClipDetectTree();
+
+    this->setColumnWidth(0, 200);
+    auto numColumn = this->model->columnCount();
+    for(int i = 1; i < numColumn; ++i) {
+        this->setColumnWidth(i, 200);
+    }
+}
+
+
+void ClipDetectSettingTree::mousePressEvent(QMouseEvent* event)
+{
+    QModelIndex index = indexAt(event->pos());
+
+    if(index.isValid() == false) {
+        QTreeView::mousePressEvent(event);
+        return;
+    }
+
+    // 前回クリックしたセルと異なる場合、最初のクリックでは確定のみ行う
+    if(index != lastClickedIndex) 
+    {
+        // エディターが存在している場合、値を確定して閉じる。
+        if(auto* w = indexWidget(lastClickedIndex)) {
+            commitData(w);
+            closeEditor(w, QAbstractItemDelegate::SubmitModelCache);
+            lastClickedIndex = index;
+            return; // このクリックでは新しいエディタを開かない。
+        }
+    }
+
+    // 2回目のクリック（または同じセルのクリック）でエディタを開く
+    lastClickedIndex = index;
+    edit(index);
+    QTreeView::mousePressEvent(event);
+
+}
+

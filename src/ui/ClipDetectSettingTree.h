@@ -8,18 +8,20 @@
 #include <set>
 #include <map>
 
+class ClipDetectSettingTreeModel;
 class ClipDetectSettingTreeDelegate : public QStyledItemDelegate
 {
     Q_OBJECT
 public:
-    ClipDetectSettingTreeDelegate(QObject* parent = nullptr);
+    ClipDetectSettingTreeDelegate(ClipDetectSettingTreeModel* model, QObject* parent = nullptr);
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
     void setEditorData(QWidget* editor, const QModelIndex& index) const override;
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const override;
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
     void updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 
-    void detectModeIndexChanged(const QModelIndex& index, int value) const;
+private:
+    ClipDetectSettingTreeModel* model;
 
 };
 
@@ -36,7 +38,7 @@ public:
         QString name;
         Type type;
         bool isGroup = false;
-        settings::TextValidationLangMap validateType;
+        settings::TextValidationLangMap validateLangMap;
         settings::TextValidationLangMap* settingData = nullptr;
         std::vector<std::unique_ptr<TreeNode>> children;
         TreeNode* parent = nullptr;
@@ -64,7 +66,6 @@ public:
         void SetMode(ClipDetectSettingTreeModel::TreeNode* node, settings::ValidateTextMode value, QUndoStack* undoStack);
         void SetCount(ClipDetectSettingTreeModel::TreeNode* node, int value, QUndoStack* undoStack);
         void SetWidth(ClipDetectSettingTreeModel::TreeNode* node, int value, QUndoStack* undoStack);
-        void propagateBatchChange(TreeNode* batchNode);
 
     private:
         ClipDetectSettingTreeModel* parent;
@@ -87,6 +88,7 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
+
     void setupClipDetectTree();
 
     QModelIndex getLastDescendantIndex(const QModelIndex& parentIndex, int column) const;
@@ -102,6 +104,8 @@ private:
     std::shared_ptr<settings> setting;
     std::unique_ptr<TreeNode> rootItem;
     QStringList enableLangNames;
+    std::unordered_map<QString, QString> typeNameTranslateList;
+    std::vector<std::vector<QString>> mapInfosCsv;
 
     TreeNode* getItem(const QModelIndex& index) const;
 
