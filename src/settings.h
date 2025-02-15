@@ -91,8 +91,7 @@ public:
 
     struct ValidationProps
     {
-        //全体共通の値
-        ValidateTextInfo textInfo;
+        QStringList controlCharList;
     };
 
     //Write

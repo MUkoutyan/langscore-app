@@ -4,16 +4,23 @@
 #include "../csv.hpp"
 #include <QComboBox>
 #include <QSpinBox>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QDir>
+#include <QDialog>
+#include <QToolButton>
+#include <QPushButton>
+#include <QLabel>
+#include <QPainter>
 
 #include <unordered_map>
 
 using namespace langscore;
 
 constexpr static int ValidateInfo = Qt::UserRole + 1;
+constexpr static int OtherCtrlChar = ValidateInfo + 1;
 
 Q_DECLARE_METATYPE(settings::ValidateTextInfo);
 
@@ -23,7 +30,7 @@ ClipDetectSettingTreeDelegate::ClipDetectSettingTreeDelegate(ClipDetectSettingTr
     , model(model)
     , textValidateModeText({
         tr("Not Detect"),
-        tr("Text Length"),
+        tr("Char Length"),
         tr("Text Width"),
     })
 {
@@ -32,44 +39,86 @@ ClipDetectSettingTreeDelegate::ClipDetectSettingTreeDelegate(ClipDetectSettingTr
 
 QWidget* ClipDetectSettingTreeDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
-    if(index.column() >= 1) {
-        QWidget* editor = new QWidget(parent);
-        QHBoxLayout* layout = new QHBoxLayout(editor);
-        layout->setContentsMargins(0, 0, 0, 0);
+    if(index.column() >= 1) 
+    {
+        auto* item = model->getItem(index);
 
-        QComboBox* comboBox = new QComboBox(editor);
-        comboBox->addItems(QStringList{textValidateModeText.begin(), textValidateModeText.end()});
-        layout->addWidget(comboBox);
+        if(item && item->type != ClipDetectSettingTreeModel::TreeNode::Type::Other)
+        {
+            QWidget* editor = new QWidget(parent);
+            QHBoxLayout* layout = new QHBoxLayout(editor);
+            layout->setContentsMargins(0, 0, 0, 0);
 
-        QSpinBox* spinBox = new QSpinBox(editor);
-        spinBox->setMinimum(0);
-        spinBox->setMaximum(10000);
-        layout->addWidget(spinBox);
+            QComboBox* comboBox = new QComboBox(editor);
+            comboBox->addItems(QStringList{textValidateModeText.begin(), textValidateModeText.end()});
+            layout->addWidget(comboBox);
 
-        connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, comboBox, spinBox, index](int value) {
-            spinBox->setEnabled(value != 0);
-        });
-        connect(spinBox, &QSpinBox::valueChanged, this, [this, comboBox, spinBox, index](int value) {
-            qDebug() << "valueChanged : " << value;
-        });
+            QSpinBox* spinBox = new QSpinBox(editor);
+            spinBox->setMinimum(0);
+            spinBox->setMaximum(10000);
+            layout->addWidget(spinBox);
 
-        return editor;
+            connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, comboBox, spinBox, index](int value) {
+                spinBox->setEnabled(value != 0);
+            });
+            //connect(spinBox, &QSpinBox::valueChanged, this, [this, comboBox, spinBox, index](int value) {
+            //    qDebug() << "valueChanged : " << value;
+            //});
+
+            return editor;
+        }
+        else if(auto* parentItem = model->getItem(model->parent(index)))
+        {
+            if(parentItem->isGroup && parentItem->type == ClipDetectSettingTreeModel::TreeNode::Type::Other)
+            {
+                QDialog* dialog = new QDialog(parent);
+                dialog->setWindowFlags(Qt::Popup);
+                auto* tagWidget = new TagWidget(this->model->getSetting(), this->model->getUndoStack(), dialog);
+                QVBoxLayout* layout = new QVBoxLayout(dialog);
+                layout->setContentsMargins(0, 0, 0, 0);
+                layout->setSpacing(0);
+                layout->addWidget(tagWidget);
+                dialog->setLayout(layout);
+
+                return dialog;
+            }
+        }
     }
     return QStyledItemDelegate::createEditor(parent, option, index);
 }
 
 
-void ClipDetectSettingTreeDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const {
-    if(index.column() >= 1) {
-        QComboBox* comboBox = editor->findChild<QComboBox*>();
-        QSpinBox* spinBox = editor->findChild<QSpinBox*>();
+void ClipDetectSettingTreeDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const 
+{
+    if(index.column() >= 1) 
+    {
+        auto* item = model->getItem(index);
 
-        if(comboBox && spinBox) {
-            const auto& info = index.model()->data(index, ValidateInfo).value<settings::ValidateTextInfo>();
-            comboBox->setCurrentText(textValidateModeText[info.mode]);
-            spinBox->setValue(info.value());
-            if(info.mode == settings::ValidateTextMode::Ignore) {
-                spinBox->setEnabled(false);
+        if(item && item->type != ClipDetectSettingTreeModel::TreeNode::Type::Other)
+        {
+            QComboBox* comboBox = editor->findChild<QComboBox*>();
+            QSpinBox* spinBox = editor->findChild<QSpinBox*>();
+
+            if(comboBox && spinBox) {
+                const auto& info = index.model()->data(index, ValidateInfo).value<settings::ValidateTextInfo>();
+                comboBox->setCurrentText(textValidateModeText[info.mode]);
+                spinBox->setValue(info.value());
+                if(info.mode == settings::ValidateTextMode::Ignore) {
+                    spinBox->setEnabled(false);
+                }
+            }
+        }
+        else if(auto* parentItem = model->getItem(model->parent(index)))
+        {
+            if(parentItem->isGroup && parentItem->type == ClipDetectSettingTreeModel::TreeNode::Type::Other)
+            {
+                auto dialog = qobject_cast<QDialog*>(editor);
+                if(auto tagWidget = dialog->findChild<TagWidget*>())
+                {
+                    auto parentWidget = dialog->parentWidget();
+                    const auto& ctrlCharList = index.model()->data(index, OtherCtrlChar).toStringList();
+                    tagWidget->setup(ctrlCharList);
+                }
             }
         }
     }
@@ -80,16 +129,34 @@ void ClipDetectSettingTreeDelegate::setEditorData(QWidget* editor, const QModelI
 
 void ClipDetectSettingTreeDelegate::setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const
 {
-    if(1 <= index.column()) {
-        QComboBox* comboBox = editor->findChild<QComboBox*>();
-        QSpinBox* spinBox = editor->findChild<QSpinBox*>();
+    if(1 <= index.column()) 
+    {
+        auto* item = this->model->getItem(index);
 
-        if(comboBox && spinBox) {
+        if(item && item->type != ClipDetectSettingTreeModel::TreeNode::Type::Other)
+        {
+            QComboBox* comboBox = editor->findChild<QComboBox*>();
+            QSpinBox* spinBox = editor->findChild<QSpinBox*>();
 
-            settings::ValidateTextInfo info;
-            info.mode = static_cast<settings::ValidateTextMode>(comboBox->currentIndex());
-            info.setValue(spinBox->value());
-            model->setData(index, QVariant::fromValue(info), ValidateInfo);
+            if(comboBox && spinBox) {
+
+                settings::ValidateTextInfo info;
+                info.mode = static_cast<settings::ValidateTextMode>(comboBox->currentIndex());
+                info.setValue(spinBox->value());
+                model->setData(index, QVariant::fromValue(info), ValidateInfo);
+            }
+        }
+        else if(auto* parentItem = this->model->getItem(model->parent(index)))
+        {
+            if(parentItem->isGroup && parentItem->type == ClipDetectSettingTreeModel::TreeNode::Type::Other)
+            {
+                auto dialog = qobject_cast<QDialog*>(editor);
+                if(auto tagWidget = dialog->findChild<TagWidget*>())
+                {
+                    auto currentTagStrList = tagWidget->getTagList();
+                    model->setData(index, currentTagStrList, OtherCtrlChar);
+                }
+            }
         }
     }
     else {
@@ -103,7 +170,41 @@ QSize ClipDetectSettingTreeDelegate::sizeHint(const QStyleOptionViewItem& option
 }
 
 void ClipDetectSettingTreeDelegate::updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, const QModelIndex& index) const {
-    editor->setGeometry(option.rect);
+    if(auto dialog = qobject_cast<QDialog*>(editor)) {
+        // ダイアログの位置を設定
+        QRect cellRect = option.rect;
+        QPoint globalPos = option.widget->mapToGlobal(cellRect.bottomLeft());
+        dialog->move(globalPos);
+    }
+    else {
+        editor->setGeometry(option.rect);
+    }
+}
+
+void ClipDetectSettingTreeDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
+{
+    auto* item = model->getItem(index);
+
+    if(item && item->type == ClipDetectSettingTreeModel::TreeNode::Type::Other)
+    {
+        if(index.column() > 1)
+        {
+            // "control character"の列で2列目以降は描画しない
+            return;
+        }
+        else if(index.column() == 1)
+        {
+            QString text = index.model()->data(index, Qt::DisplayRole).toString();
+            painter->save();
+            painter->setPen(option.palette.color(QPalette::Text));
+            painter->drawText(option.rect, Qt::AlignLeft | Qt::AlignVCenter, text);
+            painter->restore();
+            return;
+        }
+    }
+
+    // デフォルトの描画
+    QStyledItemDelegate::paint(painter, option, index);
 }
 
 ClipDetectSettingTreeModel::ClipDetectSettingTreeModel(std::shared_ptr<settings> settings, QUndoStack* history, ClipDetectSettingTree* parent)
@@ -282,6 +383,14 @@ QVariant ClipDetectSettingTreeModel::data(const QModelIndex& index, int role) co
             if(item->isGroup && item->type == TreeNode::Batch) {
                 return QVariant();
             }
+            if(item->type == TreeNode::Other) 
+            {
+                if(item->children.empty() && index.column() == 1)
+                {
+                    return setting->validateObj.controlCharList.join(", ");
+                }
+                return QVariant();
+            }
             const auto GetText = [](const settings::ValidateTextInfo& validateInfo) {
                 QString text = "";
                 if(validateInfo.mode == settings::ValidateTextMode::TextCount) {
@@ -351,6 +460,12 @@ QVariant ClipDetectSettingTreeModel::data(const QModelIndex& index, int role) co
         const auto& validateInfo = item->getValidateTextInfo(langName);
         return QVariant::fromValue(validateInfo);
     }
+    else if(role == OtherCtrlChar)
+    {
+        if(item->type == TreeNode::Other) {
+            return this->setting->validateObj.controlCharList;
+        }
+    }
 
     return QVariant();
 }
@@ -372,6 +487,13 @@ bool ClipDetectSettingTreeModel::setData(const QModelIndex& index, const QVarian
         this->setValidateInfo(item, langName, newValue, oldValue);
         this->history->endMacro();
         return true;
+    }
+    else if(role == OtherCtrlChar)
+    {
+        if(item->type == TreeNode::Other) {
+            emit dataChanged(index, index);
+            return true;
+        }
     }
 
     return QAbstractItemModel::setData(index, value, role);
@@ -422,6 +544,15 @@ void ClipDetectSettingTreeModel::setValidateInfo(TreeNode* item, QString langNam
         }
     }
 
+}
+
+void ClipDetectSettingTreeModel::setControlChars(const QVariant& tagStrList)
+{
+    auto oldValue = data(index(0, 0), OtherCtrlChar).toStringList();
+    auto newValue = tagStrList.toStringList();
+    if(oldValue != newValue) {
+        history->push(new DetectTreeUndo(this, rootItem.get(), "", oldValue, newValue));
+    }
 }
 
 Qt::ItemFlags ClipDetectSettingTreeModel::flags(const QModelIndex& index) const
@@ -611,6 +742,26 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
             childItem->parent = topItemPtr;
             topItemPtr->children.emplace_back(std::move(childItem));
         }
+    }
+
+    {
+        // Batchという親アイテムを作成
+        auto otherSettingTopItem = std::make_unique<TreeNode>();
+        otherSettingTopItem->name = tr("Other Settings");
+        otherSettingTopItem->type = TreeNode::Other;
+        otherSettingTopItem->validateLangMap = langMap;
+        otherSettingTopItem->isGroup = true;
+        otherSettingTopItem->parent = rootItem.get();
+        rootItem->children.emplace_back(std::move(otherSettingTopItem));
+        auto* topNode = rootItem->children.back().get();
+
+
+        auto extendCtrlCharacters = std::make_unique<TreeNode>();
+        extendCtrlCharacters->name = tr("control character");
+        extendCtrlCharacters->type = TreeNode::Other;
+        extendCtrlCharacters->isGroup = false;
+        extendCtrlCharacters->parent = topNode;
+        topNode->children.emplace_back(std::move(extendCtrlCharacters));
     }
 
     this->endResetModel();
@@ -868,3 +1019,167 @@ void ClipDetectSettingTree::mousePressEvent(QMouseEvent* event)
 
 }
 
+TagWidget::TagWidget(std::shared_ptr<settings> setting, QUndoStack* history, QWidget* parent)
+    : QWidget(parent), setting(std::move(setting)), history(history)
+{
+    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(1, 1, 1, 1);
+    mainLayout->setSpacing(0);
+
+    QHBoxLayout* inputLayout = new QHBoxLayout(this);
+    QLineEdit* input = new QLineEdit(this);
+    input->setPlaceholderText("Enter a tag and press Enter");
+    inputLayout->addWidget(input);
+
+    QPushButton* addButton = new QPushButton("+", this);
+    addButton->setFixedSize(20, 20);
+    inputLayout->addWidget(addButton);
+
+    mainLayout->addLayout(inputLayout); 
+
+    tagList = new QListWidget(this);
+    tagList->setViewMode(QListView::IconMode);
+    mainLayout->addWidget(tagList); 
+
+    const auto AddTag = [this, input]()
+    {
+        auto tagList = input->text().split(' ');
+        if(tagList.empty()) {
+            input->clear();
+            return;
+        }
+        if(std::all_of(tagList.begin(), tagList.end(), [](const auto& x) { return x.isEmpty(); })) {
+            input->clear();
+            return;
+        }
+
+        this->history->beginMacro("Change Control Characters");
+        for(auto& text : tagList) {
+            if(text.isEmpty() == false) {
+                addTag(text);
+            }
+        }
+        this->history->endMacro();
+        input->clear();
+    };
+
+    connect(addButton, &QPushButton::clicked, this, AddTag);
+
+    connect(input, &QLineEdit::returnPressed, this, [this, input, AddTag]() {
+        if(input->text().isEmpty()) {
+            if(auto* dialog = qobject_cast<QDialog*>(this->parentWidget())) {
+                dialog->close();
+            }
+        }
+        else {
+            AddTag();
+        }
+    });
+
+    this->setLayout(mainLayout);
+
+    input->setFocus();
+}
+
+void TagWidget::setup(QStringList tagTextList)
+{
+    for(const auto& text : tagTextList) {
+        this->createTagItem(text);
+    }
+}
+
+void TagWidget::addTag(const QString& text)
+{
+    if(this->createTagItem(text) == false) { return; }
+
+    this->history->push(new CtrlCharUndo(this->setting, "", text));
+}
+
+bool TagWidget::createTagItem(const QString& text)
+{
+    if(tagStrList.contains(text)) { return false; }
+
+    tagStrList.emplace_back(text);
+
+    QListWidgetItem* item = new QListWidgetItem(tagList);
+    QWidget* itemWidget = new QWidget(tagList);
+    QHBoxLayout* layout = new QHBoxLayout(itemWidget);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(1);
+
+    auto* removeButton = new QToolButton(itemWidget);
+    removeButton->setText("x");
+    removeButton->setFixedSize(20, 20);
+    layout->addWidget(removeButton);
+
+    auto* label = new QLineEdit(text, itemWidget);
+    layout->addWidget(label);
+
+    connect(label, &QLineEdit::editingFinished, this, [this, item, label]() {
+        auto text = label->text();
+        auto index = tagList->row(item);
+        this->history->push(new CtrlCharUndo(this->setting, tagStrList[index], text));
+        tagStrList[index] = text;
+    });
+
+    //フォントからtextの幅を取得してitemのサイズを設定する
+    QFontMetrics fm(label->font());
+
+    int width = fm.horizontalAdvance(text);
+    item->setSizeHint(QSize(width + 28, 20));
+
+    itemWidget->setLayout(layout);
+    tagList->setItemWidget(item, itemWidget);
+
+    connect(removeButton, &QToolButton::clicked, this, [this, item]() {
+        removeTag(item);
+    });
+
+    return true;
+}
+
+void TagWidget::removeTag(QListWidgetItem* item)
+{
+    auto index = tagList->row(item);
+    this->history->push(new CtrlCharUndo(this->setting, tagStrList[index], ""));
+    tagStrList.removeAt(index);
+    delete item;
+}
+
+void TagWidget::CtrlCharUndo::undo()
+{
+    auto& charList = this->setting->validateObj.controlCharList;
+    auto index = charList.indexOf(newValue.toString());
+    if(index != -1) {
+        if(oldValue.toString().isEmpty()) {
+            charList.removeAt(index);
+        }
+        else {
+            charList[index] = oldValue.toString();
+        }
+    }
+}
+
+void TagWidget::CtrlCharUndo::redo()
+{
+    auto& charList = this->setting->validateObj.controlCharList;
+    if(oldValue.toString().isEmpty()) {
+        if(charList.contains(newValue.toString()) == false) {
+            charList.append(newValue.toString());
+        }
+    }
+    else {
+        auto index = charList.indexOf(oldValue.toString());
+
+        auto newStr = newValue.toString();
+        if(newStr.isEmpty() == false) {
+            if(index != -1) {
+                charList[index] = newValue.toString();
+            }
+        }
+        else {
+            auto index = charList.indexOf(oldValue.toString());
+            charList.removeAt(index);
+        }
+    }
+}

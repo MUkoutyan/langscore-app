@@ -77,6 +77,8 @@ set(PROJECT_SOURCES
     src/ui/InvokerLogViewer.h
     src/ui/ColorTheme.cpp
     src/ui/ColorTheme.h
+    src/ui/ClipDetectSettingTree.cpp
+    src/ui/ClipDetectSettingTree.h
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h
@@ -191,12 +193,18 @@ if(WIN32)
         COMMENT "Running windeployqt on langscore-app"
     )
 
+    get_filename_component(langscore_divisi_path "${PROJECT_SOURCE_DIR}/${DIVISI_PATH}" ABSOLUTE)
+    
+    file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+    file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/resource)
+    file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/resources/fonts)
+
     add_custom_target(copy_files ALL
-        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icudt76.dll ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icuuc76.dll ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/resource ${PROJECT_BINARY_DIR}/bin/resource
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll ${PROJECT_BINARY_DIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource ${PROJECT_BINARY_DIR}/bin/resource
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts ${PROJECT_BINARY_DIR}/resources/fonts
         COMMENT "Copying necessary files after build"
     )

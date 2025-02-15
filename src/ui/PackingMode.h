@@ -84,6 +84,8 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
     void appendErrors(std::vector<ValidationErrorInfo> infos);
+    bool canFetchMore(const QModelIndex& parent = QModelIndex()) const override;
+    void fetchMore(const QModelIndex& parent = QModelIndex()) override;
 
 signals:
     void requestResizeContents();
@@ -91,8 +93,6 @@ signals:
 private:
     QString readDataAt(int row, int col) const;
 
-    bool canFetchMore(const QModelIndex& parent = QModelIndex()) const override;
-    void fetchMore(const QModelIndex& parent = QModelIndex()) override;
 
 private:
     QString currentFile;
@@ -134,12 +134,14 @@ private:
     QString currentShowCSV;
     bool isValidate;
     bool showLog;
+    bool suspendResizeToContents;
 
     QIcon attentionIcon;
     QIcon warningIcon;
 
     QMenu* treeMenu;
     QString lastSelectedInvalidCSVPath;
+
 
     QString getCurrentSelectedItemFilePath();
     void setupCsvTable(QString filePath);
@@ -148,6 +150,9 @@ private:
     std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input);
 
     void showEvent(QShowEvent *event) override;
+
+    bool eventFilter(QObject* obj, QEvent* event) override;
+    void copySelectedCell();
 
 private slots:
     void validate();
@@ -158,6 +163,7 @@ private slots:
 
 
     void setPackingSourceDir(QString path);
+    void resizeCsvTable();
 
 private:
 

@@ -35,6 +35,67 @@
     </message>
 </context>
 <context>
+    <name>ClipDetectSettingTreeDelegate</name>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="32"/>
+        <source>Not Detect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="33"/>
+        <source>Char Length</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="34"/>
+        <source>Text Width</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ClipDetectSettingTreeModel</name>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="397"/>
+        <source>Text Length</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="400"/>
+        <source>Text Width</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="403"/>
+        <source>Not Detect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="419"/>
+        <source>Multiple settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="637"/>
+        <source>Batch assignment</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="663"/>
+        <source>Specify by file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="750"/>
+        <source>Other Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="760"/>
+        <source>control character</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ColorDialog</name>
     <message>
         <location filename="../ColorDialog.cpp" line="8"/>
@@ -307,162 +368,147 @@ If not, the changes will be discarded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.ui" line="228"/>
-        <source>detect text clipping</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/PackingMode.ui" line="236"/>
-        <source>Not Detect</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/PackingMode.ui" line="241"/>
-        <source>Text Length</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/PackingMode.ui" line="246"/>
-        <source>Text Width</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/PackingMode.ui" line="306"/>
+        <location filename="../src/ui/PackingMode.ui" line="244"/>
         <source>Cannot display because CSV is invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.ui" line="316"/>
+        <location filename="../src/ui/PackingMode.ui" line="254"/>
         <source>TextLabel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.ui" line="344"/>
+        <location filename="../src/ui/PackingMode.ui" line="282"/>
         <source>Open this CSV in an editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.ui" line="399"/>
+        <location filename="../src/ui/PackingMode.ui" line="331"/>
+        <source>Text Clipping Detect</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/PackingMode.ui" line="359"/>
         <source>Log</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.ui" line="457"/>
+        <location filename="../src/ui/PackingMode.ui" line="417"/>
         <source>Check Translate File Validate</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.ui" line="470"/>
-        <location filename="../src/ui/PackingMode.cpp" line="320"/>
+        <location filename="../src/ui/PackingMode.ui" line="430"/>
+        <location filename="../src/ui/PackingMode.cpp" line="375"/>
         <source>Packing Translate File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="65"/>
+        <location filename="../src/ui/PackingMode.cpp" line="70"/>
         <source>Select Input Directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="83"/>
+        <location filename="../src/ui/PackingMode.cpp" line="88"/>
         <source>Crashed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="97"/>
-        <location filename="../src/ui/PackingMode.cpp" line="719"/>
+        <location filename="../src/ui/PackingMode.cpp" line="102"/>
+        <location filename="../src/ui/PackingMode.cpp" line="814"/>
         <source>Valid!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="102"/>
+        <location filename="../src/ui/PackingMode.cpp" line="107"/>
         <source>Complete Packing!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="131"/>
+        <location filename="../src/ui/PackingMode.cpp" line="132"/>
         <source>Show in Explorer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="189"/>
-        <source>This may be due to the description around the %1 line.</source>
+        <location filename="../src/ui/PackingMode.cpp" line="234"/>
+        <source>This may be due to the description around the %1 line.(line %2 for text)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="193"/>
+        <location filename="../src/ui/PackingMode.cpp" line="238"/>
         <source>The description around
-%2
-in the %1 row may be cause.</source>
+%1
+may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="326"/>
+        <location filename="../src/ui/PackingMode.cpp" line="381"/>
         <source>No packing is required for MV/MZ.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="354"/>
+        <location filename="../src/ui/PackingMode.cpp" line="437"/>
         <source>Confirmation of save a project.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="354"/>
+        <location filename="../src/ui/PackingMode.cpp" line="437"/>
         <source>The packing input directory has changed and the project needs to be saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="662"/>
+        <location filename="../src/ui/PackingMode.cpp" line="757"/>
         <source> Empty Column</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="665"/>
+        <location filename="../src/ui/PackingMode.cpp" line="760"/>
         <source> Not Found Esc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="668"/>
+        <location filename="../src/ui/PackingMode.cpp" line="763"/>
         <source> Unclosed Esc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="671"/>
+        <location filename="../src/ui/PackingMode.cpp" line="766"/>
         <source> Include &quot;<byte value="xd"/>
 &quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="674"/>
+        <location filename="../src/ui/PackingMode.cpp" line="769"/>
         <source> The specified language does not match the language in the CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="678"/>
+        <location filename="../src/ui/PackingMode.cpp" line="773"/>
         <source> Part of this text is cut off.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="682"/>
+        <location filename="../src/ui/PackingMode.cpp" line="777"/>
         <source> This text is completely cut off.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="686"/>
-        <source> The specified number of characters has been exceeded.</source>
+        <location filename="../src/ui/PackingMode.cpp" line="781"/>
+        <source> The specified number of characters has been exceeded. (num %1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="691"/>
+        <location filename="../src/ui/PackingMode.cpp" line="786"/>
         <source> Invalid CSV, This may be due to the description around the %1 line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="695"/>
+        <location filename="../src/ui/PackingMode.cpp" line="790"/>
         <source> Invalid CSV. The description around %2 in the %1 row may be cause.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="704"/>
+        <location filename="../src/ui/PackingMode.cpp" line="799"/>
         <source>Line</source>
         <translation type="unfinished"></translation>
     </message>
@@ -472,6 +518,36 @@ in the %1 row may be cause.</source>
     <message>
         <location filename="../main.cpp" line="25"/>
         <source>The required file does not exist. Reinstall the application.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="214"/>
+        <source>name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="215"/>
+        <source>description</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="216"/>
+        <source>messageWithIcon</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="217"/>
+        <source>battleMessage</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="218"/>
+        <source>message</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="219"/>
+        <source>other</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

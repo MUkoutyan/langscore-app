@@ -16,6 +16,7 @@
 #include <QDesktopServices>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QClipboard>
 
 enum ErrorTextCol
 {
@@ -40,6 +41,7 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     , currentShowCSV("")
     , isValidate(false)
     , showLog(false)
+    , suspendResizeToContents(false)
     , attentionIcon(":/images/resources/image/attention.svg")
     , warningIcon(":/images/resources/image/warning.svg")
     , treeMenu(nullptr)
@@ -106,10 +108,6 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         }
     });
 
-    connect(this->ui->detectMode, &QComboBox::currentIndexChanged, this, [](int index) {
-
-    });
-
     connect(this->ui->treeWidget, &QTreeWidget::itemSelectionChanged, this, [this]()
     {
         auto selectedItems = this->ui->treeWidget->selectedItems();
@@ -150,16 +148,14 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         QProcess::startDetached("explorer", {"/select,"+QDir::toNativeSeparators(filePath)});
     });
 
-    connect(this->csvTableViewModel, &PackingCSVTableViewModel::requestResizeContents, this, [this]() {
-        this->ui->tableView->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-        this->ui->tableView->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-    });
+    connect(this->csvTableViewModel, &PackingCSVTableViewModel::requestResizeContents, this, &PackingMode::resizeCsvTable);
 
     // 既存の QTableWidget を削除し、QTableView をセット
+    this->ui->tableView->installEventFilter(this);
     this->ui->tableView->setModel(csvTableViewModel);
     this->ui->tableView->setSelectionBehavior(QAbstractItemView::SelectItems);
     this->ui->tableView->setSelectionMode(QAbstractItemView::SingleSelection);
-    this->ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    this->ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     this->ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     this->ui->tableView->setAlternatingRowColors(true);
 
@@ -271,15 +267,16 @@ void PackingMode::setupCsvTable(QString filePath)
     allRows.erase(allRows.begin());
 
     //整合性のチェック
-    int rowCount = 0;
-    for(auto& row : allRows)
-    {
-        if(row.size() != _header.size()) {
-            SetInvalidCsvMessage(rowCount, row.empty() == false ? row.front() : "");
-            return;
-        }
-        rowCount++;
-    }
+    //※末列が空白の場合でも引っかかってしまうため、一旦コメントアウト。
+    //int rowCount = 0;
+    //for(auto& row : allRows)
+    //{
+    //    if(row.size() != _header.size()) {
+    //        SetInvalidCsvMessage(rowCount, row.empty() == false ? row.front() : "");
+    //        return;
+    //    }
+    //    rowCount++;
+    //}
 
     this->csvTableViewModel->setCsvFile(filePath, std::move(allRows), std::move(_header));
 
@@ -328,7 +325,8 @@ void PackingMode::highlightError(QTreeWidgetItem *treeItem)
     auto id = treeItem->data(0, Qt::UserRole).toULongLong();
     if(id == 0){ return; }
 
-    const auto& errorList = errors[treeItem->parent()->text(0)];
+    auto file = treeItem->parent()->data(0, Qt::UserRole).toString();
+    const auto& errorList = errors[file];
 
     auto result = std::find_if(errorList.cbegin(), errorList.cend(), [id](const auto& x){
         return x.id ==id;
@@ -338,21 +336,26 @@ void PackingMode::highlightError(QTreeWidgetItem *treeItem)
     const auto numRow = this->csvTableViewModel->rowCount();
     const auto numCol = this->csvTableViewModel->columnCount();
 
-    for(int r=0; r<numRow; ++r)
-    {
-        for(int c=0; c<numCol; ++c)
-        {
-            auto index = this->csvTableViewModel->index(r, c);
-            auto tableData = this->csvTableViewModel->data(index, Qt::UserRole);
-            auto tableId = tableData.toULongLong();
-            if(tableId == 0){ continue; }
 
-            if(id == tableId){
-                this->ui->tableView->scrollTo(index, QAbstractItemView::ScrollHint::PositionAtCenter);
-                // tableItem->setSelected(true);
-                // this->ui->tableView->scrollToItem(tableItem, QAbstractItemView::ScrollHint::PositionAtCenter);
-                return;
-            }
+    if(numRow < result->row) {
+        this->suspendResizeToContents = true;
+        while(this->csvTableViewModel->canFetchMore() && result->row - 1 >= this->csvTableViewModel->rowCount()) {
+            this->csvTableViewModel->fetchMore();
+        }
+        this->suspendResizeToContents = false;
+        this->resizeCsvTable();
+    }
+
+    for(int c = 0; c < numCol; ++c)
+    {
+        auto index = this->csvTableViewModel->index(result->row - 1, c);
+        auto tableData = this->csvTableViewModel->data(index, Qt::UserRole);
+        auto tableId = tableData.toULongLong();
+        if(tableId == 0) { continue; }
+
+        if(id == tableId) {
+            this->ui->tableView->scrollTo(index, QAbstractItemView::ScrollHint::PositionAtCenter);
+            return;
         }
     }
 
@@ -379,6 +382,32 @@ void PackingMode::showEvent(QShowEvent*)
     }
     
     this->clipDetectSettingTree->setup();
+}
+
+inline bool PackingMode::eventFilter(QObject* obj, QEvent* event)
+{
+    if(obj == this->ui->tableView && event->type() == QEvent::KeyPress) {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        if(keyEvent->matches(QKeySequence::Copy)) {
+            copySelectedCell();
+            return true;
+        }
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
+void PackingMode::copySelectedCell()
+{
+    QModelIndexList selectedIndexes = this->ui->tableView->selectionModel()->selectedIndexes();
+    if(selectedIndexes.isEmpty()) {
+        return;
+    }
+
+    QModelIndex index = selectedIndexes.first();
+    QString cellText = this->csvTableViewModel->data(index, Qt::DisplayRole).toString();
+
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setText(cellText);
 }
 
 void PackingMode::validate()
@@ -543,6 +572,7 @@ std::vector<ValidationErrorInfo> PackingMode::processJsonBuffer(const QString& i
         {
             QJsonObject obj = doc.object();
             ValidationErrorInfo info;
+            info.id = (++errorInfoIndex);   //1開始にする
 
             if(obj.contains("Type"))
             {
@@ -660,6 +690,15 @@ ValidationErrorInfo PackingMode::convertErrorInfo(std::vector<QString> csvText)
     return info;
 }
 
+void PackingMode::resizeCsvTable()
+{
+    if(suspendResizeToContents) {
+        return;
+    }
+    this->ui->tableView->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+    this->ui->tableView->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
+}
+
 void PackingMode::updateTree()
 {
     bool updated = false;
@@ -739,7 +778,7 @@ void PackingMode::updateTree()
                          break;
                      case ValidationErrorInfo::OverTextCount:
                          //指定した文字数を超過しています。
-                         text += tr(" The specified number of characters has been exceeded.");
+                         text += tr(" The specified number of characters has been exceeded. (num %1)").arg(info.width);
                          break;
                      case ValidationErrorInfo::InvalidCSV:
                          if(info.detail.isEmpty()) {
@@ -852,8 +891,8 @@ QVariant PackingCSVTableViewModel::data(const QModelIndex& index, int role) cons
         if(errors.empty()) {
             return QVariant();
         }
-        auto find_result = std::ranges::find_if(errors, [this, row, col](const auto& x) {
-            return x.row-1 == row && this->header[col] == x.language;
+        auto find_result = std::ranges::find_if(errors, [this, row, h = this->header[col]](const auto& x) {
+            return x.row-1 == row && h == x.language;
         });
         if(find_result != errors.end()) {
             if(find_result->type == ValidationErrorInfo::Error) {
@@ -862,6 +901,18 @@ QVariant PackingCSVTableViewModel::data(const QModelIndex& index, int role) cons
             else if(find_result->type == ValidationErrorInfo::Warning) {
                 return QColor(240, 227, 0, 51);
             }
+        }
+    }
+    else if(role == Qt::UserRole) 
+    {
+        if(errors.empty()) {
+            return QVariant();
+        }
+        auto find_result = std::ranges::find_if(errors, [this, row, h = this->header[col]](const auto& x) {
+            return x.row - 1 == row && h == x.language;
+        });
+        if(find_result != errors.end()) {
+            return find_result->id;
         }
     }
 
