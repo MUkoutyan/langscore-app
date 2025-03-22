@@ -19,7 +19,10 @@ public:
 
 private:
     Ui::UpdatePluginDialog *ui;
+    std::shared_ptr<settings> setting;
     int _writeMode;
+
+    void checkButtonStatus();
 
 #if defined(LANGSCORE_GUIAPP_TEST)
     friend class LangscoreAppTest;

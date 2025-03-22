@@ -16,7 +16,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,1,0,0,0">
    <property name="spacing">
     <number>6</number>
    </property>
@@ -80,7 +80,7 @@
     <widget class="QLabel" name="modeDesc">
      <property name="text">
       <string extracomment="翻訳ファイルの最終チェックや配布の準備を行います。 ※暗号化を行う場合は必須です">Final check of translation files and preparation for distribution.
-*Required for encryption.</string>
+*Required for encryption for VXAce.</string>
      </property>
      <property name="textFormat">
       <enum>Qt::TextFormat::PlainText</enum>
@@ -92,22 +92,6 @@
       <bool>false</bool>
      </property>
     </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Orientation::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Policy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">

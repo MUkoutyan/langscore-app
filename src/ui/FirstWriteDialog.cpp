@@ -84,15 +84,4 @@ void FirstWriteDialog::changeOutputPath(const QString &text)
         this->setToolTip(tr("The path must be a directory!"));
         return;
     }
-    auto dir = QDir(text);
-    auto fileInfoList = dir.entryInfoList(QDir::Filter::Files | QDir::Filter::NoDotAndDotDot);
-    for(const auto& info : fileInfoList){
-        if(info.suffix() != "csv"){ continue; }
-
-        if(this->ui->buttonGroup->checkedButton() == nullptr){
-            this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-        }
-
-        return;
-    }
 }

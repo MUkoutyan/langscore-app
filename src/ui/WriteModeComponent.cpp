@@ -312,13 +312,15 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             this->setup();
             this->dispatch(StatusMessage, {tr(" Complete."), 3000});
         }
-        else if(invokeType == InvokeType::ExportCSV || invokeType == InvokeType::Reanalisys){
+        else if(invokeType == InvokeType::ExportFirstTime || invokeType == InvokeType::ExportCSV || invokeType == InvokeType::Reanalisys){
             QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
             this->setting->isFirstExported = true;
 
             this->ui->writeCSVAndPluginButton->setVisible(false);
             this->ui->updatePluginButton->setVisible(true);
             this->ui->writeButton->setVisible(true);
+
+            this->dispatch(SaveProject,{});
         }
         invokeType = InvokeType::None;
     });
@@ -353,9 +355,9 @@ WriteModeComponent::~WriteModeComponent(){
 
 void WriteModeComponent::show()
 {
-    const auto& outputDirPath = this->setting->analyzeDirectoryPath();
-    auto outputDir = QDir(outputDirPath);
-    auto basicFiles = outputDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
+    const auto& analyzeDirPath = this->setting->analyzeDirectoryPath();
+    auto analyzeDir = QDir(analyzeDirPath);
+    auto basicFiles = analyzeDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
     for(auto& file : basicFiles){
         auto fileName = file.completeBaseName();
         if(fileName.isEmpty() == false){
@@ -363,10 +365,10 @@ void WriteModeComponent::show()
         }
     }
 
-    auto writedScripts = [&outputDirPath]()
+    auto writedScriptList = [&analyzeDirPath]()
     {
-        auto scriptCsv     = readCsv(outputDirPath + "/Scripts.csv");
         QStringList result;
+        auto scriptCsv     = readCsv(analyzeDirPath + "/Scripts.csv");
         if(scriptCsv.empty()){ return result; }
         scriptCsv.erase(scriptCsv.begin()); //Headerを削除
         for(auto& line : scriptCsv){
@@ -374,10 +376,11 @@ void WriteModeComponent::show()
         }
         result.sort();
         result.erase(std::unique(result.begin(), result.end()), result.end());
+
         return result;
     }();
 
-    for(auto& script : writedScripts)
+    for(auto& script : writedScriptList)
     {
         auto parseResult = parseScriptNameWithRowCol(script);
         QString fileName;
