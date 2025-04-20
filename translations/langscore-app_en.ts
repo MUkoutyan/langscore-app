@@ -37,17 +37,17 @@
 <context>
     <name>ClipDetectSettingTreeDelegate</name>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="32"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="35"/>
         <source>Not Detect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="33"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="36"/>
         <source>Char Length</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="34"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="37"/>
         <source>Text Width</source>
         <translation type="unfinished"></translation>
     </message>
@@ -55,42 +55,42 @@
 <context>
     <name>ClipDetectSettingTreeModel</name>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="397"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="400"/>
         <source>Text Length</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="400"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="403"/>
         <source>Text Width</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="403"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="406"/>
         <source>Not Detect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="419"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="422"/>
         <source>Multiple settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="637"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="684"/>
         <source>Batch assignment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="663"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="710"/>
         <source>Specify by file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="750"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="797"/>
         <source>Other Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="760"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="806"/>
         <source>control character</source>
         <translation type="unfinished"></translation>
     </message>
@@ -521,32 +521,32 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="214"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="217"/>
         <source>name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="215"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="218"/>
         <source>description</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="216"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="219"/>
         <source>messageWithIcon</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="217"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="220"/>
         <source>battleMessage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="218"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="221"/>
         <source>message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="219"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="222"/>
         <source>other</source>
         <translation type="unfinished"></translation>
     </message>
@@ -709,7 +709,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="289"/>
         <location filename="../src/ui/WriteModeComponent.ui" line="373"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1379"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1458"/>
         <source>Word Count : %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -750,133 +750,143 @@ Unchecked text and images are excluded from translation.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="561"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="891"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="895"/>
         <source>Write Translate CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="164"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="168"/>
         <source>Show All Contents</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="169"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="173"/>
         <source>Hide Ignore Contents</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="192"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="196"/>
         <source>Uncheck Sign Only Text</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="253"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="257"/>
         <source>Uncheck text that does not contain hiragana</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="277"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="281"/>
         <source>Update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="281"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="285"/>
         <source>When updated, the displayed content will be changed to the latest content.
 This process cannot be undone.
 Note:The translation file will not be changed until it is exported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="293"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="297"/>
         <source>Update Projects...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="295"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="299"/>
         <source>Update to the latest content...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="308"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="312"/>
         <source>Done.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="313"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="317"/>
         <source> Complete.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="566"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="570"/>
         <source>Main Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="594"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="598"/>
         <source>Script Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="658"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="662"/>
         <source>Graphics Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="729"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="733"/>
         <source>Change Script Table Check</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="763"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="767"/>
         <source>Update Plugin...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="800"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="804"/>
         <source>Write Translate Files...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="838"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="842"/>
         <source>Write Translate Files(First)...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="887"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="891"/>
         <source>To export CSV, please select a language</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1044"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1097"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1048"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1101"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1343"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1718"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1396"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1845"/>
         <source>All Script Word Count : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1779"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1789"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1435"/>
+        <source>Original</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1435"/>
+        <source>Type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1906"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1916"/>
         <source>Change Table State : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1782"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1792"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1909"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1919"/>
         <source>Change Table State : Row %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1802"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1807"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1929"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1934"/>
         <source>Change Tree State : %1</source>
         <translation type="unfinished"></translation>
     </message>

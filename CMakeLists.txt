@@ -172,44 +172,46 @@ install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
 install(SCRIPT ${deploy_script})    # Add its runtime dependencies
 
 if(WIN32)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets)  # Qt6 の場合
-    # find_package(Qt5 REQUIRED COMPONENTS Widgets)  # Qt5 の場合
+   find_package(Qt6 REQUIRED COMPONENTS Widgets)  # Qt6 の場合
+   # find_package(Qt5 REQUIRED COMPONENTS Widgets)  # Qt5 の場合
 
-    # Qtのbinディレクトリを取得
-    get_target_property(QT_BIN_DIR Qt6::qmake IMPORTED_LOCATION) # Qt6
-    # get_target_property(QT_BIN_DIR Qt5::qmake IMPORTED_LOCATION) # Qt5
-    get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
-    
-    # windeployqtのパス
-    set(WINDEPLOYQT_EXECUTABLE "${QT_BIN_DIR}/windeployqt6.exe")
+   # Qtのbinディレクトリを取得
+   get_target_property(QT_BIN_DIR Qt6::qmake IMPORTED_LOCATION) # Qt6
+   # get_target_property(QT_BIN_DIR Qt5::qmake IMPORTED_LOCATION) # Qt5
+   get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
+   
+   # windeployqtのパス
+   set(WINDEPLOYQT_EXECUTABLE "${QT_BIN_DIR}/windeployqt6.exe")
 
-    # 出力ディレクトリを指定（CMAKE_RUNTIME_OUTPUT_DIRECTORYが未指定ならデフォルトのビルドディレクトリを使う）
-    set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")  # MyApp は実行ファイルターゲット名
+   # 出力ディレクトリを指定（CMAKE_RUNTIME_OUTPUT_DIRECTORYが未指定ならデフォルトのビルドディレクトリを使う）
+   set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")  # MyApp は実行ファイルターゲット名
 
-    # windeployqtを実行するカスタムコマンド
-    add_custom_command(TARGET langscore-app POST_BUILD
-        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release "$<TARGET_FILE:langscore-app>"
-        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --debug "$<TARGET_FILE:langscore-app>"
-        COMMENT "Running windeployqt on langscore-app"
-    )
+   # windeployqtを実行するカスタムコマンド
+   add_custom_command(TARGET langscore-app POST_BUILD
+       COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release "$<TARGET_FILE:langscore-app>"
+       COMMAND "${WINDEPLOYQT_EXECUTABLE}" --debug "$<TARGET_FILE:langscore-app>"
+       COMMENT "Running windeployqt on langscore-app"
+   )
 
-    get_filename_component(langscore_divisi_path "${PROJECT_SOURCE_DIR}/${DIVISI_PATH}" ABSOLUTE)
-    
-    file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-    file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/resource)
-    file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/resources/fonts)
+   get_filename_component(langscore_divisi_path "${PROJECT_SOURCE_DIR}/${DIVISI_PATH}" ABSOLUTE)
+   
+   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/resource)
+   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/resources/fonts)
 
-    add_custom_target(copy_files ALL
-        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll ${PROJECT_BINARY_DIR}/bin/
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource ${PROJECT_BINARY_DIR}/bin/resource
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts ${PROJECT_BINARY_DIR}/resources/fonts
-        COMMENT "Copying necessary files after build"
-    )
+   # ビルド時に毎回コピーするように変更
+   add_custom_target(copy_files ALL
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe ${PROJECT_BINARY_DIR}/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe ${PROJECT_BINARY_DIR}/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll ${PROJECT_BINARY_DIR}/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll ${PROJECT_BINARY_DIR}/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource ${PROJECT_BINARY_DIR}/bin/resource
+       COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts ${PROJECT_BINARY_DIR}/resources/fonts
+       COMMENT "Copying necessary files after build"
+   )
 
-    add_dependencies(copy_files langscore-app)
+   # langscore-app のビルド時に copy_files を実行
+   add_dependencies(langscore-app copy_files)
 endif()
 
 #file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe

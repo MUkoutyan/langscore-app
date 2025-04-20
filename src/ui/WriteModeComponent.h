@@ -73,7 +73,7 @@ private:
     void setupScriptCsvText();
     void setupTree();
 
-    void showNormalCsvText(QString treeItemName, QString fileName);
+    void showNormalJsonText(QString treeItemName, QString fileName);
     void setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
     void setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
 

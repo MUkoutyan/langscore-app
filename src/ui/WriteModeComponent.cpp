@@ -12,6 +12,7 @@
 #include "../csv.hpp"
 #include <icu.h>
 
+#include <QTimer>
 #include <QDir>
 #include <QString>
 #include <QCheckBox>
@@ -21,6 +22,9 @@
 #include <QMimeData>
 #include <QScrollBar>
 #include <QGraphicsBlurEffect>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 #include <functional>
 #include <unordered_map>
@@ -470,7 +474,7 @@ void WriteModeComponent::treeItemSelected()
     if(treeType == TreeItemType::Main){
         auto fileName = item->data(TreeColIndex::Name, Qt::UserRole).toString();
         this->ui->tabWidget->setCurrentIndex(1);
-        showNormalCsvText(item->text(TreeColIndex::Name), fileName);
+        showNormalJsonText(item->text(TreeColIndex::Name), fileName);
     }
     else if(treeType == TreeItemType::Script)
     {
@@ -941,7 +945,7 @@ void WriteModeComponent::setupTree()
             else if(fileViewName == "Scripts"){ continue; }
             else if(fileViewName == "Graphics"){ continue; }
 
-            if(QFile::exists(analyzeFolder + "/" + fileViewName + ".csv") == false){
+            if(QFile::exists(analyzeFolder + "/" + fileViewName + ".lsjson") == false){
                 continue;
             }
             int mapID = -1;
@@ -1176,10 +1180,11 @@ void WriteModeComponent::changeUIColor()
     auto rows = this->ui->tableWidget_script->rowCount();
     for(int r=0; r<rows; ++r)
     {
-        auto scriptNameItem = this->ui->tableWidget_script->item(r,ScriptTableCol::ScriptName);
-        auto scriptName = scriptNameItem->text();
-        auto treeCheckState = getTreeCheckStateBasedOnTable(scriptName);
-        setTableItemTextColor(r, tableTextColorForState[treeCheckState]);
+        if(auto scriptNameItem = this->ui->tableWidget_script->item(r, ScriptTableCol::ScriptName)) {
+            auto scriptName = scriptNameItem->text();
+            auto treeCheckState = getTreeCheckStateBasedOnTable(scriptName);
+            setTableItemTextColor(r, tableTextColorForState[treeCheckState]);
+        }
     }
     this->ui->tableWidget_script->blockSignals(false);
     this->ui->tableWidget_script->update();
@@ -1251,10 +1256,56 @@ void WriteModeComponent::setupScriptCsvText()
     if(showAllScriptContents == false)
     {
         auto rm_result = std::remove_if(csv.begin()+1, csv.end(), [&IsIgnoreScript, &IsIgnoreText](const std::vector<QString>& line){
-            auto result = parseScriptNameWithRowCol(line[0]);
+            if(line.size() <= 1) { return false; }
+            auto result = parseScriptNameWithRowCol(line[1]);
             return IsIgnoreScript(result.scriptFileName) || IsIgnoreText(result);
         });
         csv.erase(rm_result, csv.end());
+    }
+
+    // 常に非表示にするスクリプト名のフィルタリング（最適化版）
+    {
+        std::vector<QString> hideScriptNameList = {"langscore_custom", "langscore"};
+
+        // スクリプト名とその行位置を一時的にマッピング
+        std::unordered_map<QString, std::vector<size_t>> scriptNameToRowMap;
+
+        // すべての行を走査して一度だけマッピングを作成
+        for(size_t i = 1; i < csv.size(); ++i) 
+        {
+            if(csv[i].size() <= 1) { continue; }
+
+            auto result = parseScriptNameWithRowCol(csv[i][1]);
+            auto scriptName = getScriptName(result.scriptFileName);
+
+            if(scriptNameToRowMap.find(scriptName) == scriptNameToRowMap.end()) {
+                scriptNameToRowMap[scriptName] = std::vector<size_t>{i};
+            }
+            else {
+                scriptNameToRowMap[scriptName].push_back(i);
+            }
+        }
+
+        // 削除対象となる行番号を収集
+        std::vector<size_t> rowsToRemove;
+        for(const auto& hideName : hideScriptNameList) {
+            auto it = scriptNameToRowMap.find(hideName);
+            if(it != scriptNameToRowMap.end()) {
+                // 該当スクリプト名のすべての行を削除リストに追加
+                for(auto rowIndex : it->second) {
+                    rowsToRemove.push_back(rowIndex);
+                }
+            }
+        }
+
+        // 行番号を降順にソートして削除（後ろから削除していくことでインデックスのずれを防ぐ）
+        if(rowsToRemove.empty() == false) {
+            std::sort(rowsToRemove.begin(), rowsToRemove.end(), std::greater<size_t>());
+
+            for(auto rowIndex : rowsToRemove) {
+                csv.erase(csv.begin() + rowIndex);
+            }
+        }
     }
 
     //ヘッダーを除外するので-1
@@ -1262,7 +1313,9 @@ void WriteModeComponent::setupScriptCsvText()
     QTableWidget *targetTable = this->ui->tableWidget_script;
     targetTable->clear();
     targetTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    // デフォルトの最小高さを設定して、内容が少ない場合でも最低限の高さを確保
+    targetTable->verticalHeader()->setMinimumSectionSize(28);
     targetTable->setRowCount(numTableItems);
     targetTable->setColumnCount(ScriptTableCol::NumCols);
 
@@ -1273,8 +1326,8 @@ void WriteModeComponent::setupScriptCsvText()
     for(int r=0; r<numTableItems; ++r)
     {
         const auto& line = csv[r+1];
-        const auto& scriptLineInfo = line[0];
-        const auto& originalText = line.size()<=1 ? "" : line[1];
+        const auto& originalText   = line[0];
+        const auto& scriptLineInfo = line.size() <= 1 ? "" : line[1];
         auto lineParsedResult = parseScriptNameWithRowCol(scriptLineInfo);
 
         const auto& textColor = TextColor(lineParsedResult);
@@ -1343,42 +1396,78 @@ void WriteModeComponent::setupScriptCsvText()
     this->ui->scriptFileWordCount->setText(tr("All Script Word Count : %1").arg(currentScriptWordCount));
 }
 
-
-void WriteModeComponent::showNormalCsvText(QString treeItemName, QString fileName)
+void WriteModeComponent::showNormalJsonText(QString treeItemName, QString fileName)
 {
     const auto translateFolder = this->setting->analyzeDirectoryPath();
-    auto csv = readCsv(translateFolder + "/" + withoutExtension(fileName) + ".csv");
-    if(csv.empty()){ return; }
+    QFile file(translateFolder + "/" + withoutExtension(fileName) + ".lsjson");
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open file:" << file.fileName();
+        return;
+    }
+
+    QByteArray jsonData = file.readAll();
+    file.close();
+
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+    if(jsonDoc.isNull() || !jsonDoc.isArray()) {
+        qWarning() << "Invalid JSON format in file:" << file.fileName();
+        return;
+    }
+
+    QJsonArray jsonArray = jsonDoc.array();
+    if(jsonArray.isEmpty()) {
+        qWarning() << "JSON array is empty in file:" << file.fileName();
+        return;
+    }
 
     this->ui->mainFileName->setText(treeItemName);
 
-    const auto& header = csv[0];
-    auto numTableItems = csv.size()-1;
-    QTableWidget *targetTable = this->ui->tableWidget;
+    // テーブルの準備
+    QTableWidget* targetTable = this->ui->tableWidget;
     targetTable->clear();
     targetTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    targetTable->setRowCount(numTableItems);
-    targetTable->setColumnCount(header.size());
-    for(int c=0; c<header.size(); ++c){
-        auto* item = new QTableWidgetItem(header[c]);
-        targetTable->setHorizontalHeaderItem(c, item);
-    }
+    targetTable->setRowCount(jsonArray.size());
+    targetTable->setColumnCount(2); // "original" と "type" の2列
+
+
+    // ヘッダー設定
+    targetTable->setHorizontalHeaderLabels(QStringList() << tr("Original") << tr("Type"));
 
     size_t wordCount = 0;
-    for(int r=0; r<numTableItems; ++r)
-    {
-        const auto& line = csv[r+1];
-        for(int c=0; c<line.size(); ++c){
-            auto text = line[c];
-            wordCount += wordCountUTF8(text);
-            auto* item = new QTableWidgetItem(text);
-            targetTable->setItem(r, c, item);
-        }
-    }
-    this->ui->mainFileWordCount->setText(tr("Word Count : %1").arg(wordCount));
-}
+    for(int r = 0; r < jsonArray.size(); ++r) {
+        QJsonObject item = jsonArray.at(r).toObject();
 
+        // Original テキスト
+        QString originalText = item["original"].toString();
+        wordCount += wordCountUTF8(originalText);
+        auto* originalItem = new QTableWidgetItem(originalText);
+        targetTable->setItem(r, 0, originalItem);
+
+        // Type (配列の場合があるので結合して表示)
+        QJsonArray typeArray = item["type"].toArray();
+        QStringList typeList;
+        for(const QJsonValue& typeValue : typeArray) {
+            typeList.append(typeValue.toString());
+        }
+        QString typeText = typeList.join(", ");
+        auto* typeItem = new QTableWidgetItem(typeText);
+        targetTable->setItem(r, 1, typeItem);
+    }
+
+    this->ui->mainFileWordCount->setText(tr("Word Count : %1").arg(wordCount));
+
+    // 強制的にテーブルを更新して行の高さを調整
+    targetTable->resizeRowsToContents();
+
+    // 遅延処理でサイズの再調整を行う
+    QTimer::singleShot(0, this, [targetTable]() {
+        targetTable->setUpdatesEnabled(false);
+        targetTable->resizeRowsToContents();
+        targetTable->setUpdatesEnabled(true);
+        targetTable->update();
+    });
+}
 
 void WriteModeComponent::setTreeItemCheck(QTreeWidgetItem *item, Qt::CheckState check)
 {

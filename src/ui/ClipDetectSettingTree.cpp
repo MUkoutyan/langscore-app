@@ -14,6 +14,9 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QPainter>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 
 #include <unordered_map>
 
@@ -603,26 +606,70 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     }
     enableLangNames = std::move(currentEnableLangNames);
 
-    auto csvList = QDir{setting->analyzeDirectoryPath()}.entryInfoList({"*.csv"});
-    this->mapInfosCsv = readCsv(setting->analyzeDirectoryPath() + "/MapInfos.csv");
+    // CSVファイルリストの代わりにJSONファイルリストを取得
+    auto jsonList = QDir{setting->analyzeDirectoryPath()}.entryInfoList({"*.lsjson"});
 
-    // 解析CSVから文字列のタイプを取得する。
-    std::map<QString, std::set<QString>> csvNameTypeMap;
-    std::set<QString> batchNameTypeList;
-    for(const auto& csvPath : csvList)
-    {
-        auto fileName = langscore::withoutExtension(csvPath.fileName());
+    // MapInfos.jsonファイルを読み込み
+    QFile mapInfosFile(setting->analyzeDirectoryPath() + "/MapInfos.lsjson");
+    this->mapInfosCsv.clear();
 
-        auto csvContents = langscore::readCsv(csvPath.absoluteFilePath());
-        std::set<QString> nameTypeList;
-        csvContents.erase(csvContents.begin()); // ヘッダーの削除
-        for(auto& row : csvContents) {
-            if(row.size() == 2) {
-                nameTypeList.emplace(row[1]);
-                batchNameTypeList.emplace(row[1]);
+    if(mapInfosFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QByteArray jsonData = mapInfosFile.readAll();
+        mapInfosFile.close();
+
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+        if(!jsonDoc.isNull() && jsonDoc.isArray()) {
+            QJsonArray jsonArray = jsonDoc.array();
+            for(const QJsonValue& rowValue : jsonArray) {
+                QJsonArray rowArray = rowValue.toArray();
+                std::vector<QString> row;
+                for(const QJsonValue& cellValue : rowArray) {
+                    row.push_back(cellValue.toString());
+                }
+                this->mapInfosCsv.push_back(row);
             }
         }
-        csvNameTypeMap[fileName] = nameTypeList;
+    }
+
+    // 解析JSONから文字列のタイプを取得する
+    std::map<QString, std::set<QString>> jsonNameTypeMap;
+    std::set<QString> batchNameTypeList;
+
+    for(const auto& jsonPath : jsonList)
+    {
+        auto fileName = langscore::withoutExtension(jsonPath.fileName());
+
+        QFile file(jsonPath.absoluteFilePath());
+        if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            continue;
+        }
+
+        QByteArray jsonData = file.readAll();
+        file.close();
+
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+        if(jsonDoc.isNull() || !jsonDoc.isArray()) {
+            continue;
+        }
+
+        QJsonArray jsonArray = jsonDoc.array();
+        std::set<QString> nameTypeList;
+
+        // 各エントリからtypeを抽出
+        for(const QJsonValue& entryValue : jsonArray) {
+            QJsonObject entry = entryValue.toObject();
+            QJsonArray typeArray = entry["type"].toArray();
+
+            for(const QJsonValue& typeValue : typeArray) {
+                QString type = typeValue.toString();
+                if(!type.isEmpty()) {
+                    nameTypeList.insert(type);
+                    batchNameTypeList.insert(type);
+                }
+            }
+        }
+
+        jsonNameTypeMap[fileName] = nameTypeList;
     }
 
     settings::TextValidationLangMap langMap;
@@ -634,11 +681,11 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     rootItem.reset(new TreeNode());
     // Batchという親アイテムを作成
     auto batchTopItem = std::make_unique<TreeNode>();
-    batchTopItem->name          = tr("Batch assignment");
-    batchTopItem->type          = TreeNode::Batch;
-    batchTopItem->validateLangMap  = langMap;
-    batchTopItem->isGroup       = true;
-    batchTopItem->parent        = rootItem.get();
+    batchTopItem->name = tr("Batch assignment");
+    batchTopItem->type = TreeNode::Batch;
+    batchTopItem->validateLangMap = langMap;
+    batchTopItem->isGroup = true;
+    batchTopItem->parent = rootItem.get();
     rootItem->children.emplace_back(std::move(batchTopItem));
     auto batchTopItemPtr = rootItem->children.back().get();
 
@@ -648,11 +695,11 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     // Batch内にnameTypeListのツリーを作成
     for(auto& nameType : batchNameTypeList)
     {
-        auto batchItem  = std::make_unique<TreeNode>();
-        batchItem->name             = nameType;
-        batchItem->type             = TreeNode::Batch;
-        batchItem->validateLangMap  = langMap;
-        batchItem->parent           = batchTopItemPtr;
+        auto batchItem = std::make_unique<TreeNode>();
+        batchItem->name = nameType;
+        batchItem->type = TreeNode::Batch;
+        batchItem->validateLangMap = langMap;
+        batchItem->parent = batchTopItemPtr;
         batchTopItemPtr->children.emplace_back(std::move(batchItem));
 
         checkSameParameter.emplace(nameType, std::forward_as_tuple(true, true, batchTopItemPtr->children.back().get()));
@@ -660,19 +707,19 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
 
     // Filesという親アイテムを作成
     auto filesTopItem = std::make_unique<TreeNode>();
-    filesTopItem->name          = tr("Specify by file");
-    filesTopItem->type          = TreeNode::Files;
-    filesTopItem->validateLangMap  = langMap;
-    filesTopItem->isGroup       = true;
-    filesTopItem->parent        = rootItem.get();
+    filesTopItem->name = tr("Specify by file");
+    filesTopItem->type = TreeNode::Files;
+    filesTopItem->validateLangMap = langMap;
+    filesTopItem->isGroup = true;
+    filesTopItem->parent = rootItem.get();
     rootItem->children.emplace_back(std::move(filesTopItem));
     auto filesTopItemPtr = rootItem->children.back().get();
 
     TreeNode* mapsTopItemPtr = nullptr;
     TreeNode* mapsItemPtr = nullptr;
-    for(auto csvPath : csvList)
+    for(auto jsonPath : jsonList)
     {
-        auto fileName = langscore::withoutExtension(csvPath.fileName());
+        auto fileName = langscore::withoutExtension(jsonPath.fileName());
         if(fileName == "MapInfos") { continue; }
 
         TreeNode* topItemPtr = nullptr;
@@ -680,36 +727,36 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
         {
             if(mapsTopItemPtr == nullptr) {
                 auto mapsTopItem = std::make_unique<TreeNode>();
-                mapsTopItem->name           = "Maps";
-                mapsTopItem->type           = TreeNode::Files;
-                mapsTopItem->validateLangMap   = langMap;
-                mapsTopItem->isGroup        = true;
-                mapsTopItem->parent         = filesTopItemPtr;
+                mapsTopItem->name = "Maps";
+                mapsTopItem->type = TreeNode::Files;
+                mapsTopItem->validateLangMap = langMap;
+                mapsTopItem->isGroup = true;
+                mapsTopItem->parent = filesTopItemPtr;
                 filesTopItemPtr->children.emplace_back(std::move(mapsTopItem));
                 mapsTopItemPtr = filesTopItemPtr->children.back().get();
             }
             auto mapItem = std::make_unique<TreeNode>();
-            mapItem->name           = fileName;
-            mapItem->type           = TreeNode::Files;
-            mapItem->validateLangMap   = langMap;
-            mapItem->isGroup        = true;
-            mapItem->parent         = mapsTopItemPtr;
+            mapItem->name = fileName;
+            mapItem->type = TreeNode::Files;
+            mapItem->validateLangMap = langMap;
+            mapItem->isGroup = true;
+            mapItem->parent = mapsTopItemPtr;
             mapsTopItemPtr->children.emplace_back(std::move(mapItem));
             topItemPtr = mapsTopItemPtr->children.back().get();
         }
         else {
             auto topItem = std::make_unique<TreeNode>();
-            topItem->name       = fileName;
-            topItem->type       = TreeNode::Files;
+            topItem->name = fileName;
+            topItem->type = TreeNode::Files;
             topItem->validateLangMap = langMap;
-            topItem->isGroup    = true;
-            topItem->parent     = filesTopItemPtr;
+            topItem->isGroup = true;
+            topItem->parent = filesTopItemPtr;
             filesTopItemPtr->children.emplace_back(std::move(topItem));
             topItemPtr = filesTopItemPtr->children.back().get();
         }
 
         auto& validateInfo = this->setting->getValidationCsvDataRef(fileName);
-        const auto& nameTypeList = csvNameTypeMap.at(fileName);
+        const auto& nameTypeList = jsonNameTypeMap.at(fileName);
         for(auto& nameType : nameTypeList)
         {
             auto childItem = std::make_unique<TreeNode>();
@@ -745,7 +792,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     }
 
     {
-        // Batchという親アイテムを作成
+        // その他の設定という親アイテムを作成
         auto otherSettingTopItem = std::make_unique<TreeNode>();
         otherSettingTopItem->name = tr("Other Settings");
         otherSettingTopItem->type = TreeNode::Other;
@@ -754,7 +801,6 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
         otherSettingTopItem->parent = rootItem.get();
         rootItem->children.emplace_back(std::move(otherSettingTopItem));
         auto* topNode = rootItem->children.back().get();
-
 
         auto extendCtrlCharacters = std::make_unique<TreeNode>();
         extendCtrlCharacters->name = tr("control character");
@@ -766,6 +812,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
 
     this->endResetModel();
 }
+
 
 void ClipDetectSettingTreeModel::SetMode(ClipDetectSettingTreeModel::TreeNode* node, const QModelIndex& index, settings::ValidateTextMode value, QUndoStack* history)
 {
