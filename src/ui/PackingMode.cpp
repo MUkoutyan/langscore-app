@@ -106,6 +106,17 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
             this->ui->validateButton->setEnabled(true);
             this->dispatch(DispatchType::StatusMessage, {tr("Complete Packing!"), 5000});
         }
+
+        // 強制的にテーブルを更新して行の高さを調整
+        this->ui->tableView->resizeRowsToContents();
+
+        // 遅延処理でサイズの再調整を行う
+        QTimer::singleShot(0, this, [this]() {
+            this->ui->tableView->setUpdatesEnabled(false);
+            this->ui->tableView->resizeRowsToContents();
+            this->ui->tableView->setUpdatesEnabled(true);
+            this->ui->tableView->update();
+        });
     });
 
     connect(this->ui->treeWidget, &QTreeWidget::itemSelectionChanged, this, [this]()
