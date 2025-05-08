@@ -126,11 +126,15 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
         return;
     }
 
-    //analyzeフォルダがあればスキップ
-    if(QFile::exists(this->setting->analyzeDirectoryPath())){
+    //analyzeフォルダとlsjsonファイルが両方あればスキップ
+    QString analyzeDirPath = this->setting->analyzeDirectoryPath();
+    QString lsJsonFilePath = analyzeDirPath + "/*.lsjson";  
+    QDir dir(analyzeDirPath);  
+    QStringList lsJsonFiles = dir.entryList(QStringList() << "*.lsjson", QDir::Files);  
+    if (QFile::exists(analyzeDirPath) && lsJsonFiles.isEmpty() == false) {
         emit this->toWriteMode(gameProjDirPath);
     }
-    else{
+    else {
         emit this->toAnalyzeMode();
         this->ui->analyzeButton->setEnabled(true);
         this->ui->label->setVisible(false);
