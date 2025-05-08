@@ -457,6 +457,12 @@ QVariant ClipDetectSettingTreeModel::data(const QModelIndex& index, int role) co
             return color;
         }
     }
+    else if(role == Qt::ToolTipRole) {
+        if(item->type == TreeNode::Other) {
+            //プラグイン独自の制御文字を使用している場合に追加して下さい。制御文字が文字数としてカウントされなくなります。"\"の入力は必要ありません
+            return tr("Add this if the plugin uses its own control characters.\nThe control characters will no longer be counted as characters.\nNo need to enter \"\\\"");
+        }
+    }
     else if(role == ValidateInfo) 
     {
         auto langName = this->getLangName(index);
