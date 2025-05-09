@@ -92,22 +92,29 @@
         <translation>複数の設定</translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="684"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="463"/>
+        <source>Add this if the plugin uses its own control characters.
+The control characters will no longer be counted as characters.
+No need to enter &quot;\&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="690"/>
         <source>Batch assignment</source>
         <translation>一括で指定</translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="710"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="716"/>
         <source>Specify by file</source>
         <translation>ファイル単位で指定</translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="797"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="803"/>
         <source>Other Settings</source>
         <translation>その他の設定</translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="806"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="812"/>
         <source>control character</source>
         <translation>制御文字</translation>
     </message>
@@ -486,7 +493,7 @@ If not, the changes will be discarded.</source>
     </message>
     <message>
         <location filename="../src/ui/PackingMode.ui" line="414"/>
-        <location filename="../src/ui/PackingMode.cpp" line="375"/>
+        <location filename="../src/ui/PackingMode.cpp" line="386"/>
         <source>Packing Translate File</source>
         <translation>翻訳ファイルをパッキング</translation>
     </message>
@@ -507,7 +514,7 @@ If not, the changes will be discarded.</source>
     </message>
     <message>
         <location filename="../src/ui/PackingMode.cpp" line="102"/>
-        <location filename="../src/ui/PackingMode.cpp" line="814"/>
+        <location filename="../src/ui/PackingMode.cpp" line="825"/>
         <source>Valid!</source>
         <translation>問題なし！</translation>
     </message>
@@ -517,7 +524,7 @@ If not, the changes will be discarded.</source>
         <translation>パッキング完了！</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="132"/>
+        <location filename="../src/ui/PackingMode.cpp" line="143"/>
         <source>Show in Explorer</source>
         <translation>エクスプローラーで表示</translation>
     </message>
@@ -530,17 +537,17 @@ If not, the changes will be discarded.</source>
         <translation type="vanished">制御文字が見つかりません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="381"/>
+        <location filename="../src/ui/PackingMode.cpp" line="392"/>
         <source>No packing is required for MV/MZ.</source>
         <translation>MV/MZではパッキングの必要はありません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="437"/>
+        <location filename="../src/ui/PackingMode.cpp" line="448"/>
         <source>Confirmation of save a project.</source>
         <translation>プロジェクト保存の確認</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="437"/>
+        <location filename="../src/ui/PackingMode.cpp" line="448"/>
         <source>The packing input directory has changed and the project needs to be saved.</source>
         <translation>パッキング入力ディレクトリを変更したため、プロジェクトを保存する必要があります。</translation>
     </message>
@@ -571,12 +578,12 @@ in the %1 row may be cause.</source>
 辺りの記述が原因かもしれません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="234"/>
+        <location filename="../src/ui/PackingMode.cpp" line="245"/>
         <source>This may be due to the description around the %1 line.(line %2 for text)</source>
         <translation>%1行目(テキストなら%2行目)辺りの記述が原因かもしれません</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="238"/>
+        <location filename="../src/ui/PackingMode.cpp" line="249"/>
         <source>The description around
 %1
 may be the cause.(csv:%2 line, text:%3 line)</source>
@@ -584,43 +591,43 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
 辺りの記述が原因かもしれません。(csv:%2行目 text:%3行目)</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="757"/>
+        <location filename="../src/ui/PackingMode.cpp" line="768"/>
         <source> Empty Column</source>
         <translation> 空の文章</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="760"/>
+        <location filename="../src/ui/PackingMode.cpp" line="771"/>
         <source> Not Found Esc</source>
         <translation> 制御文字の不足</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="763"/>
+        <location filename="../src/ui/PackingMode.cpp" line="774"/>
         <source> Unclosed Esc</source>
         <translation> 制御文字の閉じ忘れ</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="766"/>
+        <location filename="../src/ui/PackingMode.cpp" line="777"/>
         <source> Include &quot;<byte value="xd"/>
 &quot;</source>
         <translation> 改行文字\r\nを含んでいます</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="769"/>
+        <location filename="../src/ui/PackingMode.cpp" line="780"/>
         <source> The specified language does not match the language in the CSV</source>
         <translation> 指定した言語とCSV内の言語が一致していません</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="773"/>
+        <location filename="../src/ui/PackingMode.cpp" line="784"/>
         <source> Part of this text is cut off.</source>
         <translation> この文章は一部が見切れています。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="777"/>
+        <location filename="../src/ui/PackingMode.cpp" line="788"/>
         <source> This text is completely cut off.</source>
         <translation> この文章は完全に見切れています。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="781"/>
+        <location filename="../src/ui/PackingMode.cpp" line="792"/>
         <source> The specified number of characters has been exceeded. (num %1)</source>
         <translation> 指定した文字数を超過しています。 (%1文字)</translation>
     </message>
@@ -629,12 +636,12 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="vanished"> 指定した文字数を超過しています。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="786"/>
+        <location filename="../src/ui/PackingMode.cpp" line="797"/>
         <source> Invalid CSV, This may be due to the description around the %1 line.</source>
         <translation> 無効なCSVです。%1行目辺りの記述が原因かもしれません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="790"/>
+        <location filename="../src/ui/PackingMode.cpp" line="801"/>
         <source> Invalid CSV. The description around %2 in the %1 row may be cause.</source>
         <translation> 無効なCSVです。 %1 行目の %2 辺りの記述が原因かもしれません。</translation>
     </message>
@@ -647,7 +654,7 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="vanished">無効なCSVです。%1行目の%2辺りの記述が不正かもしれません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="799"/>
+        <location filename="../src/ui/PackingMode.cpp" line="810"/>
         <source>Line</source>
         <translation>行</translation>
     </message>
@@ -1066,7 +1073,7 @@ Note:The translation file will not be changed until it is exported.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="1396"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1845"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1807"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
@@ -1081,20 +1088,20 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation>種類</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1906"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1916"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1868"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1878"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1909"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1919"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1871"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1881"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1929"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1934"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1891"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1896"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>

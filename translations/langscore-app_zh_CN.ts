@@ -75,22 +75,29 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="684"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="463"/>
+        <source>Add this if the plugin uses its own control characters.
+The control characters will no longer be counted as characters.
+No need to enter &quot;\&quot;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="690"/>
         <source>Batch assignment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="710"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="716"/>
         <source>Specify by file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="797"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="803"/>
         <source>Other Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="806"/>
+        <location filename="../src/ui/ClipDetectSettingTree.cpp" line="812"/>
         <source>control character</source>
         <translation type="unfinished"></translation>
     </message>
@@ -399,7 +406,7 @@ If not, the changes will be discarded.</source>
     </message>
     <message>
         <location filename="../src/ui/PackingMode.ui" line="414"/>
-        <location filename="../src/ui/PackingMode.cpp" line="375"/>
+        <location filename="../src/ui/PackingMode.cpp" line="386"/>
         <source>Packing Translate File</source>
         <translation type="unfinished"></translation>
     </message>
@@ -415,7 +422,7 @@ If not, the changes will be discarded.</source>
     </message>
     <message>
         <location filename="../src/ui/PackingMode.cpp" line="102"/>
-        <location filename="../src/ui/PackingMode.cpp" line="814"/>
+        <location filename="../src/ui/PackingMode.cpp" line="825"/>
         <source>Valid!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -425,90 +432,90 @@ If not, the changes will be discarded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="132"/>
+        <location filename="../src/ui/PackingMode.cpp" line="143"/>
         <source>Show in Explorer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="234"/>
+        <location filename="../src/ui/PackingMode.cpp" line="245"/>
         <source>This may be due to the description around the %1 line.(line %2 for text)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="238"/>
+        <location filename="../src/ui/PackingMode.cpp" line="249"/>
         <source>The description around
 %1
 may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="381"/>
+        <location filename="../src/ui/PackingMode.cpp" line="392"/>
         <source>No packing is required for MV/MZ.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="437"/>
+        <location filename="../src/ui/PackingMode.cpp" line="448"/>
         <source>Confirmation of save a project.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="437"/>
+        <location filename="../src/ui/PackingMode.cpp" line="448"/>
         <source>The packing input directory has changed and the project needs to be saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="757"/>
+        <location filename="../src/ui/PackingMode.cpp" line="768"/>
         <source> Empty Column</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="760"/>
+        <location filename="../src/ui/PackingMode.cpp" line="771"/>
         <source> Not Found Esc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="763"/>
+        <location filename="../src/ui/PackingMode.cpp" line="774"/>
         <source> Unclosed Esc</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="766"/>
+        <location filename="../src/ui/PackingMode.cpp" line="777"/>
         <source> Include &quot;<byte value="xd"/>
 &quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="769"/>
+        <location filename="../src/ui/PackingMode.cpp" line="780"/>
         <source> The specified language does not match the language in the CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="773"/>
+        <location filename="../src/ui/PackingMode.cpp" line="784"/>
         <source> Part of this text is cut off.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="777"/>
+        <location filename="../src/ui/PackingMode.cpp" line="788"/>
         <source> This text is completely cut off.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="781"/>
+        <location filename="../src/ui/PackingMode.cpp" line="792"/>
         <source> The specified number of characters has been exceeded. (num %1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="786"/>
+        <location filename="../src/ui/PackingMode.cpp" line="797"/>
         <source> Invalid CSV, This may be due to the description around the %1 line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="790"/>
+        <location filename="../src/ui/PackingMode.cpp" line="801"/>
         <source> Invalid CSV. The description around %2 in the %1 row may be cause.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="799"/>
+        <location filename="../src/ui/PackingMode.cpp" line="810"/>
         <source>Line</source>
         <translation type="unfinished"></translation>
     </message>
@@ -858,7 +865,7 @@ Note:The translation file will not be changed until it is exported.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="1396"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1845"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1807"/>
         <source>All Script Word Count : %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -873,20 +880,20 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1906"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1916"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1868"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1878"/>
         <source>Change Table State : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1909"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1919"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1871"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1881"/>
         <source>Change Table State : Row %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1929"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1934"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1891"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1896"/>
         <source>Change Tree State : %1</source>
         <translation type="unfinished"></translation>
     </message>
