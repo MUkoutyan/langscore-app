@@ -125,7 +125,9 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         if(selectedItems.empty()){ return; }
         this->ui->tableView->clearSelection();
         auto item = selectedItems[0];
+
         if(item->parent()){
+            //警告やエラーのアイテムがクリックされた。
             this->setupCsvTable(item->parent()->data(0, Qt::UserRole).toString());
             this->highlightError(item);
         }
@@ -273,9 +275,75 @@ void PackingMode::setupCsvTable(QString filePath)
         }
     }
 
-    auto allRows = langscore::readCsv(filePath);
-    auto _header = QStringList(allRows[0].begin(), allRows[0].end());
-    allRows.erase(allRows.begin());
+    std::vector<std::vector<QString>> allRows;
+    QStringList _header;
+    if(setting->writeObj.enableLanguagePatch)
+    {
+        _header.append("original");
+        for(auto& l : setting->languages) {
+            if(l.enable == false) { continue; }
+            _header.append(l.languageName);
+        }
+        //ファイル名を取得
+        auto path = this->ui->packingSourceDirectory->text();
+        auto fileName = QFileInfo(filePath).fileName();
+        //path以下に言語名を持つフォルダが有るため、そこからcsvの中身を取得する。
+        QDir dir(path);
+        dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
+        dir.setSorting(QDir::Name);
+        auto dirList = dir.entryInfoList();
+        if(dirList.empty()) { return; }
+        for(auto& dir : dirList)
+        {
+            auto langName = dir.baseName();
+            //言語名のフォルダを取得
+            auto subDir = dir.absoluteFilePath();
+            QDir subDirPath(subDir);
+            subDirPath.setFilter(QDir::NoDotAndDotDot | QDir::Files);
+            subDirPath.setSorting(QDir::Name);
+            subDirPath.setNameFilters({"*.csv"});
+            auto csvFiles = subDirPath.entryInfoList();
+            if(csvFiles.empty()) { continue; }
+
+            //_header内の言語名と一致するものを探して、その列にcsvの内容を格納する。
+            auto langIndex = std::find_if(_header.cbegin(), _header.cend(), [&langName](const auto& x) {
+                return x == langName;
+            });
+
+            //言語名のフォルダ内にある、選択された名前と同名のcsvファイルを取得
+            for(auto& file : csvFiles) 
+            {
+                auto filePath = file.absoluteFilePath();
+                if(file.baseName() != fileName) {
+                    continue;
+                }
+                if(langIndex == _header.cend()) { continue; }
+                auto langIndexNum = std::distance(_header.cbegin(), langIndex);
+                auto csvData = langscore::readCsv(filePath);
+                if(csvData.empty()) { continue; }
+                csvData.erase(csvData.begin());
+                //ヘッダ行を削除
+                if(allRows.empty()) 
+                {
+                    allRows.resize(csvData.size(), std::vector<QString>(_header.size()));
+                    for(int i = 0; i < csvData.size(); ++i) {
+                        if(csvData[i].empty()) { continue; }
+                        allRows[i][0] = csvData[i][0];
+                    }
+                }
+                for(int i = 0; i < csvData.size(); ++i) 
+                {
+                    if(csvData[i].size() < 2) { continue; }
+                    allRows[i][langIndexNum] = csvData[i][1];
+                }
+            }
+        }
+    }
+    else {
+        allRows = langscore::readCsv(filePath);
+        _header = QStringList(allRows[0].begin(), allRows[0].end());
+        allRows.erase(allRows.begin());
+    }
 
     //整合性のチェック
     //※末列が空白の場合でも引っかかってしまうため、一旦コメントアウト。
@@ -315,17 +383,36 @@ void PackingMode::setupCsvTree()
 {
     auto path = this->ui->packingSourceDirectory->text();
     if(path.isEmpty()) { return; }
-    auto files = QDir(path).entryInfoList({"*.csv"});
+
+    QFileInfoList files;
+    if(setting->writeObj.enableLanguagePatch) {
+        //path以下の最初に見つかったフォルダから、csvファイルを取得する。
+        QDir dir(path);
+        dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
+        dir.setSorting(QDir::Name);
+        auto dirList = dir.entryInfoList();
+        if(dirList.empty()) { return; }
+        auto subDir = dirList[0].absoluteFilePath();
+        QDir subDirPath(subDir);
+        subDirPath.setFilter(QDir::NoDotAndDotDot | QDir::Files);
+        subDirPath.setSorting(QDir::Name);
+        subDirPath.setNameFilters({"*.csv"});
+        files = subDirPath.entryInfoList();
+        if(files.empty()) { return; }
+    }
+    else {
+        files = QDir(path).entryInfoList({"*.csv"});
+    }
 
     for(const auto& file : files)
     {
-        auto filePath = file.absoluteFilePath();
+        //auto filePath = file.absoluteFilePath();
+        auto fileName = file.baseName();
         auto item = new QTreeWidgetItem();
-        item->setData(0, Qt::UserRole, filePath);
-        auto fileName = langscore::withoutExtension(file.fileName());
+        item->setData(0, Qt::UserRole, fileName);
         item->setText(0, fileName);
 
-        treeTopItemList[filePath] = item;
+        treeTopItemList[fileName] = item;
         this->ui->treeWidget->addTopLevelItem(item);
     }
 
@@ -640,11 +727,11 @@ void PackingMode::addErrorText(QString text)
 
     auto infos = processJsonBuffer(text);
     std::vector<ValidationErrorInfo> needUpdateErrorInfos;
-    auto currentFileName = this->csvTableViewModel->getCurrentCsvFile();
+    auto currentFileName = QFileInfo{this->csvTableViewModel->getCurrentCsvFile()}.baseName();
     for(auto&& info : infos)
     {
         QFileInfo fileInfo(info.filePath);
-        auto fileName = fileInfo.absoluteFilePath();
+        auto fileName = fileInfo.baseName();
         _mutex.lock();
         if(currentFileName == fileName) {
             if(fileName == currentFileName) {
@@ -804,10 +891,9 @@ void PackingMode::updateTree()
                      default:
                          break;
                  }
-
-
-
+                 
                 child->setText(0, tr("Line") + QString::number(info.row)+" : " + text);
+
             }(child);
             child->setData(0, Qt::UserRole, info.id);
             item->addChild(child);
@@ -842,8 +928,6 @@ void PackingMode::setPackingSourceDir(QString path)
 
     this->setupCsvTree();
 }
-
-
 
 PackingCSVTableViewModel::PackingCSVTableViewModel(QObject* parent)
     : QAbstractTableModel(parent)
