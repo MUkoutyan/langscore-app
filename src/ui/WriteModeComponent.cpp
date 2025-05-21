@@ -989,19 +989,33 @@ void WriteModeComponent::setupTree()
     {
         scriptFileNameMap.clear();
         auto scriptExt = ::GetScriptExtension(this->setting->projectType);
-        auto scriptCsv     = readCsv(analyzeFolder + "/Scripts.csv");
-        auto writedScripts = [&scriptCsv, &scriptExt]()
-        {
-            QStringList result;
-            if(scriptCsv.empty()){ return result; }
-            scriptCsv.erase(scriptCsv.begin());
-            for(auto& line : scriptCsv){
-                auto& file = line[0];
-                auto index = file.indexOf(scriptExt);
-                file.remove(index, file.size()-index);
-                result.emplace_back(std::move(file));
+        QFile jsonFile(analyzeFolder + "/Scripts.lsjson");
+
+        if(false == jsonFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qWarning() << "Failed to open JSON file:" << jsonFile.fileName();
+            return;
+        }
+
+        QByteArray jsonData = jsonFile.readAll();
+        jsonFile.close();
+
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+        if(jsonDoc.isNull() || !jsonDoc.isArray()) {
+            qWarning() << "Invalid JSON format in file:" << jsonFile.fileName();
+            return;
+        }
+
+        QJsonArray jsonArray = jsonDoc.array();
+        auto writedScripts = [&jsonArray, &scriptExt]() {
+            std::vector<QString> result;
+            for(const QJsonValue& value : jsonArray) {
+                QJsonObject obj = value.toObject();
+                QString file = obj["file"].toString();
+                if(file.isEmpty() == false) {
+                    result.emplace_back(std::move(file));
+                }
             }
-            result.sort();
+            std::ranges::sort(result);
             result.erase(std::unique(result.begin(), result.end()), result.end());
             return result;
         }();
@@ -1207,8 +1221,54 @@ void WriteModeComponent::setupScriptCsvText()
     this->ui->tableWidget_script->blockSignals(true);
     this->ui->tableWidget_script->clear();
     const auto tempFolder = this->setting->analyzeDirectoryPath();
-    auto csv = readCsv(tempFolder + "/Scripts.csv");
-    if(csv.empty()){
+
+    QFile jsonFile(tempFolder + "/Scripts.lsjson");
+
+    if(false == jsonFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open JSON file:" << jsonFile.fileName();
+        return;
+    }
+
+    QByteArray jsonData = jsonFile.readAll();
+    jsonFile.close();
+
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+    if(jsonDoc.isNull() || !jsonDoc.isArray()) {
+        qWarning() << "Invalid JSON format in file:" << jsonFile.fileName();
+        return;
+    }
+
+    struct ScriptTextData {
+        QString text;
+        TextPosition pos;
+    };
+
+    QJsonArray jsonArray = jsonDoc.array();
+    auto writedScripts = [&jsonArray]() 
+    {
+        std::vector<ScriptTextData> result;
+        for(const QJsonValue& value : jsonArray) 
+        {
+            TextPosition pos;
+            QJsonObject obj = value.toObject();
+            pos.scriptFileName = obj["file"].toString();
+            pos.type = TextPosition::Type::RowCol;
+            TextPosition::RowCol rowCol;
+            rowCol.row = obj["row"].toInteger();
+            rowCol.col = obj["col"].toInteger();
+            pos.d = rowCol;
+
+            ScriptTextData data = {
+                obj["original"].toString(),
+                pos
+            };
+            
+            result.emplace_back(std::move(data));
+        }
+        return result;
+    }();
+
+    if(writedScripts.empty()){
         this->ui->tableWidget_script->blockSignals(false);
         return;
     }
@@ -1255,12 +1315,11 @@ void WriteModeComponent::setupScriptCsvText()
 
     if(showAllScriptContents == false)
     {
-        auto rm_result = std::remove_if(csv.begin()+1, csv.end(), [&IsIgnoreScript, &IsIgnoreText](const std::vector<QString>& line){
-            if(line.size() <= 1) { return false; }
-            auto result = parseScriptNameWithRowCol(line[1]);
-            return IsIgnoreScript(result.scriptFileName) || IsIgnoreText(result);
+        auto rm_result = std::remove_if(writedScripts.begin()+1, writedScripts.end(), [&IsIgnoreScript, &IsIgnoreText](const ScriptTextData& data){
+            if(data.pos.scriptFileName.isEmpty()) { return false; }
+            return IsIgnoreScript(data.pos.scriptFileName) || IsIgnoreText(data.pos);
         });
-        csv.erase(rm_result, csv.end());
+        writedScripts.erase(rm_result, writedScripts.end());
     }
 
     // 常に非表示にするスクリプト名のフィルタリング（最適化版）
@@ -1271,12 +1330,10 @@ void WriteModeComponent::setupScriptCsvText()
         std::unordered_map<QString, std::vector<size_t>> scriptNameToRowMap;
 
         // すべての行を走査して一度だけマッピングを作成
-        for(size_t i = 1; i < csv.size(); ++i) 
+        for(size_t i = 1; i < writedScripts.size(); ++i)
         {
-            if(csv[i].size() <= 1) { continue; }
 
-            auto result = parseScriptNameWithRowCol(csv[i][1]);
-            auto scriptName = getScriptName(result.scriptFileName);
+            auto scriptName = getScriptName(writedScripts[i].pos.scriptFileName);
 
             if(scriptNameToRowMap.find(scriptName) == scriptNameToRowMap.end()) {
                 scriptNameToRowMap[scriptName] = std::vector<size_t>{i};
@@ -1303,13 +1360,13 @@ void WriteModeComponent::setupScriptCsvText()
             std::sort(rowsToRemove.begin(), rowsToRemove.end(), std::greater<size_t>());
 
             for(auto rowIndex : rowsToRemove) {
-                csv.erase(csv.begin() + rowIndex);
+                writedScripts.erase(writedScripts.begin() + rowIndex);
             }
         }
     }
 
     //ヘッダーを除外するので-1
-    const auto numTableItems = csv.size()-1;
+    const auto numTableItems = writedScripts.size()-1;
     QTableWidget *targetTable = this->ui->tableWidget_script;
     targetTable->clear();
     targetTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
@@ -1325,10 +1382,9 @@ void WriteModeComponent::setupScriptCsvText()
     const auto& scriptExt = GetScriptExtension(this->setting->projectType);
     for(int r=0; r<numTableItems; ++r)
     {
-        const auto& line = csv[r+1];
-        const auto& originalText   = line[0];
-        const auto& scriptLineInfo = line.size() <= 1 ? "" : line[1];
-        auto lineParsedResult = parseScriptNameWithRowCol(scriptLineInfo);
+        auto& scriptData = writedScripts[r+1];
+        const auto& originalText   = scriptData.text;
+        auto& lineParsedResult = scriptData.pos;
 
         const auto& textColor = TextColor(lineParsedResult);
 
