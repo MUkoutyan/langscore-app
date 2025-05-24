@@ -134,7 +134,9 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
     if (QFile::exists(analyzeDirPath) && lsJsonFiles.isEmpty() == false) {
         emit this->toWriteMode(gameProjDirPath);
     }
-    else {
+    else 
+    {
+        //解析結果を.csvで保存していたので、.lsjsonが無ければ強制的に再解析にする。
         emit this->toAnalyzeMode();
         this->ui->analyzeButton->setEnabled(true);
         this->ui->label->setVisible(false);
