@@ -72,7 +72,7 @@ public:
 
     ~PackingCSVTableViewModel();
 
-    QString getCurrentCsvFile() const noexcept { return currentFile; }
+    QString getCurrentCsvFileName() const noexcept { return currentFileName; }
     void setCsvFile(const QString &filePath, std::vector<std::vector<QString>> contents, QStringList header);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -95,7 +95,7 @@ private:
 
 
 private:
-    QString currentFile;
+    QString currentFileName;
     std::vector<ValidationErrorInfo> errors;
     QStringList header;                           // CSV の 1 行目（ヘッダー）
     std::vector<std::vector<QString>> csvContents;      // 現在 QTableView に表示中の行群
@@ -131,7 +131,7 @@ private:
     QTimer* updateTimer;
     bool _finishInvoke;
     size_t errorInfoIndex;
-    QString currentShowCSV;
+    QString currentShowCSVName;
     bool isValidate;
     bool showLog;
     bool suspendResizeToContents;

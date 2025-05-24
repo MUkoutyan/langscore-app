@@ -38,7 +38,7 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     , clipDetectSettingTree(new ClipDetectSettingTree(this->setting, this->history, this))
     , _finishInvoke(false)
     , errorInfoIndex(0)
-    , currentShowCSV("")
+    , currentShowCSVName("")
     , isValidate(false)
     , showLog(false)
     , suspendResizeToContents(false)
@@ -189,14 +189,16 @@ QString PackingMode::getCurrentSelectedItemFilePath()
     return filePath;
 }
 
-void PackingMode::setupCsvTable(QString filePath)
+void PackingMode::setupCsvTable(QString fileName)
 {
-    if(currentShowCSV == filePath){ return; }
+    if(currentShowCSVName == fileName){ return; }
 
-    const auto SetInvalidCsvMessage = [this, &filePath](int row, QString detail)
+    auto path = this->ui->packingSourceDirectory->text();
+
+    const auto SetInvalidCsvMessage = [this, &fileName, &path](int row, QString detail)
     {
         QStringList texts;
-        auto file = QFile(filePath);
+        auto file = QFile(path + "/" + fileName+".csv");
         if(file.open(QIODevice::ReadOnly)) {
             texts = QString(file.readAll()).split("\n");
         }
@@ -257,15 +259,15 @@ void PackingMode::setupCsvTable(QString filePath)
         this->ui->tableView->hide();
         this->ui->invalidCsvView->show();
 
-        lastSelectedInvalidCSVPath = filePath;
-        this->currentShowCSV = filePath;
+        lastSelectedInvalidCSVPath = path + "/" + fileName + ".csv";
+        this->currentShowCSVName = fileName;
     };
 
-    if(this->errors.find(filePath) != this->errors.end()) {
-        auto find_result = std::ranges::find_if(this->errors[filePath], [](const auto& x) {
+    if(this->errors.find(fileName) != this->errors.end()) {
+        auto find_result = std::ranges::find_if(this->errors[fileName], [](const auto& x) {
             return x.type == ValidationErrorInfo::Error && x.summary == ValidationErrorInfo::InvalidCSV;
         });
-        if(find_result != this->errors[filePath].end()) {
+        if(find_result != this->errors[fileName].end()) {
             this->ui->tableView->hide();
             this->ui->invalidCsvView->show();
             
@@ -284,9 +286,7 @@ void PackingMode::setupCsvTable(QString filePath)
             if(l.enable == false) { continue; }
             _header.append(l.languageName);
         }
-        //ファイル名を取得
-        auto path = this->ui->packingSourceDirectory->text();
-        auto fileName = QFileInfo(filePath).fileName();
+
         //path以下に言語名を持つフォルダが有るため、そこからcsvの中身を取得する。
         QDir dir(path);
         dir.setFilter(QDir::NoDotAndDotDot | QDir::AllDirs);
@@ -340,9 +340,11 @@ void PackingMode::setupCsvTable(QString filePath)
         }
     }
     else {
-        allRows = langscore::readCsv(filePath);
-        _header = QStringList(allRows[0].begin(), allRows[0].end());
-        allRows.erase(allRows.begin());
+        allRows = langscore::readCsv(path + "/" + fileName + ".csv");
+        if(allRows.empty() == false) {
+            _header = QStringList(allRows[0].begin(), allRows[0].end());
+            allRows.erase(allRows.begin());
+        }
     }
 
     //整合性のチェック
@@ -357,7 +359,7 @@ void PackingMode::setupCsvTable(QString filePath)
     //    rowCount++;
     //}
 
-    this->csvTableViewModel->setCsvFile(filePath, std::move(allRows), std::move(_header));
+    this->csvTableViewModel->setCsvFile(fileName, std::move(allRows), std::move(_header));
 
     if(this->ui->invalidCsvView->isVisible()) {
         this->ui->invalidCsvView->hide();
@@ -365,8 +367,8 @@ void PackingMode::setupCsvTable(QString filePath)
     }
 
     _mutex.lock();
-    if(errors.find(filePath) != errors.end()) {
-        this->csvTableViewModel->appendErrors(errors[filePath]);
+    if(errors.find(fileName) != errors.end()) {
+        this->csvTableViewModel->appendErrors(errors[fileName]);
     }
     _mutex.unlock();
 
@@ -376,7 +378,7 @@ void PackingMode::setupCsvTable(QString filePath)
     targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     targetTable->horizontalHeader()->setStretchLastSection(true);
 
-    this->currentShowCSV = filePath;
+    this->currentShowCSVName = fileName;
 }
 
 void PackingMode::setupCsvTree()
@@ -523,7 +525,7 @@ void PackingMode::validate()
     this->updateList.clear();
     this->errors.clear();
 
-    this->currentShowCSV = "";
+    this->currentShowCSVName = "";
     this->errorInfoIndex = 0;
     this->isValidate = true;
 
@@ -727,7 +729,7 @@ void PackingMode::addErrorText(QString text)
 
     auto infos = processJsonBuffer(text);
     std::vector<ValidationErrorInfo> needUpdateErrorInfos;
-    auto currentFileName = QFileInfo{this->csvTableViewModel->getCurrentCsvFile()}.baseName();
+    auto currentFileName = this->csvTableViewModel->getCurrentCsvFileName();
     for(auto&& info : infos)
     {
         QFileInfo fileInfo(info.filePath);
@@ -952,7 +954,7 @@ void PackingCSVTableViewModel::setCsvFile(const QString& filePath, std::vector<s
     }
 
     endResetModel();
-    currentFile = filePath;
+    currentFileName = filePath;
     return;
 }
 
