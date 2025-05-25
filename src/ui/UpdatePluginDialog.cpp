@@ -39,6 +39,9 @@ UpdatePluginDialog::UpdatePluginDialog(std::shared_ptr<settings> settings, QWidg
     connect(this->ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(this->ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
+
+    this->ui->enablePatch->setEnabled(false); //無効化
+
     this->checkButtonStatus();
 
     this->update();

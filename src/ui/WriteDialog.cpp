@@ -51,6 +51,7 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
     }
 
     this->ui->exportByLangCheck->setChecked(settings->writeObj.enableLanguagePatch);
+    this->ui->exportByLangCheck->setEnabled(false); //無効化
 
     this->update();
 }
