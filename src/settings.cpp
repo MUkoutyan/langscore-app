@@ -430,6 +430,7 @@ QByteArray settings::createJson()
     write[key(JsonKey::OverwriteLangscore)]         = writeObj.overwriteLangscore;
     write[key(JsonKey::OverwriteLangscoreCustom)]   = writeObj.overwriteLangscoreCustom;
     write[key(JsonKey::EnableLanguagePatch)]        = writeObj.enableLanguagePatch;
+    write[key(JsonKey::EnableTranslationDefLang)]   = writeObj.enableTranslateDefLang;
     write[key(JsonKey::WriteType)]                  = writeObj.writeMode;
 
     QJsonArray basicDataList;
@@ -610,9 +611,10 @@ void settings::load(QString path)
 
     auto write = root[key(JsonKey::Write)].toObject();
 
-    writeObj.exportDirectory     = write[key(JsonKey::ExportDirectory)].toString("");
-    writeObj.exportByLanguage    = write[key(JsonKey::ExportByLang)].toBool(false);
-    writeObj.enableLanguagePatch = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
+    writeObj.exportDirectory        = write[key(JsonKey::ExportDirectory)].toString("");
+    writeObj.exportByLanguage       = write[key(JsonKey::ExportByLang)].toBool(false);
+    writeObj.enableLanguagePatch    = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
+    writeObj.enableTranslateDefLang = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
     //保存したいようなフラグではないため、設定値を読み込まない
 //    writeObj.isWriteCSV               = write[key(JsonKey::IsWriteCsv)].toBool(false);
 //    writeObj.overwriteLangscore       = write[key(JsonKey::OverwriteLangscore)].toBool(false);

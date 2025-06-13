@@ -36,11 +36,15 @@ UpdatePluginDialog::UpdatePluginDialog(std::shared_ptr<settings> settings, QWidg
         this->checkButtonStatus();
     });
 
+
+    this->ui->enableTransDefLang->setChecked(setting->writeObj.enableTranslateDefLang);
+    connect(this->ui->enableTransDefLang, &QCheckBox::clicked, this, [this](bool check){
+        setting->writeObj.enableTranslateDefLang = check;
+        this->checkButtonStatus();
+    });
+
     connect(this->ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(this->ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-
-
-    this->ui->enablePatch->setVisible(false); //無効化
 
     this->checkButtonStatus();
 

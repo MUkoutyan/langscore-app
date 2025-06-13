@@ -131,6 +131,7 @@ public:
         bool exportByLanguage = false;
         bool overwriteLangscore = false;
         bool overwriteLangscoreCustom = false;
+        bool enableTranslateDefLang = true;
         bool enableLanguagePatch = false;
         std::vector<ScriptInfo> scriptInfo;
         std::vector<BasicData> basicDataInfo;
