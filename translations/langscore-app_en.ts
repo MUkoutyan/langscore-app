@@ -727,7 +727,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="289"/>
         <location filename="../src/ui/WriteModeComponent.ui" line="373"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1514"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1546"/>
         <source>Word Count : %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -768,143 +768,143 @@ Unchecked text and images are excluded from translation.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="561"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="895"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="896"/>
         <source>Write Translate CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="168"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="169"/>
         <source>Show All Contents</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="173"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="174"/>
         <source>Hide Ignore Contents</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="196"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="197"/>
         <source>Uncheck Sign Only Text</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="257"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="258"/>
         <source>Uncheck text that does not contain hiragana</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="281"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="282"/>
         <source>Update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="285"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="286"/>
         <source>When updated, the displayed content will be changed to the latest content.
 This process cannot be undone.
 Note:The translation file will not be changed until it is exported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="297"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="298"/>
         <source>Update Projects...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="299"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="300"/>
         <source>Update to the latest content...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="312"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="313"/>
         <source>Done.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="317"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="318"/>
         <source> Complete.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="570"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="571"/>
         <source>Main Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="598"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="599"/>
         <source>Script Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="662"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="663"/>
         <source>Graphics Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="733"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="734"/>
         <source>Change Script Table Check</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="767"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="768"/>
         <source>Update Plugin...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="804"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="805"/>
         <source>Write Translate Files...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="842"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="843"/>
         <source>Write Translate Files(First)...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="891"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="892"/>
         <source>To export CSV, please select a language</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1062"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1115"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1063"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1116"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1452"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1863"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1484"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1895"/>
         <source>All Script Word Count : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1491"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1523"/>
         <source>Original</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1491"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1523"/>
         <source>Type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1924"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1934"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1956"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1966"/>
         <source>Change Table State : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1927"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1937"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1959"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1969"/>
         <source>Change Table State : Row %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1947"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1952"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1979"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1984"/>
         <source>Change Tree State : %1</source>
         <translation type="unfinished"></translation>
     </message>
