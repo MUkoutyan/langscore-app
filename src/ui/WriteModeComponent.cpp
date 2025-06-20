@@ -46,6 +46,7 @@ enum ScriptTableCol : int {
     EnableCheck = 0,
     ScriptName,
     TextPoint,
+    Text,
     Original,
     NumCols
 };
@@ -369,57 +370,57 @@ void WriteModeComponent::show()
         }
     }
 
-    auto writedScriptList = [&analyzeDirPath]()
-    {
-        QStringList result;
-        auto scriptCsv     = readCsv(analyzeDirPath + "/Scripts.csv");
-        if(scriptCsv.empty()){ return result; }
-        scriptCsv.erase(scriptCsv.begin()); //Headerを削除
-        for(auto& line : scriptCsv){
-            result.emplace_back(line[0]);
-        }
-        result.sort();
-        result.erase(std::unique(result.begin(), result.end()), result.end());
+    //auto writedScriptList = [&analyzeDirPath]()
+    //{
+    //    QStringList result;
+    //    auto scriptCsv     = readCsv(analyzeDirPath + "/Scripts.lsjson");
+    //    if(scriptCsv.empty()){ return result; }
+    //    scriptCsv.erase(scriptCsv.begin()); //Headerを削除
+    //    for(auto& line : scriptCsv){
+    //        result.emplace_back(line[0]);
+    //    }
+    //    result.sort();
+    //    result.erase(std::unique(result.begin(), result.end()), result.end());
 
-        return result;
-    }();
+    //    return result;
+    //}();
 
-    for(auto& script : writedScriptList)
-    {
-        auto parseResult = parseScriptNameWithRowCol(script);
-        QString fileName;
-        size_t row = 0;
-        size_t col = 0;
-        if(std::holds_alternative<TextPosition::RowCol>(parseResult.d)){
-            fileName = parseResult.scriptFileName;
-            const auto& cell = std::get<TextPosition::RowCol>(parseResult.d);
-            row = cell.row;
-            col = cell.col;
-        }
-        else{
-            continue;
-        }
+    //for(auto& script : writedScriptList)
+    //{
+    //    auto parseResult = parseScriptNameWithRowCol(script);
+    //    QString fileName;
+    //    size_t row = 0;
+    //    size_t col = 0;
+    //    if(std::holds_alternative<TextPosition::RowCol>(parseResult.d)){
+    //        fileName = parseResult.scriptFileName;
+    //        const auto& cell = std::get<TextPosition::RowCol>(parseResult.d);
+    //        row = cell.row;
+    //        col = cell.col;
+    //    }
+    //    else{
+    //        continue;
+    //    }
 
-        auto& scriptList = this->setting->writeObj.scriptInfo;
-        const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
-            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
-                return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
-            });
-            return result != scriptList.cend();
-        };
-        if(IsIgnoreText(fileName, row, col) == false){ continue; }
+    //    auto& scriptList = this->setting->writeObj.scriptInfo;
+    //    const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
+    //        auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+    //            return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
+    //        });
+    //        return result != scriptList.cend();
+    //    };
+    //    if(IsIgnoreText(fileName, row, col) == false){ continue; }
 
-        auto& info = this->setting->fetchScriptInfo(fileName);
-        if(std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [row, col](const auto& x){
-            return x == std::pair<size_t,size_t>{row, col};
-        }) == info.ignorePoint.end())
-        {
-            settings::TextPoint point;
-            point.row = row;
-            point.col = col;
-            info.ignorePoint.emplace_back(std::move(point));
-        }
-    }
+    //    auto& info = this->setting->fetchScriptInfo(fileName);
+    //    if(std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [row, col](const auto& x){
+    //        return x == std::pair<size_t,size_t>{row, col};
+    //    }) == info.ignorePoint.end())
+    //    {
+    //        settings::TextPoint point;
+    //        point.row = row;
+    //        point.col = col;
+    //        info.ignorePoint.emplace_back(std::move(point));
+    //    }
+    //}
 
     this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
     for(auto& lang : this->setting->languages)
@@ -1252,18 +1253,40 @@ void WriteModeComponent::setupScriptCsvText()
             TextPosition pos;
             QJsonObject obj = value.toObject();
             pos.scriptFileName = obj["file"].toString();
-            pos.type = TextPosition::Type::RowCol;
-            TextPosition::RowCol rowCol;
-            rowCol.row = obj["row"].toInteger();
-            rowCol.col = obj["col"].toInteger();
-            pos.d = rowCol;
+            if(obj.contains("parameterName")) 
+            {
+                pos.type = TextPosition::Type::Argument;
+                if(obj.contains("value")) {
+                    pos.value = obj["value"].toString();
+                }
+                TextPosition::ScriptArg rowCol;
+                rowCol.valueName = obj["parameterName"].toString();
+                pos.d = rowCol;
 
-            ScriptTextData data = {
-                obj["original"].toString(),
-                pos
-            };
-            
-            result.emplace_back(std::move(data));
+                ScriptTextData data = {
+                    obj["original"].toString(),
+                    pos
+                };
+
+                result.emplace_back(std::move(data));
+            }
+            else {
+                pos.type = TextPosition::Type::RowCol;
+                if(obj.contains("value")) {
+                    pos.value = obj["value"].toString();
+                }
+                TextPosition::RowCol rowCol;
+                rowCol.row = obj["row"].toInteger();
+                rowCol.col = obj["col"].toInteger();
+                pos.d = rowCol;
+
+                ScriptTextData data = {
+                    obj["original"].toString(),
+                    pos
+                };
+
+                result.emplace_back(std::move(data));
+            }
         }
         return result;
     }();
@@ -1376,7 +1399,7 @@ void WriteModeComponent::setupScriptCsvText()
     targetTable->setRowCount(numTableItems);
     targetTable->setColumnCount(ScriptTableCol::NumCols);
 
-    targetTable->setHorizontalHeaderLabels(QStringList() << "Include" << "ScriptName" << "TextPoint" << "Original Text");
+    targetTable->setHorizontalHeaderLabels(QStringList() << "Include" << "ScriptName" << "TextPoint" << "Text" << "Original Text");
 
     currentScriptWordCount = 0;
     const auto& scriptExt = GetScriptExtension(this->setting->projectType);
@@ -1425,11 +1448,13 @@ void WriteModeComponent::setupScriptCsvText()
             }
         }
         //テキストの位置
-
         if(std::holds_alternative<TextPosition::RowCol>(lineParsedResult.d))
         {
             auto& cell = std::get<TextPosition::RowCol>(lineParsedResult.d);
             auto* item = new QTableWidgetItem(QString("%1:%2").arg(cell.row).arg(cell.col));
+            if(cell.row == 0 && cell.col == 0){
+                item->setText("Parameter");
+            }
             item->setForeground(textColor);
             item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
@@ -1440,7 +1465,14 @@ void WriteModeComponent::setupScriptCsvText()
             item->setForeground(textColor);
             item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
+        }
 
+        {
+
+            auto* item = new QTableWidgetItem(lineParsedResult.value);
+            item->setForeground(textColor);
+            item->setFlags(scriptTableItemFlags);
+            targetTable->setItem(r, ScriptTableCol::Text, item);
         }
     }
 
