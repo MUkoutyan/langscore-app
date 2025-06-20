@@ -43,5 +43,45 @@ ColorTheme::Theme ColorTheme::getCurrentTheme() const noexcept
     return result;
 }
 
+QColor ColorTheme::getTopLevelItemBGColor()
+{
+    if(this->getCurrentTheme() == ColorTheme::Dark) {
+        return QColor(128, 128, 128, 90);
+    }
+    return QColor(255, 255, 255, 128);
+}
+
+QColor ColorTheme::getGraphicFolderBGColor()
+{
+    if(this->getCurrentTheme() == ColorTheme::Dark) {
+        return QColor(128, 128, 128, 90);
+    }
+    return QColor(255, 255, 255, 128);
+}
+
+QColor ColorTheme::getItemTextColor()
+{
+    if(this->getCurrentTheme() == ColorTheme::Dark) {
+        return Qt::white;
+    }
+    return Qt::black;
+}
+
+std::unordered_map<Qt::CheckState, QColor> ColorTheme::getTextColorForState()
+{
+    if(this->getCurrentTheme() == ColorTheme::Dark) {
+        return {
+            {Qt::Checked,           QColor(0xfefefe)},
+            {Qt::PartiallyChecked,  QColor(0x9a9a9a)},
+            {Qt::Unchecked,         QColor(0x5a5a5a)},
+        };
+    }
+    return {
+        {Qt::Checked,           QColor(0x161616)},
+        {Qt::PartiallyChecked,  QColor(0x646464)},
+        {Qt::Unchecked,         QColor(0x9a9a9a)},
+    };
+}
+
 
 ColorTheme ComponentBase::colorTheme;

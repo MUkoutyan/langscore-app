@@ -13,6 +13,15 @@ static int wordCountUTF8(QString text)
     return words;
 }
 
+static QString getExtension(QString fileName)
+{
+    int index = fileName.lastIndexOf('.');
+    if(index == -1){ return QString(); }
+    fileName.remove(0, index+1);
+    return fileName;
+}
+
+
 static QString withoutExtension(QString fileName)
 {
     int index = fileName.lastIndexOf('.');
@@ -31,6 +40,16 @@ static QString withoutAllExtension(QString fileName)
     fileName.remove(index, fileName.length()-index);
 
     return fileName;
+}
+
+
+inline QString GetScriptExtension(settings::ProjectType type)
+{
+    auto scriptExt = ".rb";
+    if(type == settings::MV || type == settings::MZ) {
+        scriptExt = ".js";
+    }
+    return scriptExt;
 }
 
 }

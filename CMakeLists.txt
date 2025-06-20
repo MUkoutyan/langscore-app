@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.5)
+﻿cmake_minimum_required(VERSION 3.21)
 
 project(langscore-app VERSION 0.8.8 LANGUAGES CXX)
 set(CONFIG_FILE_VERSION 1.1.0)
@@ -79,6 +79,18 @@ set(PROJECT_SOURCES
     src/ui/ColorTheme.h
     src/ui/ClipDetectSettingTree.cpp
     src/ui/ClipDetectSettingTree.h
+    src/ui/CSVEditor.cpp
+    src/ui/CSVEditor.h
+    src/ui/LoadFileManager.h
+    src/ui/LoadFileManager.cpp
+    src/ui/FileTree.cpp
+    src/ui/FileTree.h
+    src/ui/ScriptCSVTable.h
+    src/ui/ScriptCSVTable.cpp
+    src/ui/MainCSVTable.h
+    src/ui/MainCSVTable.cpp
+    src/ui/CSVEditor.h
+    src/ui/CSVEditor.cpp
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h

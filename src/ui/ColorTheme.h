@@ -21,6 +21,13 @@ public:
     void setTheme(Theme t) noexcept;
     Theme getCurrentTheme() const noexcept;
 
+    QColor getTopLevelItemBGColor();
+    QColor getGraphicFolderBGColor();
+    QColor getItemTextColor();
+
+    std::unordered_map<Qt::CheckState, QColor> getTextColorForState();
+
+
 private:
     Theme currentTheme;
 };
