@@ -130,6 +130,29 @@ No need to enter &quot;\&quot;</source>
     </message>
 </context>
 <context>
+    <name>FileTree</name>
+    <message>
+        <source>Unchecking the box excludes this script from translation.</source>
+        <translation type="obsolete">チェックを外すと、このスクリプトを翻訳から除外します。</translation>
+    </message>
+    <message>
+        <source>Main Tree Change Enable State</source>
+        <translation type="obsolete">メインツリーのチェックを変更</translation>
+    </message>
+    <message>
+        <source>Script Tree Change Enable State</source>
+        <translation type="obsolete">スクリプトツリーのチェックを変更</translation>
+    </message>
+    <message>
+        <source>Graphics Tree Change Enable State</source>
+        <translation type="obsolete">画像ツリーのチェックを変更</translation>
+    </message>
+    <message>
+        <source>Change Tree State : %1</source>
+        <translation type="obsolete">ツリーの状態を変更 : %1</translation>
+    </message>
+</context>
+<context>
     <name>FirstWriteDialog</name>
     <message>
         <location filename="../src/ui/FirstWriteDialog.ui" line="29"/>
@@ -316,6 +339,29 @@ No need to enter &quot;\&quot;</source>
         <location filename="../src/ui/LanguageSelectComponent.cpp" line="13"/>
         <source>Original Language</source>
         <translation>原文の言語</translation>
+    </message>
+</context>
+<context>
+    <name>MainCSVTable</name>
+    <message>
+        <source>Change Script Table Check</source>
+        <translation type="obsolete">スクリプトテーブルのチェックを変更</translation>
+    </message>
+    <message>
+        <source>Original</source>
+        <translation type="obsolete">原文</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation type="obsolete">種類</translation>
+    </message>
+    <message>
+        <source>Change Table State : %1</source>
+        <translation type="obsolete">テーブルの状態を変更 : %1</translation>
+    </message>
+    <message>
+        <source>Change Table State : Row %1</source>
+        <translation type="obsolete">テーブルの状態を変更 : 行 %1</translation>
     </message>
 </context>
 <context>
@@ -712,6 +758,53 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     </message>
 </context>
 <context>
+    <name>ScriptCSVTable</name>
+    <message>
+        <source>Show All Contents</source>
+        <translation type="obsolete">全ての内容を表示</translation>
+    </message>
+    <message>
+        <source>Hide Ignore Contents</source>
+        <translation type="obsolete">無視にした内容を非表示</translation>
+    </message>
+    <message>
+        <source>Uncheck Sign Only Text</source>
+        <translation type="obsolete">記号のみの文のチェックを外す</translation>
+    </message>
+    <message>
+        <source>Uncheck text that does not contain hiragana</source>
+        <translation type="obsolete">日本語を含まない文章のチェックを外す</translation>
+    </message>
+    <message>
+        <source>All Script Word Count : %1</source>
+        <translation type="obsolete">全てのスクリプトの単語数 : %1</translation>
+    </message>
+    <message>
+        <source>Change Script Table Check</source>
+        <translation type="obsolete">スクリプトテーブルのチェックを変更</translation>
+    </message>
+    <message>
+        <source>Original</source>
+        <translation type="obsolete">原文</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation type="obsolete">種類</translation>
+    </message>
+    <message>
+        <source>Word Count : %1</source>
+        <translation type="obsolete">単語数 : %1</translation>
+    </message>
+    <message>
+        <source>Change Table State : %1</source>
+        <translation type="obsolete">テーブルの状態を変更 : %1</translation>
+    </message>
+    <message>
+        <source>Change Table State : Row %1</source>
+        <translation type="obsolete">テーブルの状態を変更 : 行 %1</translation>
+    </message>
+</context>
+<context>
     <name>UpdatePluginDialog</name>
     <message>
         <location filename="../src/ui/UpdatePluginDialog.ui" line="29"/>
@@ -919,7 +1012,7 @@ Unchecked text and images are excluded from translation.</source>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="289"/>
         <location filename="../src/ui/WriteModeComponent.ui" line="373"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1514"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1546"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
@@ -960,37 +1053,37 @@ Unchecked text and images are excluded from translation.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="561"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="895"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="896"/>
         <source>Write Translate CSV</source>
         <translation>翻訳CSVの書き出し</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="168"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="169"/>
         <source>Show All Contents</source>
         <translation>全ての内容を表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="173"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="174"/>
         <source>Hide Ignore Contents</source>
         <translation>無視にした内容を非表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="196"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="197"/>
         <source>Uncheck Sign Only Text</source>
         <translation>記号のみの文のチェックを外す</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="257"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="258"/>
         <source>Uncheck text that does not contain hiragana</source>
         <translation>日本語を含まない文章のチェックを外す</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="281"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="282"/>
         <source>Update</source>
         <translation>更新する</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="285"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="286"/>
         <source>When updated, the displayed content will be changed to the latest content.
 This process cannot be undone.
 Note:The translation file will not be changed until it is exported.</source>
@@ -999,38 +1092,38 @@ Note:The translation file will not be changed until it is exported.</source>
 ※翻訳ファイルは書き出しを行うまで変更されません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="297"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="298"/>
         <source>Update Projects...
 </source>
         <translation>プロジェクトの更新中...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="299"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="300"/>
         <source>Update to the latest content...</source>
         <translation>最新の内容に更新中...</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="317"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="318"/>
         <source> Complete.</source>
         <translation> 完了。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="767"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="768"/>
         <source>Update Plugin...
 </source>
         <translation>プラグインを更新...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="842"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="843"/>
         <source>Write Translate Files(First)...
 </source>
         <translation>翻訳ファイルの書き出し(初回)...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="891"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="892"/>
         <source>To export CSV, please select a language</source>
         <translation>CSVを書き出すには言語を選択して下さい</translation>
     </message>
@@ -1047,74 +1140,74 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation type="vanished">ログファイル (*.txt)</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="570"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="571"/>
         <source>Main Tree Change Enable State</source>
         <translation>メインツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="598"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="599"/>
         <source>Script Tree Change Enable State</source>
         <translation>スクリプトツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="662"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="663"/>
         <source>Graphics Tree Change Enable State</source>
         <translation>画像ツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="733"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="734"/>
         <source>Change Script Table Check</source>
         <translation>スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="804"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="805"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="312"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="313"/>
         <source>Done.</source>
         <translation>完了。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1062"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1115"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1063"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1116"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1452"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1863"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1484"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1895"/>
         <source>All Script Word Count : %1</source>
         <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1491"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1523"/>
         <source>Original</source>
         <translation>原文</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1491"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1523"/>
         <source>Type</source>
         <translation>種類</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1924"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1934"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1956"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1966"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1927"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1937"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1959"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1969"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1947"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1952"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1979"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1984"/>
         <source>Change Tree State : %1</source>
         <translation>ツリーの状態を変更 : %1</translation>
     </message>

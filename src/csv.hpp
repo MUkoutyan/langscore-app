@@ -115,7 +115,7 @@ struct TextPosition
     };
     struct ScriptArg {
         QString valueName;
-        ScriptArg():valueName(""){}
+        ScriptArg() :valueName(""){}
     };
     enum class Type {
         RowCol,
@@ -124,6 +124,7 @@ struct TextPosition
 
     Type type;
     QString scriptFileName;
+    QString value;
     std::variant<RowCol, ScriptArg> d;
 };
 

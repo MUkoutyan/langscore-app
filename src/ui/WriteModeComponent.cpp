@@ -191,57 +191,57 @@ void WriteModeComponent::show()
         }
     }
 
-    auto writedScriptList = [&analyzeDirPath]()
-    {
-        QStringList result;
-        auto scriptCsv     = readCsv(analyzeDirPath + "/Scripts.csv");
-        if(scriptCsv.empty()){ return result; }
-        scriptCsv.erase(scriptCsv.begin()); //Headerを削除
-        for(auto& line : scriptCsv){
-            result.emplace_back(line[0]);
-        }
-        result.sort();
-        result.erase(std::unique(result.begin(), result.end()), result.end());
+    //auto writedScriptList = [&analyzeDirPath]()
+    //{
+    //    QStringList result;
+    //    auto scriptCsv     = readCsv(analyzeDirPath + "/Scripts.lsjson");
+    //    if(scriptCsv.empty()){ return result; }
+    //    scriptCsv.erase(scriptCsv.begin()); //Headerを削除
+    //    for(auto& line : scriptCsv){
+    //        result.emplace_back(line[0]);
+    //    }
+    //    result.sort();
+    //    result.erase(std::unique(result.begin(), result.end()), result.end());
 
-        return result;
-    }();
+    //    return result;
+    //}();
 
-    for(auto& script : writedScriptList)
-    {
-        auto parseResult = parseScriptNameWithRowCol(script);
-        QString fileName;
-        size_t row = 0;
-        size_t col = 0;
-        if(std::holds_alternative<TextPosition::RowCol>(parseResult.d)){
-            fileName = parseResult.scriptFileName;
-            const auto& cell = std::get<TextPosition::RowCol>(parseResult.d);
-            row = cell.row;
-            col = cell.col;
-        }
-        else{
-            continue;
-        }
+    //for(auto& script : writedScriptList)
+    //{
+    //    auto parseResult = parseScriptNameWithRowCol(script);
+    //    QString fileName;
+    //    size_t row = 0;
+    //    size_t col = 0;
+    //    if(std::holds_alternative<TextPosition::RowCol>(parseResult.d)){
+    //        fileName = parseResult.scriptFileName;
+    //        const auto& cell = std::get<TextPosition::RowCol>(parseResult.d);
+    //        row = cell.row;
+    //        col = cell.col;
+    //    }
+    //    else{
+    //        continue;
+    //    }
 
-        auto& scriptList = this->setting->writeObj.scriptInfo;
-        const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
-            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
-                return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
-            });
-            return result != scriptList.cend();
-        };
-        if(IsIgnoreText(fileName, row, col) == false){ continue; }
+    //    auto& scriptList = this->setting->writeObj.scriptInfo;
+    //    const auto IsIgnoreText = [&scriptList](QString fileName, size_t row, size_t col){
+    //        auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x){
+    //            return x.name == fileName &&  std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), std::pair<size_t, size_t>{row, col}) != x.ignorePoint.cend();
+    //        });
+    //        return result != scriptList.cend();
+    //    };
+    //    if(IsIgnoreText(fileName, row, col) == false){ continue; }
 
-        auto& info = this->setting->fetchScriptInfo(fileName);
-        if(std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [row, col](const auto& x){
-            return x == std::pair<size_t,size_t>{row, col};
-        }) == info.ignorePoint.end())
-        {
-            settings::TextPoint point;
-            point.row = row;
-            point.col = col;
-            info.ignorePoint.emplace_back(std::move(point));
-        }
-    }
+    //    auto& info = this->setting->fetchScriptInfo(fileName);
+    //    if(std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [row, col](const auto& x){
+    //        return x == std::pair<size_t,size_t>{row, col};
+    //    }) == info.ignorePoint.end())
+    //    {
+    //        settings::TextPoint point;
+    //        point.row = row;
+    //        point.col = col;
+    //        info.ignorePoint.emplace_back(std::move(point));
+    //    }
+    //}
 
     this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
     for(auto& lang : this->setting->languages)
