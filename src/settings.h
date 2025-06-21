@@ -122,6 +122,7 @@ public:
     };
 
     struct ScriptInfo : public BasicData {
+        size_t totalTextPoint = 0;
         std::vector<TextPoint> ignorePoint;
     };
 

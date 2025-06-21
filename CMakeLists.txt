@@ -58,6 +58,7 @@ set(PROJECT_SOURCES
     src/invoker.cpp
     src/settings.h
     src/settings.cpp
+    src/settings_io.cpp
     src/graphics.hpp
     src/ui/WriteDialog.h
     src/ui/WriteDialog.cpp
