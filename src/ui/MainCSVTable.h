@@ -35,16 +35,8 @@ public:
 
     void setScriptFileName(QString fileName);
 
-signals:
-    void scriptTableSelected(QString scriptName, QString scriptFilePath, size_t textRow, size_t textCol, int textLen);
-
 public slots:
     void changeScriptTableItemCheck(QString scriptName, Qt::CheckState);
-
-private slots:
-    void onTableScrollToRow(const QString& scriptFileName);
-    void onTableSelectRow(const QString& scriptFileName);
-    void onTableSelected();
 
 private:
 
@@ -70,10 +62,8 @@ private:
     };
 
 
-    void updateWordCount(QString text, Qt::CheckState state);
     std::vector<int> fetchTableSameFileRows(QString mainFileName);
 
-    int currentWordCount;
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
     QTableWidget* tableWidget;

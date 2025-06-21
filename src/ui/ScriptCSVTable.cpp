@@ -20,6 +20,7 @@ enum ScriptTableCol : int {
     EnableCheck = 0,
     ScriptName,
     TextPoint,
+    Text,
     Original,
     NumCols
 };
@@ -216,21 +217,47 @@ void ScriptCSVTable::setupScriptTable()
         return;
     }
 
+
     struct ScriptTextData {
         QString text;
+        QString fileName;
+        QString scriptName;
         TextPosition pos;
     };
 
     QJsonArray jsonArray = jsonDoc.array();
-    auto writedScripts = [&jsonArray]()
+    auto writedScripts = [&jsonArray, this]()
+    {
+        std::vector<ScriptTextData> result;
+        for(const QJsonValue& value : jsonArray)
         {
-            std::vector<ScriptTextData> result;
-            for(const QJsonValue& value : jsonArray)
+            TextPosition pos;
+            QJsonObject obj = value.toObject();
+            pos.scriptFileName = obj["file"].toString();
+            if(obj.contains("parameterName"))
             {
-                TextPosition pos;
-                QJsonObject obj = value.toObject();
-                pos.scriptFileName = obj["file"].toString();
+                pos.type = TextPosition::Type::Argument;
+                if(obj.contains("value")) {
+                    pos.value = obj["value"].toString();
+                }
+                TextPosition::ScriptArg rowCol;
+                rowCol.valueName = obj["parameterName"].toString();
+                pos.d = rowCol;
+
+                ScriptTextData data = {
+                    obj["original"].toString(),
+                    obj["file"].toString(),
+                    "",
+                    pos
+                };
+
+                result.emplace_back(std::move(data));
+            }
+            else {
                 pos.type = TextPosition::Type::RowCol;
+                if(obj.contains("value")) {
+                    pos.value = obj["value"].toString();
+                }
                 TextPosition::RowCol rowCol;
                 rowCol.row = obj["row"].toInteger();
                 rowCol.col = obj["col"].toInteger();
@@ -238,13 +265,29 @@ void ScriptCSVTable::setupScriptTable()
 
                 ScriptTextData data = {
                     obj["original"].toString(),
+                    obj["file"].toString(),
+                    "",
                     pos
                 };
 
                 result.emplace_back(std::move(data));
             }
-            return result;
-        }();
+        }
+
+        const auto& scriptInfos = this->loadFileManager.lock()->getScriptFileList();
+        for(auto& info : result) 
+        {
+            // スクリプト情報を検索
+            auto it = std::find_if(scriptInfos.cbegin(), scriptInfos.cend(), [&info](const auto& x) {
+                return x.fileName == info.fileName;
+            });
+            if(it != scriptInfos.cend()) {
+                info.scriptName = it->scriptName;
+            }
+        }
+
+        return result;
+    }();
 
     if(writedScripts.empty()) {
         this->tableWidget->blockSignals(false);
@@ -255,27 +298,27 @@ void ScriptCSVTable::setupScriptTable()
 
     const auto& scriptList = this->setting->writeObj.scriptInfo;
     const auto IsIgnoreText = [&scriptList](const TextPosition& info)
+    {
+        auto fileName = info.scriptFileName;
+        fileName = withoutExtension(std::move(fileName));
+        if(std::holds_alternative<TextPosition::RowCol>(info.d))
         {
-            auto fileName = info.scriptFileName;
-            fileName = withoutExtension(std::move(fileName));
-            if(std::holds_alternative<TextPosition::RowCol>(info.d))
-            {
-                auto& cell = std::get<TextPosition::RowCol>(info.d);
-                auto cellPos = std::pair<size_t, size_t>{cell.row, cell.col};
-                auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
-                    return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cellPos) != x.ignorePoint.cend();
-                    });
-                return result != scriptList.cend();
-            }
-            else
-            {
-                auto& cell = std::get<TextPosition::ScriptArg>(info.d);
-                auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
-                    return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cell.valueName) != x.ignorePoint.cend();
-                    });
-                return result != scriptList.cend();
-            }
-        };
+            auto& cell = std::get<TextPosition::RowCol>(info.d);
+            auto cellPos = std::pair<size_t, size_t>{cell.row, cell.col};
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
+                return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cellPos) != x.ignorePoint.cend();
+                });
+            return result != scriptList.cend();
+        }
+        else
+        {
+            auto& cell = std::get<TextPosition::ScriptArg>(info.d);
+            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
+                return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cell.valueName) != x.ignorePoint.cend();
+                });
+            return result != scriptList.cend();
+        }
+    };
 
     const auto IsIgnoreScript = [&scriptList](QString fileName) {
         fileName = withoutExtension(std::move(fileName));
@@ -356,7 +399,7 @@ void ScriptCSVTable::setupScriptTable()
     targetTable->setRowCount(numTableItems);
     targetTable->setColumnCount(ScriptTableCol::NumCols);
 
-    targetTable->setHorizontalHeaderLabels(QStringList() << "Include" << "ScriptName" << "TextPoint" << "Original Text");
+    targetTable->setHorizontalHeaderLabels(QStringList() << "Include" << "ScriptName" << "TextPoint" << "Text" << "Original Text");
 
     int currentScriptWordCount = 0;
     const auto& scriptExt = GetScriptExtension(this->setting->projectType);
@@ -392,7 +435,7 @@ void ScriptCSVTable::setupScriptTable()
 
         {
             //auto scriptName = getScriptName(lineParsedResult.scriptFileName);
-            auto scriptName = lineParsedResult.scriptFileName;
+            auto scriptName = scriptData.scriptName;
             auto* item = new QTableWidgetItem(scriptName);
             item->setForeground(textColor);
             item->setFlags(scriptTableItemFlags);
@@ -411,6 +454,9 @@ void ScriptCSVTable::setupScriptTable()
         {
             auto& cell = std::get<TextPosition::RowCol>(lineParsedResult.d);
             auto* item = new QTableWidgetItem(QString("%1:%2").arg(cell.row).arg(cell.col));
+            if(cell.row == 0 && cell.col == 0) {
+                item->setText("Parameter");
+            }
             item->setForeground(textColor);
             item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
@@ -422,6 +468,13 @@ void ScriptCSVTable::setupScriptTable()
             item->setFlags(scriptTableItemFlags);
             targetTable->setItem(r, ScriptTableCol::TextPoint, item);
 
+        }
+
+        {
+            auto* item = new QTableWidgetItem(lineParsedResult.value);
+            item->setForeground(textColor);
+            item->setFlags(scriptTableItemFlags);
+            targetTable->setItem(r, ScriptTableCol::Text, item);
         }
     }
 

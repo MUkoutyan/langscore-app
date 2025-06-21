@@ -23,9 +23,6 @@ inline const char* key(JsonKey key)
 }
 
 namespace {
-QString scriptExt(settings::ProjectType type){
-    return type==settings::ProjectType::VXAce?".rb":".js";
-}
 
 const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
     {"rvproj2",     settings::VXAce},
@@ -327,7 +324,7 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
         throw "Load Invalid Script Info";
     }
 
-    fileName += ::scriptExt(projectType);
+    fileName += scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
         return script.name == name;
@@ -345,7 +342,7 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 
 void settings::removeScriptInfoPoint(QString fileName, std::pair<size_t,size_t> point)
 {
-    fileName = QFileInfo(fileName).completeBaseName() + ::scriptExt(projectType);
+    fileName = QFileInfo(fileName).completeBaseName() + scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
         return script.name == name;

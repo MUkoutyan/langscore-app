@@ -92,6 +92,8 @@ set(PROJECT_SOURCES
     src/ui/MainCSVTable.cpp
     src/ui/CSVEditor.h
     src/ui/CSVEditor.cpp
+    src/ui/GraphicsImageLoader.h
+    src/ui/GraphicsImageLoader.cpp
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h

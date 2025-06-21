@@ -5,9 +5,13 @@
 #include <QJsonObject>
 #include <QVBoxLayout>
 #include <QHeaderView>
+#include <QThread>
+#include <QLineEdit>
+#include <QToolButton>
 #include "../settings.h"
 #include "../csv.hpp"
 #include "../utility.hpp"
+#include "GraphicsImageLoader.h"
 
 
 namespace {
@@ -34,6 +38,8 @@ FileTree::FileTree(ComponentBase* component, std::weak_ptr<LoadFileManager> load
     , loadFileManager(std::move(loadFileManager))
     , treeWidget(new QTreeWidget(this))
     , _suspendHistory(false)
+    , graphicsImageLoader(nullptr)
+    , graphicsLoaderThread(nullptr)
 {
 
     this->treeWidget->header()->setVisible(false);
@@ -42,12 +48,37 @@ FileTree::FileTree(ComponentBase* component, std::weak_ptr<LoadFileManager> load
     auto* vLayout = new QVBoxLayout(this);
     vLayout->setContentsMargins(0, 0, 0, 0);
     vLayout->setSpacing(0);
+    
+    // 検索バーのセットアップを追加
+    setupSearchBar();
+    vLayout->addLayout(searchLayout);
+    
     vLayout->addWidget(this->treeWidget, 1);
-    this->treeWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);;
+    this->treeWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->setLayout(vLayout);
 
-    connect(this->treeWidget, &QTreeWidget::itemSelectionChanged, this, &FileTree::itemSelected);
+    connect(this->treeWidget, &QTreeWidget::itemSelectionChanged, this, &FileTree::itemSelected);    
+    // チェックボックスの状態変更を検出するための接続を追加
+    connect(this->treeWidget, &QTreeWidget::itemChanged, this, &FileTree::itemChanged);
 
+    // Setup graphics image loader thread
+    graphicsImageLoader = new GraphicsImageLoader();
+    graphicsLoaderThread = new QThread(this);
+    graphicsImageLoader->moveToThread(graphicsLoaderThread);
+    connect(graphicsImageLoader, &GraphicsImageLoader::imageLoaded,
+            this, &FileTree::onGraphicsImageLoaded, Qt::QueuedConnection);
+    graphicsLoaderThread->start();
+
+}
+
+FileTree::~FileTree()
+{
+    if(graphicsLoaderThread) {
+        graphicsLoaderThread->quit();
+        graphicsLoaderThread->wait();
+        delete graphicsImageLoader;
+        graphicsImageLoader = nullptr;
+    }
 }
 
 void FileTree::clear()
@@ -71,24 +102,87 @@ void FileTree::setupMainTree()
     mainItem->setText(0, "Main");
     mainItem->setData(0, Qt::UserRole, TreeItemType::Main);
     this->treeWidget->addTopLevelItem(mainItem);
+
+    // マップ以外のファイル用QTreeWidgetItemを保持するマップ
+    std::map<QString, QTreeWidgetItem*> fileItems;
+
+    // マップID -> QTreeWidgetItemのマップを作成
+    std::map<int, QTreeWidgetItem*> mapItems;
+
+    // まず最初に全てのマップアイテムを作成
     for(const auto& file : files)
     {
         auto child = new QTreeWidgetItem();
         child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
         child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
-        child->setText(TreeColIndex::Name, file.fileName);
+
+        auto fileName = file.fileName;
+        if(file.mapName.isEmpty() == false) {
+            fileName += " (" + file.mapName + ")";
+        }
+        child->setText(TreeColIndex::Name, fileName);
         child->setData(TreeColIndex::Name, Qt::UserRole, file.fileName);
         child->setForeground(TreeColIndex::Name, Qt::white);
 
         const auto& basicDataInfo = this->setting->writeObj.basicDataInfo;
         auto result = std::find_if(basicDataInfo.cbegin(), basicDataInfo.cend(), [&file](const auto& x) {
             return x.name.contains(file.fileName);
-        });
+            });
         if(result != basicDataInfo.cend()) {
             child->setCheckState(TreeColIndex::CheckBox, result->ignore ? Qt::Unchecked : Qt::Checked);
         }
 
-        mainItem->addChild(child);
+        // マップIDがある場合はマップアイテム辞書に追加
+        if(file.mapID >= 0) {
+            mapItems[file.mapID] = child;
+            // この時点ではまだツリーに追加しない
+        }
+        else {
+            // マップではないファイルは直接mainItemに追加
+            mainItem->addChild(child);
+            fileItems[file.fileName] = child;
+        }
+    }
+
+    // マップのorderでソートするための補助構造体
+    struct MapOrderInfo {
+        int mapID;
+        int order;
+        int parentMapID;
+    };
+
+    // マップをorder順にソート
+    std::vector<MapOrderInfo> mapOrderList;
+    for(const auto& file : files) {
+        if(file.mapID >= 0) {
+            mapOrderList.push_back({file.mapID, file.order, file.parentMapID});
+        }
+    }
+
+    // order順にソート
+    std::sort(mapOrderList.begin(), mapOrderList.end(), [](const auto& a, const auto& b) {
+        return a.order < b.order;
+    });
+
+    // 親子関係を構築（親がルート=0の場合はmainItemに、それ以外は親マップの子として追加）
+    for(const auto& mapOrder : mapOrderList) {
+        QTreeWidgetItem* child = mapItems[mapOrder.mapID];
+
+        if(mapOrder.parentMapID == 0) {
+            // 親がない場合はmainItemに直接追加
+            mainItem->addChild(child);
+        }
+        else {
+            // 親マップが存在する場合は親の子として追加
+            auto parentIt = mapItems.find(mapOrder.parentMapID);
+            if(parentIt != mapItems.end()) {
+                parentIt->second->addChild(child);
+            }
+            else {
+                // 親が見つからない場合はmainItemに追加
+                mainItem->addChild(child);
+            }
+        }
     }
 }
 
@@ -101,15 +195,34 @@ void FileTree::setupScriptTree()
     this->treeWidget->addTopLevelItem(scriptItem);
 
     auto scriptFiles = loadFileManager.lock()->getScriptFileList();
+    auto scriptExtention = settings::scriptExt(setting->projectType);
     for(const auto& l : scriptFiles)
     {
         const auto& scriptFileName = l.fileName;
         const auto& scriptName = l.scriptName;
+        if(scriptName == "_NONAME_") {
+            continue;
+        }
+
+        //ファイルの中身に有効な文字が含まれているかをチェック
+        bool isEmptyFile = false;
+        QFile scriptFile(l.filePath + scriptExtention);
+        if(scriptFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            auto content = scriptFile.readAll();
+            isEmptyFile = content.isEmpty() || content.trimmed().isEmpty();
+            scriptFile.close();
+        }
+
         auto child = new QTreeWidgetItem();
-        child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
-        //チェックを外すとこのスクリプトを翻訳から除外します。
-        child->setToolTip(TreeColIndex::CheckBox, tr("Unchecking the box excludes this script from translation."));
-        child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
+        if(isEmptyFile == false) {
+            child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
+            //チェックを外すとこのスクリプトを翻訳から除外します。
+            child->setToolTip(TreeColIndex::CheckBox, tr("Unchecking the box excludes this script from translation."));
+            child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
+        }
+        else {
+            child->setFlags(Qt::ItemIsSelectable);
+        }
         child->setText(TreeColIndex::Name, scriptName);
         child->setData(TreeColIndex::Name, Qt::UserRole, langscore::withoutExtension(scriptFileName));
 
@@ -142,35 +255,52 @@ void FileTree::setupGraphicsTree()
     this->treeWidget->addTopLevelItem(graphicsRootItem);
 
     auto graphList = loadFileManager.lock()->getGraphicsFileList();
-    QMap<QString, QTreeWidgetItem*> graphicsFolderItem;
+    // Map: full path -> QTreeWidgetItem*
+    QMap<QString, QTreeWidgetItem*> folderItemMap;
+    folderItemMap[""] = graphicsRootItem; // root 
+
+    graphicsItemMap.clear();
+
+    auto treeItemHeight = this->treeWidget->sizeHintForRow(0);
+
     for(const auto& graphInfo : graphList)
     {
-        QTreeWidgetItem* folderRoot = nullptr;
-        if(graphicsFolderItem.contains(graphInfo.folder) == false)
-        {
-            folderRoot = new QTreeWidgetItem();
-            folderRoot->setText(TreeColIndex::Name, graphInfo.folder.split(QDir::separator()).back());
-            graphicsFolderItem.insert(graphInfo.folder, folderRoot);
-            graphicsRootItem->addChild(folderRoot);
-        }
-        else {
-            folderRoot = graphicsFolderItem[graphInfo.folder];
+        // Build directory hierarchy
+        QString relPath = graphInfo.folder;
+        QStringList parts = relPath.split(QDir::separator(), Qt::SkipEmptyParts);
+        QString currentPath;
+        QTreeWidgetItem* parentItem = graphicsRootItem;
+
+        for(const QString& part : parts) {
+            if(false == currentPath.isEmpty()) {
+                currentPath += QDir::separator();
+            }
+            currentPath += part;
+
+            if(!folderItemMap.contains(currentPath)) {
+                auto* dirItem = new QTreeWidgetItem();
+                dirItem->setText(TreeColIndex::Name, part);
+                dirItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
+                parentItem->addChild(dirItem);
+                folderItemMap[currentPath] = dirItem;
+            }
+            parentItem = folderItemMap[currentPath];
         }
 
+        // Add image item to the deepest directory node
         auto pictureFileName = graphInfo.fileName;
-        auto child = new QTreeWidgetItem();
+        auto* child = new QTreeWidgetItem();
         child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
-        //チェックを外すとこのスクリプトを翻訳から除外します。
         child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
         child->setText(TreeColIndex::Name, pictureFileName);
-        child->setData(TreeColIndex::Name, Qt::UserRole, graphInfo.folder);
+        child->setData(TreeColIndex::Name, Qt::UserRole, graphInfo.filePath);
         child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
         child->setForeground(0, Qt::white);
 
         auto& pixtureList = this->setting->writeObj.ignorePicturePath;
-        auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&pictureFileName](const auto& pic) {
+        auto result = std::find_if(pixtureList.cbegin(), pixtureList.cend(), [&pictureFileName](const auto& pic) {
             return QFileInfo(pic).completeBaseName() == pictureFileName;
-            });
+        });
         if(result != pixtureList.end()) {
             child->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
         }
@@ -178,26 +308,32 @@ void FileTree::setupGraphicsTree()
             child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
         }
 
-        folderRoot->addChild(child);
+        parentItem->addChild(child);
+
+        // Queue image loading in background
+        graphicsItemMap[graphInfo.filePath] = child;
+        graphicsImageLoader->requestImage(graphInfo.filePath, child, TreeColIndex::Name, QSize{treeItemHeight, treeItemHeight});
     }
 
-    auto items = graphicsFolderItem.values();
-
-    int ignorePictures = 0;
-    for(auto* folderRoot : items)
-    {
-
+    // Set check state for folders
+    for (auto it = folderItemMap.begin(); it != folderItemMap.end(); ++it) {
+        QTreeWidgetItem* folderRoot = it.value();
+        if(folderRoot == graphicsRootItem) continue;
         if(0 < folderRoot->childCount())
         {
             folderRoot->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
 
+            int ignorePictures = 0;
+            for(int i = 0; i < folderRoot->childCount(); ++i) {
+                if(folderRoot->child(i)->checkState(TreeColIndex::CheckBox) == Qt::Unchecked)
+                    ++ignorePictures;
+            }
             if(ignorePictures == 0) { folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Checked); }
             else if(ignorePictures < folderRoot->childCount()) { folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::PartiallyChecked); }
             else { folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked); }
         }
     }
 }
-
 
 void FileTree::itemSelected()
 {
@@ -271,7 +407,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
             }
             this->history->endMacro();
         }
-        };
+    };
 
     auto newCheckVal = _item->checkState(0);
     if(treeType == TreeItemType::Main)
@@ -282,7 +418,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
         std::vector<QUndoCommand*> result;
         for(auto item : selectedItems) {
             if(newCheckVal == treeCheckState) { continue; }
-            result.emplace_back(new TreeUndo(this, item, newCheckVal, treeCheckState));
+            result.emplace_back(new FileTreeUndo(this, item, newCheckVal, treeCheckState));
         }
 
         NotifyTreeUndoCommand(std::move(result), tr("Main Tree Change Enable State"));
@@ -310,7 +446,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
         std::vector<QUndoCommand*> result;
         for(auto item : selectedItems) {
             if(newCheckVal == treeCheckState) { continue; }
-            result.emplace_back(new TreeUndo(this, item, newCheckVal, treeCheckState));
+            result.emplace_back(new FileTreeUndo(this, item, newCheckVal, treeCheckState));
         }
 
         NotifyTreeUndoCommand(std::move(result), tr("Script Tree Change Enable State"));
@@ -341,7 +477,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
         std::vector<QUndoCommand*> result;
         for(auto* item : checkItems)
         {
-            result.emplace_back(new TreeUndo(this, item, newCheckVal, item->checkState(0)));
+            result.emplace_back(new FileTreeUndo(this, item, newCheckVal, item->checkState(0)));
             //フォルダーのチェックを変更
             if(item->parent() == topLevelItem)
             {
@@ -350,7 +486,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
                 auto numChilds = item->childCount();
                 for(int i = 0; i < numChilds; ++i) {
                     auto childItem = item->child(i);
-                    result.emplace_back(new TreeUndo(this, childItem, newCheckVal, childItem->checkState(0)));
+                    result.emplace_back(new FileTreeUndo(this, childItem, newCheckVal, childItem->checkState(0)));
                 }
             }
             else
@@ -393,9 +529,9 @@ void FileTree::setTreeItemCheck(QTreeWidgetItem* item, Qt::CheckState check)
     item->setCheckState(0, check);
 
     // --- 追加: LoadFileManagerの状態も更新 ---
-    if (treeType == TreeItemType::Script) {
+    if(treeType == TreeItemType::Script) {
         auto fileName = ::getFileName(item);
-        if (auto manager = loadFileManager.lock()) {
+        if(auto manager = loadFileManager.lock()) {
             manager->setCheckState(fileName, check);
         }
     }
@@ -412,9 +548,10 @@ void FileTree::setTreeItemCheck(QTreeWidgetItem* item, Qt::CheckState check)
         return;
     }
 
+    //スクリプトのアイテムのチェックを変更
     writeToScriptListSetting(item, ignore);
 
-    if (treeType == TreeItemType::Script) {
+    if(treeType == TreeItemType::Script) {
         auto scriptName = ::getScriptName(item);
         emit scriptTreeItemCheckChanged(scriptName, check);
     }
@@ -523,7 +660,7 @@ void FileTree::updateTreeTextColor()
     QColor graphicFolderBGColor = this->getColorTheme().getGraphicFolderBGColor();
     QColor itemTextColor = this->getColorTheme().getItemTextColor();
 
-    this->blockSignals(true);
+    this->treeWidget->blockSignals(true);
     auto numToplevelItem = this->treeWidget->topLevelItemCount();
     for(int i = 0; i < numToplevelItem; ++i)
     {
@@ -533,22 +670,154 @@ void FileTree::updateTreeTextColor()
         item->setForeground(0, itemTextColor);
         item->setForeground(1, itemTextColor);
     }
-    this->blockSignals(false);
+    this->treeWidget->blockSignals(false);
     this->update();
 }
 
+void FileTree::onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image)
+{
+    if(!item) { return; }
+    if(image.isNull() == false) {
+        item->setIcon(column, QIcon(QPixmap::fromImage(image)));
+    }
+}
 
+// ファイルの末尾に以下のメソッドを追加
 
-void FileTree::TreeUndo::setValue(ValueType value) {
+void FileTree::setupSearchBar()
+{
+    searchLayout = new QHBoxLayout();
+    searchLayout->setContentsMargins(0, 0, 0, 0);
+    searchLayout->setSpacing(0);
+
+    searchLineEdit = new QLineEdit(this);
+    searchLineEdit->setPlaceholderText(tr("Search..."));
+    searchLineEdit->setClearButtonEnabled(true);
+
+    searchLayout->addWidget(searchLineEdit);
+
+    connect(searchLineEdit, &QLineEdit::textChanged, this, &FileTree::filterTree);
+}
+
+void FileTree::filterTree(const QString& searchText)
+{
+    if(searchText.isEmpty()) {
+        resetTreeFilter();
+        return;
+    }
+
+    isFiltering = true;
+
+    // トップレベルアイテムを処理
+    for(int i = 0; i < treeWidget->topLevelItemCount(); i++) {
+        QTreeWidgetItem* topItem = treeWidget->topLevelItem(i);
+        topItem->setHidden(false); // トップレベルは常に表示
+
+        // 子アイテムを再帰的に処理
+        bool hasVisibleChildren = false;
+        for(int j = 0; j < topItem->childCount(); j++) {
+            QTreeWidgetItem* childItem = topItem->child(j);
+            bool matched = filterTreeItem(childItem, searchText);
+            if(matched) {
+                hasVisibleChildren = true;
+            }
+        }
+
+        // マッチする子アイテムがある場合は展開
+        if(hasVisibleChildren) {
+            topItem->setExpanded(true);
+            expandItemsWithChildren(topItem);
+        }
+    }
+}
+
+bool FileTree::filterTreeItem(QTreeWidgetItem* item, const QString& searchText, bool parentMatched)
+{
+    if(!item) { return false; }
+
+    bool matched = item->text(TreeColIndex::Name).contains(searchText, Qt::CaseInsensitive);
+
+    // 子アイテムがある場合は再帰的に処理
+    bool hasMatchingChild = false;
+    for(int i = 0; i < item->childCount(); i++) {
+        if(filterTreeItem(item->child(i), searchText, matched || parentMatched)) {
+            hasMatchingChild = true;
+        }
+    }
+
+    // このアイテムかその子がマッチするか、親がマッチする場合は表示
+    bool shouldShow = matched || hasMatchingChild || parentMatched;
+    item->setHidden(!shouldShow);
+
+    // マッチした場合は強調表示
+    if(matched && !parentMatched) {
+        item->setForeground(TreeColIndex::Name, Qt::yellow);
+    }
+    else {
+        item->setForeground(TreeColIndex::Name, getColorTheme().getItemTextColor());
+    }
+
+    return shouldShow;
+}
+
+void FileTree::resetTreeFilter()
+{
+    if(isFiltering == false) { return; }
+
+    isFiltering = false;
+
+    // すべてのアイテムを表示に戻し、元の色に戻す
+    for(int i = 0; i < treeWidget->topLevelItemCount(); i++) {
+        QTreeWidgetItem* topItem = treeWidget->topLevelItem(i);
+        topItem->setHidden(false);
+
+        // 子アイテムを再帰的に処理
+        for(int j = 0; j < topItem->childCount(); j++) {
+            resetItemVisibility(topItem->child(j));
+        }
+
+        // トップレベルアイテムを元の状態に戻す
+        topItem->setExpanded(false);
+    }
+
+    // ツリーの表示を更新
+    updateTreeTextColor();
+}
+
+void FileTree::expandItemsWithChildren(QTreeWidgetItem* item)
+{
+    for(int i = 0; i < item->childCount(); i++) {
+        QTreeWidgetItem* childItem = item->child(i);
+        if(!childItem->isHidden() && childItem->childCount() > 0) {
+            childItem->setExpanded(true);
+            expandItemsWithChildren(childItem);
+        }
+    }
+}
+
+void FileTree::resetItemVisibility(QTreeWidgetItem* item)
+{
+    if(!item) { return; }
+
+    item->setHidden(false);
+    item->setForeground(TreeColIndex::Name, getColorTheme().getItemTextColor());
+
+    // 子アイテムも再帰的に処理
+    for(int i = 0; i < item->childCount(); i++) {
+        resetItemVisibility(item->child(i));
+    }
+}
+
+void FileTree::FileTreeUndo::setValue(ValueType value) {
     this->parent->setTreeItemCheck(this->target, value);
 }
 
-void FileTree::TreeUndo::undo() {
+void FileTree::FileTreeUndo::undo() {
     this->setValue(oldValue);
     this->setText(tr("Change Tree State : %1").arg(this->target->text(1)));
 }
 
-void FileTree::TreeUndo::redo() {
+void FileTree::FileTreeUndo::redo() {
     this->setValue(newValue);
     this->setText(tr("Change Tree State : %1").arg(this->target->text(1)));
 }

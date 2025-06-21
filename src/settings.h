@@ -7,6 +7,7 @@
 class settings
 {
 public:
+
     settings();
     void setGameProjectPath(QString absolutePath);
 
@@ -198,6 +199,10 @@ public:
 
     TextValidateTypeMap getValidationCsvData(QString fileName);
     TextValidateTypeMap& getValidationCsvDataRef(QString fileName);
+
+    static QString scriptExt(settings::ProjectType type) {
+        return type == settings::ProjectType::VXAce ? ".rb" : ".js";
+    }
 
 };
 

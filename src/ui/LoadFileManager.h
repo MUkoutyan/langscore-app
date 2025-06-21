@@ -12,8 +12,13 @@ public:
     struct FileInfo {
         QString fileName;       //analyzeフォルダにおけるファイル名
         QString filePath;       //analyzeフォルダにおけるファイルのパス(絶対パス)
-        QString description;
         Qt::CheckState isEnableState = Qt::Checked;
+    };
+    struct MapInfo : public FileInfo {
+        int mapID = -1;
+        int order = 0;
+        int parentMapID = 0;
+        QString mapName;
     };
     struct ScriptInfo : public FileInfo {
         QString scriptName;
@@ -27,16 +32,20 @@ public:
     QString getScriptName(QString fileName);
     QString getScriptFileName(QString scriptName);
 
-    std::vector<ScriptInfo> getScriptFileList() const { return scriptFileList; }
-    const std::vector<FileInfo>& getBasicFileList() const { return basicFileList; }
+    const std::vector<ScriptInfo>& getScriptFileList() const { return scriptFileList; }
+    const std::vector<MapInfo>& getBasicFileList() const { return basicFileList; }
     const std::vector<GraphInfo>& getGraphicsFileList() const { return graphicsFileList; }
 
     void setCheckState(const QString& fileName, Qt::CheckState state);
 
 
 private:
-    std::vector<FileInfo> basicFileList;
+    std::vector<MapInfo> basicFileList;
     std::vector<ScriptInfo> scriptFileList;
     std::vector<GraphInfo> graphicsFileList;
+
+    void loadBasicFiles(std::shared_ptr<settings> setting);
+    void loadScriptFiles(std::shared_ptr<settings> setting);
+    void loadGraphicsFiles(std::shared_ptr<settings> setting);
 
 };

@@ -4,7 +4,11 @@
 #include <QObject>
 #include "ComponentBase.h"
 #include "LoadFileManager.h"
+#include "GraphicsImageLoader.h"
 
+class QLineEdit;
+class QToolButton;
+class QHBoxLayout;
 class FileTree : public QWidget, public ComponentBase
 {
     Q_OBJECT
@@ -22,14 +26,14 @@ public:
     };
 
 
-    struct TreeUndo : QUndoCommand
+    struct FileTreeUndo : QUndoCommand
     {
         using ValueType = Qt::CheckState;
-        TreeUndo(FileTree* parent, QTreeWidgetItem* target, ValueType newValue, ValueType oldValue)
+        FileTreeUndo(FileTree* parent, QTreeWidgetItem* target, ValueType newValue, ValueType oldValue)
             : parent(parent), target(target), newValue(std::move(newValue)), oldValue(std::move(oldValue))
         {
         }
-        ~TreeUndo() {}
+        ~FileTreeUndo() {}
 
         int id() const override { return 3; }
         void undo() override;
@@ -46,6 +50,7 @@ public:
 
 
     FileTree(ComponentBase* component, std::weak_ptr<LoadFileManager>, QWidget* parent = nullptr);
+    ~FileTree();
 
     void clear();
 
@@ -96,12 +101,25 @@ signals:
     void scriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
 
 private:
+    void setupSearchBar();
+    void filterTree(const QString& searchText);
+    void resetTreeFilter();
+    bool filterTreeItem(QTreeWidgetItem* item, const QString& searchText, bool parentMatched = false);
+    void expandItemsWithChildren(QTreeWidgetItem* item);
+    void resetItemVisibility(QTreeWidgetItem* item);
 
-    void itemSelectedMain();
-    void itemSelectedScript();
-    void itemSelectedGraphics();
+    QLineEdit* searchLineEdit = nullptr;
+    QHBoxLayout* searchLayout = nullptr;
+    bool isFiltering = false;
 
     std::weak_ptr<LoadFileManager> loadFileManager;
     QTreeWidget* treeWidget;
     bool _suspendHistory;
+
+    GraphicsImageLoader* graphicsImageLoader = nullptr;
+    QThread* graphicsLoaderThread = nullptr;
+    QMap<QString, QTreeWidgetItem*> graphicsItemMap; // filePath -> item
+
+private slots:
+    void onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image);
 };
