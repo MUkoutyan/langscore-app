@@ -17,6 +17,7 @@
 #include <QString>
 #include <QCheckBox>
 #include <QLocale>
+#include <QDirIterator>
 #include <QDebug>
 #include <QActionGroup>
 #include <QMimeData>
@@ -1088,41 +1089,51 @@ void WriteModeComponent::setupTree()
 
     //Picture
     {
-        auto graphicsRootItem    = new QTreeWidgetItem();
+        auto graphicsRootItem = new QTreeWidgetItem();
         graphicsRootItem->setText(0, "Graphics");
         graphicsRootItem->setData(0, Qt::UserRole, TreeItemType::Pictures);
         this->ui->treeWidget->addTopLevelItem(graphicsRootItem);
 
         QDir graphicsFolder(this->setting->tempGraphicsFileDirectoryPath());
-        QFileInfoList graphFolders = graphicsFolder.entryInfoList(QDir::AllDirs|QDir::NoDotAndDotDot);
 
-        for(const auto& graphFolder : graphFolders)
+        // 再帰的にフォルダを走査し、ツリーを構築する関数
+        std::function<void(const QDir&, QTreeWidgetItem*)> addGraphicsFolderToTree;
+        addGraphicsFolderToTree = [this, &addGraphicsFolderToTree, &graphicsFolder](const QDir& dir, QTreeWidgetItem* parentItem)
         {
-            auto folderRoot = new QTreeWidgetItem();
-            folderRoot->setText(TreeColIndex::Name, graphFolder.baseName());
-            QDir childFolder(graphFolder.absoluteFilePath());
-            QFileInfoList files = childFolder.entryInfoList(QStringList() << "*.*", QDir::Files);
-            const auto numPictures = files.size();
+            // サブフォルダを取得
+            QFileInfoList subFolders = dir.entryInfoList(QDir::AllDirs | QDir::NoDotAndDotDot);
+            for(const auto& subFolder : subFolders)
+            {
+                auto folderItem = new QTreeWidgetItem();
+                folderItem->setText(TreeColIndex::Name, subFolder.baseName());
+                parentItem->addChild(folderItem);
+
+                QDir childDir(subFolder.absoluteFilePath());
+                addGraphicsFolderToTree(childDir, folderItem);
+            }
+
+            // 画像ファイルを取得
+            QFileInfoList files = dir.entryInfoList(QStringList() << "*.jpg" << "*.png" << "*.bmp", QDir::Files);
             int ignorePictures = 0;
+            const int numPictures = files.size();
 
             for(const auto& pict : files)
             {
-                if(pict.size() == 0){ continue; }
+                if(pict.size() == 0) { continue; }
 
                 auto pictureFileName = pict.completeBaseName();
                 auto child = new QTreeWidgetItem();
                 child->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
-                //チェックを外すとこのスクリプトを翻訳から除外します。
                 child->setToolTip(0, tr("Unchecking the box excludes this script from translation."));
                 child->setText(TreeColIndex::Name, pictureFileName);
                 child->setData(TreeColIndex::Name, Qt::UserRole, graphicsFolder.relativeFilePath(pict.absoluteFilePath()));
                 child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
 
                 auto& pixtureList = this->setting->writeObj.ignorePicturePath;
-                auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&pictureFileName](const auto& pic){
+                auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&pictureFileName](const auto& pic) {
                     return QFileInfo(pic).completeBaseName() == pictureFileName;
-                });
-                if(result != pixtureList.end()){
+                    });
+                if(result != pixtureList.end()) {
                     child->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
                     ignorePictures++;
                 }
@@ -1130,21 +1141,22 @@ void WriteModeComponent::setupTree()
                     child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
                 }
 
-                folderRoot->addChild(child);
+                parentItem->addChild(child);
             }
 
-            if(0 < numPictures)
+            // フォルダのチェック状態を設定
+            if(numPictures > 0)
             {
-                folderRoot->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
+                parentItem->setData(TreeColIndex::CheckBox, Qt::CheckStateRole, true);
 
-                if(ignorePictures == 0){ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Checked); }
-                else if(ignorePictures < numPictures){ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::PartiallyChecked); }
-                else{ folderRoot->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked); }
+                if(ignorePictures == 0) { parentItem->setCheckState(TreeColIndex::CheckBox, Qt::Checked); }
+                else if(ignorePictures < numPictures) { parentItem->setCheckState(TreeColIndex::CheckBox, Qt::PartiallyChecked); }
+                else { parentItem->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked); }
             }
-            graphicsRootItem->addChild(folderRoot);
-        }
-    }
+        };
 
+        addGraphicsFolderToTree(graphicsFolder, graphicsRootItem);
+    }
 }
 
 void WriteModeComponent::changeUIColor()
