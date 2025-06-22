@@ -17,6 +17,7 @@
 #include <QString>
 #include <QCheckBox>
 #include <QLocale>
+#include <QDirIterator>
 #include <QDebug>
 #include <QActionGroup>
 #include <QMimeData>
