@@ -45,7 +45,8 @@ public slots:
     void exportPlugin();
     void exportTranslateFiles();
     void firstExportTranslateFiles();
-    void onScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check); // 追加
+    void onScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
+    void onScriptTableItemCheckChanged(QString scriptName, Qt::CheckState check);
 
 private slots:
     // FileTreeからのsignalを受けるslot

@@ -11,57 +11,21 @@
 
 #include <QDebug>
 
+using namespace langscore;
+
 void LoadFileManager::loadFile(std::shared_ptr<settings> setting)
 {
-    this->loadBasicFiles(setting);
-    this->loadScriptFiles(setting);
-    this->loadGraphicsFiles(setting);
-}
-
-QString LoadFileManager::getScriptName(QString fileName)
-{
-    fileName = QFileInfo(fileName).completeBaseName();
-    auto result = std::find_if(scriptFileList.cbegin(), scriptFileList.cend(), [fileName](const auto& x) {
-        return x.fileName == fileName;
-        });
-    if(result == scriptFileList.cend()) {
-        return "";
-    }
-    return result->scriptName;
-}
-
-QString LoadFileManager::getScriptFileName(QString scriptName)
-{
-    auto result = std::find_if(scriptFileList.cbegin(), scriptFileList.cend(), [scriptName](const auto& x) {
-        return x.scriptName == scriptName;
-        });
-    if(result == scriptFileList.cend()) {
-        return "";
-    }
-    return result->fileName;
-}
-
-void LoadFileManager::setCheckState(const QString& fileName, Qt::CheckState state)
-{
-    auto it = std::find_if(basicFileList.begin(), basicFileList.end(), [&fileName](const FileInfo& file) {
-        return file.fileName == fileName;
-    });
-    if(it != basicFileList.end()) {
-        it->isEnableState = state;
-        return;
-    }
-
-    auto itScript = std::find_if(scriptFileList.begin(), scriptFileList.end(), [&fileName](const ScriptInfo& script) {
-        return script.fileName == fileName;
-    });
-    if(itScript != scriptFileList.end()) {
-        itScript->isEnableState = state;
-        return;
-    }
+    //this->loadBasicFiles(setting);
+    //this->loadScriptFiles(setting);
+    //this->loadGraphicsFiles(setting);
 }
 
 void LoadFileManager::loadBasicFiles(std::shared_ptr<settings> setting)
 {
+    // 参照でsettingsのMapInfoリストを取得し、クリアしてから再構築
+    auto& mapList = setting->writeObj.basicDataInfo;
+    mapList.clear();
+
     auto analyzeFolder = setting->analyzeDirectoryPath();
 
     // MapInfos.json をQtのJSON APIで読み込む
@@ -138,16 +102,12 @@ void LoadFileManager::loadBasicFiles(std::shared_ptr<settings> setting)
             fileID.remove("Map");
             auto mapID = fileID.toInt();
 
-            MapInfo info = 
-            {
-                fileViewName,
-                file.absoluteFilePath(),
-                Qt::Checked,
-                mapID,
-                dummyOrder++,
-                0,
-                ""
-            };
+            settings::MapInfo info;
+            info.fileName = fileViewName;
+            info.filePath = file.absoluteFilePath();
+            info.mapID = mapID;
+            info.order = dummyOrder++;
+            mapList.emplace_back(std::move(info));
         }
     }
     else {
@@ -205,90 +165,122 @@ void LoadFileManager::loadBasicFiles(std::shared_ptr<settings> setting)
                 }
 
                 // 見つかったら追加の処理を行ってループを抜ける
-                MapInfo info = {
-                    fileViewName,
-                    file.absoluteFilePath(),
-                    Qt::Checked,
-                    mapID,
-                    order,
-                    parentID,
-                    mapName
-                };
-                this->basicFileList.emplace_back(std::move(info));
+                settings::MapInfo info;
+                info.fileName = fileViewName;
+                info.filePath = file.absoluteFilePath();
+                info.mapID = mapID;
+                info.order = order;
+                info.parentMapID = parentID;
+                info.mapName = mapName;
+
+                mapList.emplace_back(std::move(info));
                 break;
             }
         }
     }
-
 }
 
 void LoadFileManager::loadScriptFiles(std::shared_ptr<settings> setting)
 {
+    // 参照でsettingsのScriptInfoリストを取得し、クリアしてから再構築
+    auto& scriptList = setting->writeObj.scriptInfo;
+    scriptList.clear();
+
     auto analyzeFolder = setting->analyzeDirectoryPath();
     auto scriptFolder = setting->tempScriptFileDirectoryPath();
 
+    QFile jsonFile(analyzeFolder + "/Scripts.lsjson");
+    if(!jsonFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open JSON file:" << jsonFile.fileName();
+        return;
+    }
+
+    QByteArray jsonData = jsonFile.readAll();
+    jsonFile.close();
+
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
+    if(jsonDoc.isNull() || !jsonDoc.isArray()) {
+        qWarning() << "Invalid JSON format in file:" << jsonFile.fileName();
+        return;
+    }
+
+    QJsonArray jsonArray = jsonDoc.array();
+
+    // ファイル名ごとにScriptInfoを作成
+    QHash<QString, settings::ScriptInfo> fileNameToScriptInfo;
+
+    auto scriptExt = langscore::GetScriptExtension(setting->projectType);
+    for(const QJsonValue& value : jsonArray) 
+    {
+        QJsonObject obj = value.toObject();
+        QString fileName = obj["file"].toString();
+
+        langscore::TextPosition line;
+        line.value = obj["original"].toString();
+
+        // TextPositionの生成
+        TextPosition pos;
+        if(obj.contains("parameterName")) {
+            pos.type = TextPosition::Type::Argument;
+            if(obj.contains("value")) {
+                pos.value = obj["value"].toString();
+            }
+            TextPosition::ScriptArg rowCol;
+            rowCol.valueName = obj["parameterName"].toString();
+            pos.d = rowCol;
+        }
+        else {
+            pos.type = TextPosition::Type::RowCol;
+            if(obj.contains("value")) {
+                pos.value = obj["value"].toString();
+            }
+            TextPosition::RowCol rowCol;
+            rowCol.row = obj["row"].toInteger();
+            rowCol.col = obj["col"].toInteger();
+            pos.d = rowCol;
+        }
+
+        // ScriptInfoへ追加
+        auto& info = fileNameToScriptInfo[fileName];
+        info.fileName = fileName;
+        info.filePath = scriptFolder + "/" + fileName + "." + scriptExt;
+        info.lines.push_back(std::move(line));
+    }
+
+    // scriptNameの付与
+    for(auto it = fileNameToScriptInfo.begin(); it != fileNameToScriptInfo.end(); ++it) {
+        scriptList.emplace_back(std::move(it.value()));
+    }
+
     if(setting->projectType == settings::VXAce) 
     {
-        auto scriptFiles = langscore::readCsv(scriptFolder + "/_list.csv");
-        for(auto& scriptFile : scriptFiles) {
-            if(scriptFile.size() < 2) { continue; } // スクリプト名とファイル名が必要
-            QString fileName = scriptFile[0];
-            QString scriptName = scriptFile[1];
-            ScriptInfo info = {
-                fileName, scriptFolder + "/" + fileName,
-                Qt::Checked,
-                scriptName
-            };
-            this->scriptFileList.emplace_back(std::move(info));
-        }
-    }
-    else if(setting->projectType == settings::MV || setting->projectType == settings::MZ)
-    {
-
-        QFile jsonFile(analyzeFolder + "/Scripts.lsjson");
-
-        if(false == jsonFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "Failed to open JSON file:" << jsonFile.fileName();
-            return;
-        }
-
-        QByteArray jsonData = jsonFile.readAll();
-        jsonFile.close();
-
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
-        if(jsonDoc.isNull() || !jsonDoc.isArray()) {
-            qWarning() << "Invalid JSON format in file:" << jsonFile.fileName();
-            return;
-        }
-
-        auto scriptExt = langscore::GetScriptExtension(setting->projectType);
-        QJsonArray jsonArray = jsonDoc.array();
-
-        std::set<QString> loadedScriptFileName;
-        std::vector<QString> result;
-        for(const QJsonValue& value : jsonArray)
+        auto scriptPairs = langscore::readCsv(scriptFolder + "/_list.csv");
+        for(auto& scriptFile : scriptList) 
         {
-            QJsonObject obj = value.toObject();
-            QString file = obj["file"].toString();
-            if(file.isEmpty()) { continue; }
-
-            if(loadedScriptFileName.contains(file)) { continue; } // 重複を避ける
-
-            ScriptInfo info = {
-                file, scriptFolder + "/" + file + "." + scriptExt,
-                Qt::Checked,
-                file
-            };
-            this->scriptFileList.emplace_back(std::move(info));
-
-            loadedScriptFileName.insert(file);
+            for(auto& pairs : scriptPairs)
+            {
+                if(pairs.size() < 2) { continue; } // スクリプト名とファイル名が必要
+                QString fileName = pairs[0];
+                QString scriptName = pairs[1];
+                if(scriptFile.fileName == fileName) {
+                    scriptFile.scriptName = scriptName;
+                }
+            }
         }
     }
-
+    else {
+        for(auto& scriptFile : scriptList) {
+            scriptFile.scriptName = scriptFile.fileName;
+        }
+    }
 }
 
 void LoadFileManager::loadGraphicsFiles(std::shared_ptr<settings> setting)
 {
+    // 参照でsettingsのGraphInfoリストを取得し、クリアしてから再構築
+    auto& graphList = setting->writeObj.graphDataInfo;
+    graphList.clear();
+
     QDir graphicsFolder(setting->tempGraphicsFileDirectoryPath());
     QFileInfoList graphFolders = graphicsFolder.entryInfoList(QDir::AllDirs | QDir::NoDotAndDotDot);
     for(const auto& graphFolder : graphFolders)
@@ -306,15 +298,14 @@ void LoadFileManager::loadGraphicsFiles(std::shared_ptr<settings> setting)
                 continue;
             }
 
-            GraphInfo info = {
-                pict.completeBaseName(), pict.absoluteFilePath(),
-                Qt::Checked, {}
-            };
+            settings::GraphInfo info;
+            info.fileName = pict.completeBaseName();
+            info.filePath = pict.absoluteFilePath();
 
             // graphicsFolderをルートとした相対パス（ファイル名は含まない）を格納
             QString relativeFolder = graphicsFolder.relativeFilePath(childFolder.absolutePath());
             info.folder = relativeFolder;
-            this->graphicsFileList.emplace_back(std::move(info));
+            graphList.emplace_back(std::move(info));
         }
     }
 }

@@ -172,8 +172,9 @@ QTreeView::item {
     connect(fileTree, &FileTree::highlightScriptText, this, &WriteModeComponent::onHighlightScriptText);
     connect(fileTree, &FileTree::setTabIndex, this, &WriteModeComponent::onSetTabIndex);
 
-    connect(fileTree, &FileTree::scriptTreeItemCheckChanged, this, &WriteModeComponent::onScriptTreeItemCheckChanged);
-    //connect(this, &WriteModeComponent::changeScriptTableItemCheck, scriptTableManager, &ScriptCSVTable::changeScriptTableItemCheck);
+    connect(fileTree, &FileTree::notifyScriptTreeItemCheckChanged, this, &WriteModeComponent::onScriptTableItemCheckChanged);
+    //connect(scriptTable, &ScriptCSVTable::changeScriptTableItemCheck, this, &WriteModeComponent::onScriptTreeItemCheckChanged);
+    connect(scriptTable, &ScriptCSVTable::notifyScriptTableChangeItemCheck, this, &WriteModeComponent::onScriptTreeItemCheckChanged);
 }
 
 WriteModeComponent::~WriteModeComponent(){
@@ -182,16 +183,6 @@ WriteModeComponent::~WriteModeComponent(){
 
 void WriteModeComponent::show()
 {
-    const auto& analyzeDirPath = this->setting->analyzeDirectoryPath();
-    auto analyzeDir = QDir(analyzeDirPath);
-    auto basicFiles = analyzeDir.entryInfoList(QStringList{"*.json"}, QDir::Files);
-    for(auto& file : basicFiles){
-        auto fileName = file.completeBaseName();
-        if(fileName.isEmpty() == false){
-            this->setting->fetchBasicDataInfo(fileName);
-        }
-    }
-
     this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
     for(auto& lang : this->setting->languages)
     {
@@ -616,7 +607,10 @@ void WriteModeComponent::onSetTabIndex(int index)
 
 void WriteModeComponent::onScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check)
 {
-    if(scriptTable) {
-        scriptTable->changeScriptTableItemCheck(scriptName, check);
-    }
+    this->fileTree->onChangeScriptTableItemCheck(scriptName, check);
+}
+
+void WriteModeComponent::onScriptTableItemCheckChanged(QString scriptName, Qt::CheckState check)
+{
+    this->scriptTable->changeScriptTableItemCheck(scriptName, check);
 }

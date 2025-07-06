@@ -22,7 +22,7 @@ public:
     void setupScriptTable();
     void filterScriptTextData(std::vector<ScriptTextData>& scriptDataList);
 
-    void setScriptState(QString scriptName, Qt::CheckState check);
+    void updateScriptIgnoreState(QString scriptName, Qt::CheckState check);
 
     void setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckState check);
 
@@ -49,6 +49,7 @@ public:
 
 signals:
     void scriptTableSelected(QString scriptName, QString scriptFilePath, size_t textRow, size_t textCol, int textLen);
+    void notifyScriptTableChangeItemCheck(QString fileName, Qt::CheckState);
 
 public slots:
     void changeScriptTableItemCheck(QString scriptName, Qt::CheckState);

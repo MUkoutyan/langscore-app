@@ -154,7 +154,7 @@ settings::TextValidateTypeMap settings::getValidationCsvData(QString fileName)
 settings::TextValidateTypeMap& settings::getValidationCsvDataRef(QString fileName)
 {
     auto it = std::ranges::find_if(writeObj.basicDataInfo, [&fileName](const auto& data) {
-        return data.name.contains(fileName);
+        return data.fileName.contains(fileName);
     });
     if(it != writeObj.basicDataInfo.end()) {
         return it->validateInfo;
@@ -288,10 +288,12 @@ settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
         throw "Load Invalid Basic Script Info";
     }
 
+    assert(fileName.contains("Map") == false);
+
     fileName += ".json";
     auto& list = writeObj.basicDataInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x){
-        return x.name == name;
+        return x.fileName == name;
     });
 
     if(result != list.end()){
@@ -299,10 +301,34 @@ settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
     }
 
     list.emplace_back(
-        settings::BasicData{fileName, false, 0}
+        settings::BasicData{fileName}
     );
     return list[list.size() - 1];
 }
+
+settings::MapInfo& settings::fetchMapInfo(QString fileName)
+{
+    fileName = langscore::withoutAllExtension(fileName);
+    if(fileName.isEmpty()) {
+        throw "Load Invalid Basic Script Info";
+    }
+
+    fileName += ".json";
+    auto& list = writeObj.mapDataInfo;
+    auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x) {
+        return x.fileName == name;
+    });
+
+    if(result != list.end()) {
+        return *result;
+    }
+
+    list.emplace_back(
+        settings::BasicData{fileName, this->analyzeDirectoryPath() + "/" + fileName}
+    );
+    return list[list.size() - 1];
+}
+
 
 settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 {
@@ -314,7 +340,7 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
     fileName += scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
-        return script.name == name;
+        return script.fileName == name;
     });
 
     if(result != list.end()){
@@ -322,21 +348,25 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
     }
 
     list.emplace_back(
-        settings::ScriptInfo{{fileName, false, 0}, {}}
+        settings::ScriptInfo{fileName, this->tempScriptFileDirectoryPath() + "/" + fileName}
     );
     return list[list.size() - 1];
 }
 
-void settings::removeScriptInfoPoint(QString fileName, std::pair<size_t,size_t> point)
+void settings::removeScriptInfoPoint(QString fileName, langscore::TextPosition point)
 {
     fileName = QFileInfo(fileName).completeBaseName() + scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
-        return script.name == name;
+        return script.fileName == name;
     });
     if(result != list.end()){
-        auto rm_result = std::remove(result->ignorePoint.begin(), result->ignorePoint.end(), point);
-        result->ignorePoint.erase(rm_result, result->ignorePoint.end());
+        auto find_result = std::ranges::find_if(result->lines, [&point](auto& p) { 
+            return (p.type == point.type) && (p.d == point.d);
+        });
+        if(find_result != result->lines.end()) {
+            find_result->ignore = false;
+        }
     }
 }
 
@@ -395,4 +425,13 @@ settings::ProjectType settings::getProjectType(const QString& filePath)
         }
     }
     return settings::None;
+}
+
+bool settings::isLangscoreScript(const QString& scriptName)
+{
+    auto lower = scriptName.toLower();
+    if(lower == "langscore" || lower == "langscore_custom" || lower == "langscore_observerbridge") {
+        return true;
+    }
+    return false;
 }

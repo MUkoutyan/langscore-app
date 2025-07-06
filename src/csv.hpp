@@ -3,6 +3,7 @@
 #include <QString>
 #include <QStringList>
 #include <fstream>
+#include "text_position.h"
 
 
 namespace langscore
@@ -106,28 +107,6 @@ static std::vector<std::vector<QString>> readCsv(QString path)
     return csv;
 }
 
-struct TextPosition
-{
-    struct RowCol {
-        size_t row;
-        size_t col;
-        RowCol():row(0), col(0){}
-    };
-    struct ScriptArg {
-        QString valueName;
-        ScriptArg() :valueName(""){}
-    };
-    enum class Type {
-        RowCol,
-        Argument
-    };
-
-    Type type;
-    QString scriptFileName;
-    QString value;
-    std::variant<RowCol, ScriptArg> d;
-};
-
 static TextPosition parseScriptNameWithRowCol(QString script)
 {
     auto colStart = script.lastIndexOf(":");
@@ -143,7 +122,8 @@ static TextPosition parseScriptNameWithRowCol(QString script)
     TextPosition result;
     if(rowOk && colOk){
         //fileName:row:colの形式でパースできた場合の処理
-        result.scriptFileName = script.remove(rowStart, script.size()-rowStart);
+        //result.scriptFileName = script.remove(rowStart, script.size()-rowStart);
+        result.type = TextPosition::Type::RowCol;
         auto cell = TextPosition::RowCol{};
         cell.col = col; cell.row = row;
         result.d = cell;
@@ -152,7 +132,7 @@ static TextPosition parseScriptNameWithRowCol(QString script)
         //それ以外はfileName:変数名として認識する。
         //既に文字列を分割しているので、該当する変数を代入。
         result.type = TextPosition::Type::Argument;
-        result.scriptFileName = rowStr;
+        //result.scriptFileName = rowStr;
         auto cell = TextPosition::ScriptArg{};
         cell.valueName = colStr;
         result.d = cell;

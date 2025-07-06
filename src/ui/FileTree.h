@@ -15,7 +15,8 @@ class FileTree : public QWidget, public ComponentBase
 public:
 
     enum TreeItemType {
-        Main,
+        Basic,
+        Map,
         Script,
         Pictures
     };
@@ -55,6 +56,7 @@ public:
     void clear();
 
     void setupTree();
+    void setupBasicsTree();
     void setupMainTree();
     void setupScriptTree();
     void setupGraphicsTree();
@@ -65,6 +67,7 @@ public:
     void setTreeItemCheck(QTreeWidgetItem* _item, Qt::CheckState check);
 
     void writeToBasicDataListSetting(QTreeWidgetItem* item, bool ignore);
+    void writeToMapDataListSetting(QTreeWidgetItem* item, bool ignore);
     void writeToScriptListSetting(QTreeWidgetItem* item, bool ignore);
     void writeToPictureListSetting(QTreeWidgetItem* item, bool ignore);
 
@@ -98,7 +101,7 @@ signals:
     void setTabIndex(int index);
 
     // その他必要なsignalを追加
-    void scriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
+    void notifyScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
 
 private:
     void setupSearchBar();

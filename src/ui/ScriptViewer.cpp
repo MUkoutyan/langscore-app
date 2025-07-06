@@ -214,6 +214,10 @@ ScriptViewer::ScriptViewer(ComponentBase *parentComponent, QWidget *parent)
     this->ensureCursorVisible();
     this->setLineWrapMode(LineWrapMode::NoWrap);
     this->updateLineNumAreaWidth();
+
+    // タブ幅を4文字分に設定
+    int tabWidth = 4 * this->fontMetrics().horizontalAdvance(' ');
+    this->setTabStopDistance(tabWidth);
 }
 
 ScriptViewer::~ScriptViewer()
@@ -228,10 +232,7 @@ void ScriptViewer::showFile(QString scriptFilePath)
 
     QFile script(scriptFilePath);
     if(script.open(QFile::ReadOnly | QFile::Text))
-    {
-
-
-
+    {\
         auto ext = info.suffix();
         if(currentScriptExt != ext)
         {

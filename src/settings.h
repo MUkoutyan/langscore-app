@@ -3,6 +3,9 @@
 #include <QLocale>
 #include <QMap>
 #include <QFont>
+#include <QCheckBox>
+#include <vector>
+#include "text_position.h"
 
 class settings
 {
@@ -95,35 +98,56 @@ public:
         QStringList controlCharList;
     };
 
+
+    //struct TextPoint
+    //{
+    //    size_t row = 0;
+    //    size_t col = 0;
+    //    QString argName;
+    //    bool disable = false;	//元スクリプト変更によって位置が噛み合わなくなった場合true
+    //    bool ignore = false;
+    //    int writeMode = 0;
+    //    bool operator==(const std::pair<size_t, size_t>& x) const noexcept {
+    //        return row == x.first && col == x.second;
+    //    }
+    //    bool operator==(const QString& x) const noexcept {
+    //        return x == argName;
+    //    }
+    //};
+
     //Write
     struct BasicData
     {
-        QString name = "";
+        QString fileName = "";       // analyzeフォルダにおけるファイル名
+        QString filePath = "";       // analyzeフォルダにおけるファイルのパス(絶対パス)
+
         bool ignore = false;
         int writeMode = 0;
         //key: typeName
-        TextValidateTypeMap validateInfo;
+        TextValidateTypeMap validateInfo = {};
     };
 
-    struct TextPoint
+    struct MapInfo : public BasicData 
     {
-        size_t row = 0;
-        size_t col = 0;
-        QString argName;
-        bool disable = false;	//元スクリプト変更によって位置が噛み合わなくなった場合true
-        bool ignore = false;
-        int writeMode = 0;
-        bool operator==(const std::pair<size_t, size_t>& x) const noexcept {
-            return row == x.first && col == x.second;
-        }
-        bool operator==(const QString& x) const noexcept {
-            return x == argName;
+        QString mapName = "";
+        int mapID = -1;
+        int order = 0;
+        int parentMapID = 0;
+    };
+
+    struct ScriptInfo : public BasicData 
+    {
+        QString scriptName = "";
+        std::vector<langscore::TextPosition> lines;
+
+        bool isIgnore() const {
+            return this->ignore || std::ranges::all_of(lines, [](const auto& pos) { return pos.ignore; });
         }
     };
 
-    struct ScriptInfo : public BasicData {
-        size_t totalTextPoint = 0;
-        std::vector<TextPoint> ignorePoint;
+    struct GraphInfo : public BasicData {
+        QString extension;
+        QString folder; //画像フォルダをルートとした際の相対パス。ファイル名は含まない。
     };
 
     struct WriteProps
@@ -135,8 +159,10 @@ public:
         bool overwriteLangscoreCustom = false;
         bool enableTranslateDefLang = true;
         bool enableLanguagePatch = false;
-        std::vector<ScriptInfo> scriptInfo;
         std::vector<BasicData> basicDataInfo;
+        std::vector<MapInfo> mapDataInfo;
+        std::vector<ScriptInfo> scriptInfo;
+        std::vector<GraphInfo> graphDataInfo;
 
         std::vector<QString> ignorePicturePath;
         int writeMode = -1;
@@ -180,10 +206,9 @@ public:
     void removeLanguage(QString bcp47Name);
 
     BasicData &fetchBasicDataInfo(QString fileName);
+    MapInfo &fetchMapInfo(QString fileName);
     ScriptInfo &fetchScriptInfo(QString fileName);
-    void removeScriptInfoPoint(QString fileName, std::pair<size_t, size_t> point);
-
-    static QString getLowerBcp47Name(QLocale locale);
+    void removeScriptInfoPoint(QString fileName, langscore::TextPosition point);
 
     void setPackingDirectory(QString path);
 
@@ -194,12 +219,23 @@ public:
 
     void updateLangscoreProjectPath();
 
-    static ProjectType getProjectType(const QString& path);
 
     Font getDetafultFont() const;
 
     TextValidateTypeMap getValidationCsvData(QString fileName);
     TextValidateTypeMap& getValidationCsvDataRef(QString fileName);
+
+    static QString getLowerBcp47Name(QLocale locale);
+    static ProjectType getProjectType(const QString& path);
+
+    static bool isLangscoreScript(const QString& scriptName);
+
+
+    // Use settings types
+    const std::vector<settings::ScriptInfo>& getScriptFileList() const { return writeObj.scriptInfo; }
+    const std::vector<settings::BasicData>& getBasicInfoList() const { return writeObj.basicDataInfo; }
+    const std::vector<settings::MapInfo>& getMapInfoList() const { return writeObj.mapDataInfo; }
+    const std::vector<settings::GraphInfo>& getGraphicsFileList() const { return writeObj.graphDataInfo; }
 
     static QString scriptExt(settings::ProjectType type) {
         return type == settings::ProjectType::VXAce ? ".rb" : ".js";

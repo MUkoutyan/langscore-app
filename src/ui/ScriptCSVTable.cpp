@@ -14,6 +14,8 @@
 #include "../csv.hpp"
 #include "../graphics.hpp"
 
+#include <ranges>
+
 using namespace langscore;
 
 enum ScriptTableCol : int {
@@ -127,6 +129,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component, std::weak_ptr<LoadFileM
         this->setupScriptTable();
     });
 
+    connect(this->tableWidget, &QTableWidget::itemChanged, this, &ScriptCSVTable::scriptTableItemChanged);
 
     connect(this->scriptFilterButton, &QToolButton::clicked, this->scriptFilterButton, &QToolButton::showMenu);
 
@@ -139,7 +142,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component, std::weak_ptr<LoadFileM
 
         connect(uncheckSignOnly, &QAction::triggered, this, [this]() {
             this->unckeckSignOnlyText();
-            });
+        });
 
         //プログラミングで使用される文のチェックを外す
         // auto uncheckProgrammingText = new QAction(tr("Uncheck Text used in programming"));
@@ -178,7 +181,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component, std::weak_ptr<LoadFileM
         this->autoCheckButton->addAction(uncheckNotIncludeHiragana);
         connect(uncheckNotIncludeHiragana, &QAction::triggered, this, [this]() {
             this->uncheckNotContainHiragana();
-            });
+        });
     }
 
 
@@ -201,280 +204,213 @@ void ScriptCSVTable::setupScriptTable()
     this->tableWidget->clear();
     const auto tempFolder = this->setting->analyzeDirectoryPath();
 
-    QFile jsonFile(tempFolder + "/Scripts.lsjson");
+    auto scripts = this->setting->getScriptFileList();
 
-    if(false == jsonFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open JSON file:" << jsonFile.fileName();
-        return;
-    }
-
-    QByteArray jsonData = jsonFile.readAll();
-    jsonFile.close();
-
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
-    if(jsonDoc.isNull() || !jsonDoc.isArray()) {
-        qWarning() << "Invalid JSON format in file:" << jsonFile.fileName();
-        return;
-    }
-
-
-    struct ScriptTextData {
-        QString text;
-        QString fileName;
-        QString scriptName;
-        TextPosition pos;
-    };
-
-    QJsonArray jsonArray = jsonDoc.array();
-    auto writedScripts = [&jsonArray, this]()
-    {
-        std::vector<ScriptTextData> result;
-        for(const QJsonValue& value : jsonArray)
-        {
-            TextPosition pos;
-            QJsonObject obj = value.toObject();
-            pos.scriptFileName = obj["file"].toString();
-            if(obj.contains("parameterName"))
-            {
-                pos.type = TextPosition::Type::Argument;
-                if(obj.contains("value")) {
-                    pos.value = obj["value"].toString();
-                }
-                TextPosition::ScriptArg rowCol;
-                rowCol.valueName = obj["parameterName"].toString();
-                pos.d = rowCol;
-
-                ScriptTextData data = {
-                    obj["original"].toString(),
-                    obj["file"].toString(),
-                    "",
-                    pos
-                };
-
-                result.emplace_back(std::move(data));
-            }
-            else {
-                pos.type = TextPosition::Type::RowCol;
-                if(obj.contains("value")) {
-                    pos.value = obj["value"].toString();
-                }
-                TextPosition::RowCol rowCol;
-                rowCol.row = obj["row"].toInteger();
-                rowCol.col = obj["col"].toInteger();
-                pos.d = rowCol;
-
-                ScriptTextData data = {
-                    obj["original"].toString(),
-                    obj["file"].toString(),
-                    "",
-                    pos
-                };
-
-                result.emplace_back(std::move(data));
-            }
-        }
-
-        const auto& scriptInfos = this->loadFileManager.lock()->getScriptFileList();
-        for(auto& info : result) 
-        {
-            // スクリプト情報を検索
-            auto it = std::find_if(scriptInfos.cbegin(), scriptInfos.cend(), [&info](const auto& x) {
-                return x.fileName == info.fileName;
-            });
-            if(it != scriptInfos.cend()) {
-                info.scriptName = it->scriptName;
-            }
-        }
-
-        return result;
-    }();
-
-    if(writedScripts.empty()) {
+    if(scripts.empty()) {
         this->tableWidget->blockSignals(false);
         return;
     }
 
+    {
+        auto rm_result = std::ranges::remove_if(scripts, [](const auto& data) {
+            return settings::isLangscoreScript(data.scriptName);
+        });
+        scripts.erase(rm_result.begin(), rm_result.end());
+    }
+
     using ScriptLineInfo = std::tuple<QString, size_t, size_t>;
 
-    const auto& scriptList = this->setting->writeObj.scriptInfo;
-    const auto IsIgnoreText = [&scriptList](const TextPosition& info)
+    const auto IsIgnoreText = [this](QString fileName, const TextPosition& info)
     {
-        auto fileName = info.scriptFileName;
-        fileName = withoutExtension(std::move(fileName));
-        if(std::holds_alternative<TextPosition::RowCol>(info.d))
-        {
-            auto& cell = std::get<TextPosition::RowCol>(info.d);
-            auto cellPos = std::pair<size_t, size_t>{cell.row, cell.col};
-            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
-                return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cellPos) != x.ignorePoint.cend();
-                });
-            return result != scriptList.cend();
+        const auto& scriptInfo = this->setting->fetchScriptInfo(fileName);
+        auto result = std::ranges::find_if(scriptInfo.lines, [&](const auto& line) {
+            return line == info;
+        });
+        if(result != scriptInfo.lines.end()) {
+            return result->ignore;
         }
-        else
-        {
-            auto& cell = std::get<TextPosition::ScriptArg>(info.d);
-            auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
-                return withoutExtension(x.name) == fileName && std::find(x.ignorePoint.cbegin(), x.ignorePoint.cend(), cell.valueName) != x.ignorePoint.cend();
-                });
-            return result != scriptList.cend();
-        }
+        return false;
     };
 
-    const auto IsIgnoreScript = [&scriptList](QString fileName) {
-        fileName = withoutExtension(std::move(fileName));
-        auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&](const auto& x) {
-            return withoutExtension(x.name) == fileName && x.ignore;
-            });
-        return result != scriptList.cend();
-        };
+    const auto IsIgnoreScript = [this](QString fileName) {
+        return this->setting->fetchScriptInfo(fileName).isIgnore();
+    };
 
-    const auto TextColor = [&](const TextPosition& lineInfo) {
+    const auto TextColor = [&](QString fileName, const TextPosition& lineInfo) {
         auto tableTextColorForState = this->getColorTheme().getTextColorForState();
-        if(IsIgnoreScript(lineInfo.scriptFileName)) { return tableTextColorForState[Qt::Unchecked]; }
-        if(IsIgnoreText(lineInfo)) { return tableTextColorForState[Qt::PartiallyChecked]; }
+        if(IsIgnoreScript(fileName)) { return tableTextColorForState[Qt::Unchecked]; }
+        if(IsIgnoreText(fileName, lineInfo)) { return tableTextColorForState[Qt::PartiallyChecked]; }
         return tableTextColorForState[Qt::Checked];
     };
 
     if(showAllScriptContents == false)
     {
-        auto rm_result = std::remove_if(writedScripts.begin() + 1, writedScripts.end(), [&IsIgnoreScript, &IsIgnoreText](const ScriptTextData& data) {
-            if(data.pos.scriptFileName.isEmpty()) { return false; }
-            return IsIgnoreScript(data.pos.scriptFileName) || IsIgnoreText(data.pos);
+        {
+            auto rm_result = std::ranges::remove_if(scripts, [](const auto& data) {
+                if(data.scriptName.isEmpty()) { return false; }
+                if(data.isIgnore()) { return true; }
+                return false;
             });
-        writedScripts.erase(rm_result, writedScripts.end());
+            scripts.erase(rm_result.begin(), scripts.end());
+        }
+        {
+            for(auto& script : scripts) {
+                auto rm_result = std::ranges::remove_if(script.lines, [](const auto& data) {
+                    return data.ignore;
+                });
+                script.lines.erase(rm_result.begin(), script.lines.end());
+            }
+        }
     }
 
     // 常に非表示にするスクリプト名のフィルタリング（最適化版）
-    {
-        std::vector<QString> hideScriptNameList = {"langscore_custom", "langscore"};
+    //{
+    //    std::vector<QString> hideScriptNameList = {"langscore_custom", "langscore"};
 
-        // スクリプト名とその行位置を一時的にマッピング
-        std::unordered_map<QString, std::vector<size_t>> scriptNameToRowMap;
 
-        // すべての行を走査して一度だけマッピングを作成
-        for(size_t i = 1; i < writedScripts.size(); ++i)
-        {
+    //    // すべての行を走査して一度だけマッピングを作成
+    //    size_t rowCount = 0;
+    //    for(auto [index, info] : scripts | std::views::enumerate)
+    //    {
+    //        auto scriptName = info.scriptName;
+    //        // スクリプト名が非表示リストに含まれている場合はスキップ
+    //        if(std::ranges::find(hideScriptNameList, scriptName) != hideScriptNameList.end()) {
+    //            continue;
+    //        }
 
-            //auto scriptName = getScriptName(writedScripts[i].pos.scriptFileName);
-            auto scriptName = writedScripts[i].pos.scriptFileName;
+    //        auto rmed_view = std::views::filter([](const auto& l) { return l.ignore == false; });
+    //        for (auto&& line : info.lines | rmed_view) {
+    //            scriptNameToRowMap[scriptName].push_back(rowCount++);
+    //        }
+    //    }
 
-            if(scriptNameToRowMap.find(scriptName) == scriptNameToRowMap.end()) {
-                scriptNameToRowMap[scriptName] = std::vector<size_t>{i};
-            }
-            else {
-                scriptNameToRowMap[scriptName].push_back(i);
-            }
-        }
+    //    // 削除対象となる行番号を収集
+    //    std::vector<size_t> rowsToRemove;
+    //    for(const auto& hideName : hideScriptNameList) {
+    //        auto it = scriptNameToRowMap.find(hideName);
+    //        if(it != scriptNameToRowMap.end()) {
+    //            // 該当スクリプト名のすべての行を削除リストに追加
+    //            for(auto rowIndex : it->second) {
+    //                rowsToRemove.push_back(rowIndex);
+    //            }
+    //        }
+    //    }
 
-        // 削除対象となる行番号を収集
-        std::vector<size_t> rowsToRemove;
-        for(const auto& hideName : hideScriptNameList) {
-            auto it = scriptNameToRowMap.find(hideName);
-            if(it != scriptNameToRowMap.end()) {
-                // 該当スクリプト名のすべての行を削除リストに追加
-                for(auto rowIndex : it->second) {
-                    rowsToRemove.push_back(rowIndex);
-                }
-            }
-        }
+    //    // 行番号を降順にソートして削除（後ろから削除していくことでインデックスのずれを防ぐ）
+    //    if(rowsToRemove.empty() == false) {
+    //        std::ranges::sort(rowsToRemove, std::greater<size_t>{});
 
-        // 行番号を降順にソートして削除（後ろから削除していくことでインデックスのずれを防ぐ）
-        if(rowsToRemove.empty() == false) {
-            std::sort(rowsToRemove.begin(), rowsToRemove.end(), std::greater<size_t>());
-
-            for(auto rowIndex : rowsToRemove) {
-                writedScripts.erase(writedScripts.begin() + rowIndex);
-            }
-        }
-    }
+    //        for(auto rowIndex : rowsToRemove) {
+    //            writedScripts.erase(writedScripts.begin() + rowIndex);
+    //        }
+    //    }
+    //}
 
     //ヘッダーを除外するので-1
-    const auto numTableItems = writedScripts.size() - 1;
+    auto totalNumTableItems = 0;
+    for(const auto& script : scripts)
+    {
+        //無視するスクリプトは除外
+        if(script.isIgnore()) { continue; }
+        //無視する行は除外
+        auto rmed_view = std::views::filter([](const auto& l) { return l.ignore == false; });
+        totalNumTableItems += std::ranges::distance(script.lines | rmed_view);
+    }
     QTableWidget* targetTable = this->tableWidget;
     targetTable->clear();
     targetTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     targetTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     // デフォルトの最小高さを設定して、内容が少ない場合でも最低限の高さを確保
     targetTable->verticalHeader()->setMinimumSectionSize(28);
-    targetTable->setRowCount(numTableItems);
+    targetTable->setRowCount(totalNumTableItems);
     targetTable->setColumnCount(ScriptTableCol::NumCols);
 
     targetTable->setHorizontalHeaderLabels(QStringList() << "Include" << "ScriptName" << "TextPoint" << "Text" << "Original Text");
 
     int currentScriptWordCount = 0;
     const auto& scriptExt = GetScriptExtension(this->setting->projectType);
-    for(int r = 0; r < numTableItems; ++r)
+    int currentRow = 0;
+    for(const auto& scriptData : scripts)
     {
-        auto& scriptData = writedScripts[r + 1];
-        const auto& originalText = scriptData.text;
-        auto& lineParsedResult = scriptData.pos;
-
-        const auto& textColor = TextColor(lineParsedResult);
-
-        //チェックボックス
-        auto* checkItem = new QTableWidgetItem();
-        checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEditable | Qt::ItemIsEnabled);
-        targetTable->setItem(r, ScriptTableCol::EnableCheck, checkItem);
-
-        const auto scriptTableItemFlags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-        //名前
-        {
-            auto* item = new QTableWidgetItem(originalText);
-            item->setForeground(textColor);
-            item->setFlags(scriptTableItemFlags);
-            targetTable->setItem(r, ScriptTableCol::Original, item);
-
-            checkItem->setData(Qt::CheckStateRole, IsIgnoreText(lineParsedResult) ? Qt::Unchecked : Qt::Checked);
-        }
-
         //チェックセル以外を初期化
-        if(lineParsedResult.scriptFileName.contains(scriptExt)) {
-            lineParsedResult.scriptFileName.chop(scriptExt.length());
+        auto scriptName = scriptData.scriptName;
+        if(scriptName.contains(scriptExt)) {
+            scriptName.chop(scriptExt.length());
         }
-        currentScriptWordCount += wordCountUTF8(originalText);
 
+        const auto& lineData = scriptData.lines;
+        for(auto& line : lineData)
         {
-            //auto scriptName = getScriptName(lineParsedResult.scriptFileName);
-            auto scriptName = scriptData.scriptName;
-            auto* item = new QTableWidgetItem(scriptName);
-            item->setForeground(textColor);
-            item->setFlags(scriptTableItemFlags);
-            item->setData(Qt::UserRole, withoutExtension(lineParsedResult.scriptFileName));
-            targetTable->setItem(r, ScriptTableCol::ScriptName, item);
-            if(scriptNameToTableIndexMap.find(scriptName) == scriptNameToTableIndexMap.end()) {
-                scriptNameToTableIndexMap.emplace(scriptName, std::vector<int>{r});
+            if(line.ignore) { continue; }
+
+            const auto& originalText = line.value;
+
+            const auto& textColor = TextColor(scriptData.fileName, line);
+
+            //チェックボックス
+            auto* checkItem = new QTableWidgetItem();
+            checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEditable | Qt::ItemIsEnabled);
+            targetTable->setItem(currentRow, ScriptTableCol::EnableCheck, checkItem);
+
+            const auto scriptTableItemFlags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+            //名前
+            {
+                auto* item = new QTableWidgetItem(originalText);
+                item->setForeground(textColor);
+                item->setFlags(scriptTableItemFlags);
+                targetTable->setItem(currentRow, ScriptTableCol::Original, item);
+
+                checkItem->setData(Qt::CheckStateRole, IsIgnoreText(scriptData.fileName, line) ? Qt::Unchecked : Qt::Checked);
+            }
+
+            currentScriptWordCount += wordCountUTF8(originalText);
+
+            {
+                //auto scriptName = getScriptName(lineParsedResult.scriptFileName);
+                auto scriptName = scriptData.scriptName;
+                auto* item = new QTableWidgetItem(scriptName);
+                item->setForeground(textColor);
+                item->setFlags(scriptTableItemFlags);
+                item->setData(Qt::UserRole, withoutExtension(scriptData.fileName));
+                targetTable->setItem(currentRow, ScriptTableCol::ScriptName, item);
+                if(scriptNameToTableIndexMap.find(scriptName) == scriptNameToTableIndexMap.end()) {
+                    scriptNameToTableIndexMap.emplace(scriptName, std::vector<int>{int(currentRow)});
+                }
+                else {
+                    scriptNameToTableIndexMap[scriptName].emplace_back(currentRow);
+                }
+            }
+            //テキストの位置
+
+            if(std::holds_alternative<TextPosition::RowCol>(line.d))
+            {
+                auto& cell = std::get<TextPosition::RowCol>(line.d);
+                auto* item = new QTableWidgetItem(QString("%1:%2").arg(cell.row).arg(cell.col));
+                if(cell.row == 0 && cell.col == 0) {
+                    item->setText("Parameter");
+                }
+                item->setForeground(textColor);
+                item->setFlags(scriptTableItemFlags);
+                targetTable->setItem(currentRow, ScriptTableCol::TextPoint, item);
             }
             else {
-                scriptNameToTableIndexMap[scriptName].emplace_back(r);
+                auto& cell = std::get<TextPosition::ScriptArg>(line.d);
+                auto* item = new QTableWidgetItem(cell.valueName);
+                item->setForeground(textColor);
+                item->setFlags(scriptTableItemFlags);
+                targetTable->setItem(currentRow, ScriptTableCol::TextPoint, item);
+
             }
-        }
-        //テキストの位置
 
-        if(std::holds_alternative<TextPosition::RowCol>(lineParsedResult.d))
-        {
-            auto& cell = std::get<TextPosition::RowCol>(lineParsedResult.d);
-            auto* item = new QTableWidgetItem(QString("%1:%2").arg(cell.row).arg(cell.col));
-            if(cell.row == 0 && cell.col == 0) {
-                item->setText("Parameter");
+            {
+                auto* item = new QTableWidgetItem(line.value);
+                item->setForeground(textColor);
+                item->setFlags(scriptTableItemFlags);
+                targetTable->setItem(currentRow, ScriptTableCol::Text, item);
             }
-            item->setForeground(textColor);
-            item->setFlags(scriptTableItemFlags);
-            targetTable->setItem(r, ScriptTableCol::TextPoint, item);
-        }
-        else {
-            auto& cell = std::get<TextPosition::ScriptArg>(lineParsedResult.d);
-            auto* item = new QTableWidgetItem(cell.valueName);
-            item->setForeground(textColor);
-            item->setFlags(scriptTableItemFlags);
-            targetTable->setItem(r, ScriptTableCol::TextPoint, item);
 
-        }
+            currentRow++;
 
-        {
-            auto* item = new QTableWidgetItem(lineParsedResult.value);
-            item->setForeground(textColor);
-            item->setFlags(scriptTableItemFlags);
-            targetTable->setItem(r, ScriptTableCol::Text, item);
         }
     }
 
@@ -509,10 +445,8 @@ void ScriptCSVTable::updateTableTextColor()
     auto tableTextColorForState = this->getColorTheme().getTextColorForState();
     for(int r = 0; r < rows; ++r)
     {
-        if(auto scriptNameItem = this->tableWidget->item(r, ScriptTableCol::ScriptName)) {
-            auto scriptName = scriptNameItem->text();
-            auto treeCheckState = getTreeCheckStateBasedOnTable(scriptName);
-            setTableItemTextColor(r, tableTextColorForState[treeCheckState]);
+        if(auto checkItem = this->tableWidget->item(r, ScriptTableCol::EnableCheck)) {
+            setTableItemTextColor(r, tableTextColorForState[checkItem->checkState()]);
         }
     }
 
@@ -548,7 +482,7 @@ QString ScriptCSVTable::getScriptFileNameFromTable(int row)
 std::vector<int> ScriptCSVTable::fetchScriptTableSameFileRows(QString scriptName)
 {
     std::vector<int> result;
-    if(scriptNameToTableIndexMap.find(scriptName) == scriptNameToTableIndexMap.end()) {
+    if(scriptNameToTableIndexMap.find(scriptName) != scriptNameToTableIndexMap.end()) {
         result = scriptNameToTableIndexMap[scriptName];
     }
     return result;
@@ -616,7 +550,7 @@ void ScriptCSVTable::writeToIgnoreScriptLine(int row, bool ignore)
 {
     auto textPosItem = this->scriptTableItem(row, ScriptTableCol::TextPoint);
     if(textPosItem == nullptr) { return; }
-    auto [lineNum, col] = parseScriptWithRowCol(textPosItem->text());
+    TextPosition textPos = parseScriptNameWithRowCol(textPosItem->text());
     auto fileName = getScriptFileNameFromTable(row);
     if(fileName.isEmpty()) { return; }
     //MainComponentのinvokeAnalyzeと重複
@@ -624,14 +558,19 @@ void ScriptCSVTable::writeToIgnoreScriptLine(int row, bool ignore)
     if(ignore)
     {
         auto& info = setting->fetchScriptInfo(fileName);
-        settings::TextPoint p;
-        p.row = lineNum;
-        p.col = col;
-        info.ignorePoint.emplace_back(std::move(p));
+        auto find_result = std::ranges::find_if(info.lines, [&](const auto& t) { 
+            return t.type == textPos.type && t.d == textPos.d; 
+        });
+        if(find_result != info.lines.end()) {
+            find_result->ignore = true;
+        }
     }
     else {
-        setting->removeScriptInfoPoint(fileName, {lineNum, col});
+        setting->removeScriptInfoPoint(fileName, textPos);
     }
+
+    //ファイルツリーへ通知
+    emit this->notifyScriptTableChangeItemCheck(fileName, ignore ? Qt::Unchecked : Qt::Checked);
 }
 
 QTableWidgetItem* ScriptCSVTable::scriptTableItem(int row, int col) {
@@ -640,17 +579,19 @@ QTableWidgetItem* ScriptCSVTable::scriptTableItem(int row, int col) {
 }
 
 
-void ScriptCSVTable::setScriptState(QString scriptName, Qt::CheckState check)
+void ScriptCSVTable::updateScriptIgnoreState(QString scriptName, Qt::CheckState check)
 {
     //テーブル側への反映
     this->tableWidget->blockSignals(true);
     auto targetItemRow = fetchScriptTableSameFileRows(scriptName);
     auto tableTextColorForState = this->getColorTheme().getTextColorForState();
-    const auto textColor = tableTextColorForState[check];
+    const auto& textColor = tableTextColorForState[check];
 
-    for(auto r : targetItemRow)
+    for(auto r : targetItemRow) 
     {
-        this->setTableItemTextColor(r, textColor);
+        if(auto item = this->scriptTableItem(r, ScriptTableCol::EnableCheck)){
+            item->setCheckState(check);
+        }
     }
     this->tableWidget->blockSignals(false);
 
@@ -674,7 +615,8 @@ void ScriptCSVTable::setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckSt
     auto scriptItem = this->scriptTableItem(row, ScriptTableCol::ScriptName);
     QString scriptName = scriptItem ? scriptItem->text() : "";
 
-    emit this->changeScriptTableItemCheck(scriptName, check);
+    this->updateTableTextColor();
+    emit this->notifyScriptTableChangeItemCheck(scriptName, check);
 
 
 }
@@ -895,8 +837,6 @@ void ScriptCSVTable::TableUndo::redo() {
 
 void ScriptCSVTable::changeScriptTableItemCheck(QString scriptName, Qt::CheckState check)
 {
-    // ここでテーブルのチェック状態や色を更新する処理を実装
-    // 例: setScriptState(scriptName, check);
-    setScriptState(scriptName, check);
+    updateScriptIgnoreState(scriptName, check);
     updateTableTextColor();
 }
