@@ -88,10 +88,12 @@ void FileTree::clear()
 
 void FileTree::setupTree()
 {
+    this->treeWidget->blockSignals(true);
     this->setupBasicsTree();
     this->setupMainTree();
     this->setupScriptTree();
     this->setupGraphicsTree();
+    this->treeWidget->blockSignals(false);
 }
 
 void FileTree::setupBasicsTree()
