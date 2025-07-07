@@ -33,7 +33,7 @@ namespace {
     }
 }
 
-FileTree::FileTree(ComponentBase* component, std::weak_ptr<LoadFileManager> loadFileManager, QWidget* parent)
+FileTree::FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
     : ComponentBase(component), QWidget(parent)
     , loadFileManager(std::move(loadFileManager))
     , treeWidget(new QTreeWidget(this))

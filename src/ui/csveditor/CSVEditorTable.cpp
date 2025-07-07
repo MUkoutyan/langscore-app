@@ -1,5 +1,5 @@
-#include "CSVEditorTable.h"
-#include "../csv.hpp"
+﻿#include "CSVEditorTable.h"
+#include "../../csv.hpp"
 #include <fstream>
 
 namespace langscore {
@@ -18,10 +18,11 @@ bool CSVEditorTable::load(const QString& path) {
     beginResetModel();
     csvData = readCsv(path);
     endResetModel();
-    return !csvData.empty();
+    return csvData.empty() == false;
 }
 
-bool CSVEditorTable::save(const QString& path) const {
+bool CSVEditorTable::save(const QString& path) const 
+{
     std::ofstream file(path.toLocal8Bit());
     if (!file.is_open()) return false;
     for (const auto& row : csvData) {
@@ -52,47 +53,54 @@ int CSVEditorTable::columnCount(const QModelIndex&) const {
 }
 
 QVariant CSVEditorTable::data(const QModelIndex& index, int role) const {
-    if (!index.isValid() || role != Qt::DisplayRole && role != Qt::EditRole)
+    if(!index.isValid() || role != Qt::DisplayRole && role != Qt::EditRole) {
         return QVariant();
+    }
     size_t row = static_cast<size_t>(index.row());
     size_t col = static_cast<size_t>(index.column());
-    if (row >= csvData.size() || col >= csvData[row].size())
+    if(row >= csvData.size() || col >= csvData[row].size()) {
         return QVariant();
+    }
     return csvData[row][col];
 }
 
-bool CSVEditorTable::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (!index.isValid() || role != Qt::EditRole)
-        return false;
+bool CSVEditorTable::setData(const QModelIndex& index, const QVariant& value, int role) 
+{
+    if(!index.isValid() || role != Qt::EditRole) { return false; }
     size_t row = static_cast<size_t>(index.row());
     size_t col = static_cast<size_t>(index.column());
-    if (row >= csvData.size())
+    if(row >= csvData.size()) {
         return false;
-    if (col >= csvData[row].size())
+    }
+    if(col >= csvData[row].size()) {
         csvData[row].resize(col + 1);
+    }
     csvData[row][col] = value.toString();
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
     return true;
 }
 
 Qt::ItemFlags CSVEditorTable::flags(const QModelIndex& index) const {
-    if (!index.isValid())
-        return Qt::NoItemFlags;
+    if(!index.isValid()) { return Qt::NoItemFlags; } 
     return Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsEnabled;
 }
 
 QVariant CSVEditorTable::headerData(int section, Qt::Orientation orientation, int role) const {
-    if (role != Qt::DisplayRole)
+    if(role != Qt::DisplayRole) {
         return QVariant();
-    if (orientation == Qt::Horizontal)
+    }
+    if(orientation == Qt::Horizontal) {
         return QString("Col %1").arg(section + 1);
-    else
+    } 
+    else {
         return QString("Row %1").arg(section + 1);
+    }
 }
 
 bool CSVEditorTable::insertRows(int row, int count, const QModelIndex&) {
-    if (row < 0 || row > static_cast<int>(csvData.size()) || count <= 0)
+    if(row < 0 || row > static_cast<int>(csvData.size()) || count <= 0) {
         return false;
+    }
     beginInsertRows(QModelIndex(), row, row + count - 1);
     size_t cols = colCountRaw();
     for (int i = 0; i < count; ++i)
@@ -102,8 +110,9 @@ bool CSVEditorTable::insertRows(int row, int count, const QModelIndex&) {
 }
 
 bool CSVEditorTable::removeRows(int row, int count, const QModelIndex&) {
-    if (row < 0 || row + count > static_cast<int>(csvData.size()) || count <= 0)
+    if(row < 0 || row + count > static_cast<int>(csvData.size()) || count <= 0) {
         return false;
+    }
     beginRemoveRows(QModelIndex(), row, row + count - 1);
     csvData.erase(csvData.begin() + row, csvData.begin() + row + count);
     endRemoveRows();
@@ -111,12 +120,14 @@ bool CSVEditorTable::removeRows(int row, int count, const QModelIndex&) {
 }
 
 bool CSVEditorTable::insertColumns(int column, int count, const QModelIndex&) {
-    if (column < 0 || count <= 0)
+    if(column < 0 || count <= 0) {
         return false;
+    }
     beginInsertColumns(QModelIndex(), column, column + count - 1);
     for (auto& row : csvData) {
-        if (column > static_cast<int>(row.size()))
+        if(column > static_cast<int>(row.size())) {
             row.resize(column, "");
+        }
         row.insert(row.begin() + column, count, "");
     }
     endInsertColumns();
@@ -124,12 +135,12 @@ bool CSVEditorTable::insertColumns(int column, int count, const QModelIndex&) {
 }
 
 bool CSVEditorTable::removeColumns(int column, int count, const QModelIndex&) {
-    if (column < 0 || count <= 0)
-        return false;
+    if(column < 0 || count <= 0) { return false; } 
     beginRemoveColumns(QModelIndex(), column, column + count - 1);
     for (auto& row : csvData) {
-        if (column < static_cast<int>(row.size()))
+        if(column < static_cast<int>(row.size())) {
             row.erase(row.begin() + column, row.begin() + std::min(row.size(), static_cast<size_t>(column + count)));
+        }
     }
     endRemoveColumns();
     return true;
@@ -148,14 +159,17 @@ size_t CSVEditorTable::colCountRaw() const {
     return maxCols;
 }
 
-std::optional<QString> CSVEditorTable::getCell(size_t row, size_t col) const {
-    if (row >= csvData.size() || col >= csvData[row].size()) return std::nullopt;
+std::optional<QString> CSVEditorTable::getCell(size_t row, size_t col) const 
+{
+    if(row >= csvData.size() || col >= csvData[row].size()) { return std::nullopt; }
     return csvData[row][col];
 }
 
-bool CSVEditorTable::setCell(size_t row, size_t col, const QString& value) {
-    if (row >= csvData.size()) return false;
-    if (col >= csvData[row].size()) csvData[row].resize(col + 1);
+bool CSVEditorTable::setCell(size_t row, size_t col, const QString& value) 
+{
+    if(row >= csvData.size()) { return false; }
+    if(col >= csvData[row].size()) { csvData[row].resize(col + 1); }
+
     csvData[row][col] = value;
     QModelIndex idx = index(static_cast<int>(row), static_cast<int>(col));
     emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});

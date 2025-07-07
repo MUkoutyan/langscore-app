@@ -35,6 +35,14 @@ set(PROJECT_SOURCES
     MainWindow.cpp
     MainWindow.h
     MainWindow.ui
+    src/csv.hpp
+    src/utility.hpp
+    src/invoker.h
+    src/invoker.cpp
+    src/settings.h
+    src/settings.cpp
+    src/settings_io.cpp
+    src/graphics.hpp
     src/ui/ComponentBase.h
     src/ui/FormTaskBar.h
     src/ui/FormTaskBar.cpp
@@ -52,14 +60,6 @@ set(PROJECT_SOURCES
     src/ui/PackingMode.ui
     src/ui/ScriptViewer.h
     src/ui/ScriptViewer.cpp
-    src/csv.hpp
-    src/utility.hpp
-    src/invoker.h
-    src/invoker.cpp
-    src/settings.h
-    src/settings.cpp
-    src/settings_io.cpp
-    src/graphics.hpp
     src/ui/WriteDialog.h
     src/ui/WriteDialog.cpp
     src/ui/WriteDialog.ui
@@ -81,20 +81,28 @@ set(PROJECT_SOURCES
     src/ui/ColorTheme.h
     src/ui/ClipDetectSettingTree.cpp
     src/ui/ClipDetectSettingTree.h
-    src/ui/CSVEditor.cpp
-    src/ui/CSVEditor.h
-    src/ui/LoadFileManager.h
-    src/ui/LoadFileManager.cpp
     src/ui/FileTree.cpp
     src/ui/FileTree.h
-    src/ui/ScriptCSVTable.h
-    src/ui/ScriptCSVTable.cpp
-    src/ui/MainCSVTable.h
-    src/ui/MainCSVTable.cpp
-    src/ui/CSVEditor.h
-    src/ui/CSVEditor.cpp
+    src/ui/csvtable/ScriptCSVTable.h
+    src/ui/csvtable/ScriptCSVTable.cpp
+    src/ui/csvtable/MainCSVTable.h
+    src/ui/csvtable/MainCSVTable.cpp
+    src/ui/csvtable/MainCSVTableModel.cpp
+    src/ui/csvtable/MainCSVTableModel.h
+    src/ui/csvtable/ScriptCSVTableModel.h
+    src/ui/csvtable/ScriptCSVTableModel.cpp
+    src/ui/csvtable/MultiLineEditDelegate.h
+    src/ui/csvtable/MultiLineEditDelegate.cpp
     src/ui/GraphicsImageLoader.h
     src/ui/GraphicsImageLoader.cpp
+    src/ui/csveditor/FastCSVContainer.h
+    src/ui/csveditor/FastCSVContainer.cpp
+    src/ui/csveditor/CSVEditDataManager.h
+    src/ui/csveditor/CSVEditDataManager.cpp
+    src/ui/csveditor/CSVEditor.h
+    src/ui/csveditor/CSVEditor.cpp
+    src/ui/csveditor/CSVEditorTable.h
+    src/ui/csveditor/CSVEditorTable.cpp
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h
@@ -102,6 +110,10 @@ set(PROJECT_SOURCES
 
 include_directories(
     "${DIVISI_PATH}/include"
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/ui
+    ${CMAKE_SOURCE_DIR}/src/ui/csveditor
+    ${CMAKE_SOURCE_DIR}/src/ui/csvtable
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 

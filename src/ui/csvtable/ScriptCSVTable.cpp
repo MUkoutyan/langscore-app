@@ -15,6 +15,7 @@
 #include "../graphics.hpp"
 
 #include <ranges>
+#include "MainCSVTable.h"
 
 using namespace langscore;
 
@@ -65,7 +66,7 @@ namespace
 }
 
 
-ScriptCSVTable::ScriptCSVTable(ComponentBase* component, std::weak_ptr<LoadFileManager> loadFileManager, QWidget* parent)
+ScriptCSVTable::ScriptCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
     : ComponentBase(component), QWidget(parent), loadFileManager(std::move(loadFileManager))
     , showAllScriptContents(true)
     , currentScriptWordCount(0)
@@ -809,6 +810,15 @@ void ScriptCSVTable::showNormalJsonText(QString treeItemName, QString fileName)
 void ScriptCSVTable::setScriptFileName(QString fileName)
 {
     this->scriptFileName->setText(fileName);
+}
+
+void MainCSVTable::receive(DispatchType type, const QVariantList& args)
+{
+    if(type == DispatchType::SaveProject)
+    {
+        auto editingDir = this->setting->langscoreProjectDirectory + "/editing";
+
+    }
 }
 
 void ScriptCSVTable::TableUndo::setValue(ValueType value) {

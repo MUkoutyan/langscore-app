@@ -74,7 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::moveWiget, this->analyzeDialog, &AnalyzeDialog::moveParent);
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
         this->explicitSave = true;
-        this->receive(SaveProject, {});
+        this->dispatch(SaveProject, {});
         this->receive(StatusMessage, {tr("Save Projet."), 5000});
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)
@@ -183,7 +183,7 @@ void MainWindow::closeEvent(QCloseEvent* e)
         e->accept();
     }
     else if(button == QMessageBox::Save){
-        this->setting->saveForProject();
+        this->dispatch(SaveProject, {});
         e->accept();
     }
     QMainWindow::closeEvent(e);

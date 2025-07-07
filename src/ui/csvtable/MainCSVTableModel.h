@@ -1,18 +1,15 @@
-#pragma once
+﻿#pragma once
 
-#include <QWidget>
-#include <QTableView>
 #include <QAbstractTableModel>
-#include <QStringList>
-#include <vector>
-#include "CSVEditorTable.h"
+#include "FastCSVContainer.h"
 
-class CSVTableModel : public QAbstractTableModel {
+class MainCSVTableModel : public QAbstractTableModel {
     Q_OBJECT
 public:
-    explicit CSVTableModel(QObject* parent = nullptr);
+    explicit MainCSVTableModel(QObject* parent = nullptr);
 
     bool loadFromFile(const QString& filePath);
+    bool loadFromJsonFile(const QString& filePath);
     bool saveToFile(const QString& filePath) const;
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -22,20 +19,18 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
 
+    void addColumn(const QString& columnName);
+    void insertColumn(size_t index, const QString& columnName);
+    void removeColumn(int column);
+
+
+    void clearAll() {
+        beginResetModel();
+        csvContainer.clear();
+        endResetModel();
+    }
+
+
 private:
-    std::vector<QString> header;
-    std::vector<std::vector<QString>> contents;
-};
-
-class CSVEditor : public QWidget {
-    Q_OBJECT
-public:
-    explicit CSVEditor(QWidget* parent = nullptr);
-
-    bool openCSV(const QString& filePath);
-    bool saveCSV(const QString& filePath);
-
-private:
-    QTableView* tableView;
-    CSVTableModel* model;
+    langscore::FastCSVContainer csvContainer;
 };

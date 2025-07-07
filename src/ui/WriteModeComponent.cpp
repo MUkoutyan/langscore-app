@@ -51,7 +51,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     , invokeType(InvokeType::None)
     , lastWritePath("")
     , scriptViewer(nullptr)
-    , loadFileManager(std::make_shared<LoadFileManager>())
+    , csvEditDataManager(std::make_shared<CSVEditDataManager>())
 {
 
     this->addDispatch(this);
@@ -64,13 +64,13 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         delete this->ui->scriptViewer;
         this->ui->scriptViewer = this->scriptViewer;
 
-        this->fileTree = new FileTree(this, this->loadFileManager, this);
+        this->fileTree = new FileTree(this, this->csvEditDataManager, this);
         this->ui->splitter_2->insertWidget(0, this->fileTree);
 
-        this->mainTable = new MainCSVTable(this, this->loadFileManager, this);
+        this->mainTable = new MainCSVTable(this, this->csvEditDataManager, this);
         this->ui->verticalLayout->addWidget(this->mainTable, 1);
 
-        this->scriptTable = new ScriptCSVTable(this, this->loadFileManager, this);
+        this->scriptTable = new ScriptCSVTable(this, this->csvEditDataManager, this);
         this->ui->verticalLayout_8->addWidget(this->scriptTable, 1);
     }
 
@@ -343,7 +343,6 @@ void WriteModeComponent::firstExportTranslateFiles()
 
 void WriteModeComponent::setup()
 {
-    this->loadFileManager->loadFile(this->setting);
 
     this->ui->tabWidget->setCurrentIndex(0);
     //this->ui->tableWidget_script->blockSignals(true);
@@ -477,6 +476,11 @@ void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
         if(isOk == false){ return; }
 
         this->changeUIColor();
+    }
+    else if(type == ComponentBase::SaveProject)
+    {
+        const auto editFolder = this->setting->langscoreProjectDirectory + "/editing";
+        this->csvEditDataManager->saveAllModels(editFolder);
     }
 }
 

@@ -7,7 +7,7 @@
 #include <QString>
 
 #include "ComponentBase.h"
-#include "LoadFileManager.h"
+#include "CSVEditDataManager.h"
 
 
 struct ScriptTextData; // 前方宣言
@@ -15,7 +15,7 @@ struct ScriptTextData; // 前方宣言
 class ScriptCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
-    ScriptCSVTable(ComponentBase* component, std::weak_ptr<LoadFileManager> loadFileManager, QWidget* parent = nullptr);
+    ScriptCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent = nullptr);
     
     void clear();
 
@@ -94,7 +94,7 @@ private:
     QToolButton* autoCheckButton;
     QToolButton* scriptFilterButton;
     QTableWidget* tableWidget;
-    std::weak_ptr<LoadFileManager> loadFileManager;
+    std::weak_ptr<CSVEditDataManager> loadFileManager;
 
     //fetchScriptTableSameFileRowsの高速化のためのキャッシュ
     std::unordered_map<QString, std::vector<int>> scriptNameToTableIndexMap;

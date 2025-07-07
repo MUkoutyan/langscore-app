@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <QAbstractTableModel>
 #include <QString>
@@ -38,8 +38,11 @@ public:
 
     const std::vector<std::vector<QString>>& dataRaw() const;
 
+
 private:
     std::vector<std::vector<QString>> csvData;
+    QStringList header;
+    std::vector<QStringList> contents;
 };
 
 } // namespace langscore

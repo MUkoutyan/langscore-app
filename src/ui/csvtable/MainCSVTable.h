@@ -7,7 +7,8 @@
 #include <QString>
 
 #include "ComponentBase.h"
-#include "LoadFileManager.h"
+#include "CSVEditDataManager.h"
+#include "csveditor/CSVEditor.h"
 
 
 struct ScriptTextData; // 前方宣言
@@ -15,7 +16,7 @@ struct ScriptTextData; // 前方宣言
 class MainCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
-    MainCSVTable(ComponentBase* component, std::weak_ptr<LoadFileManager> loadFileManager, QWidget* parent = nullptr);
+    MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent = nullptr);
     
     void clear();
 
@@ -23,12 +24,12 @@ public:
 
     void setTableItemTextColor(int row, QBrush color);
 
-    QTableWidgetItem* scriptTableItem(int row, int col);
+    QModelIndex scriptTableItem(int row, int col);
 
     QString getScriptFileNameFromTable(int row);
 
 
-    void scriptTableItemChanged(QTableWidgetItem* item);
+    void scriptTableItemChanged(QModelIndex item);
 
 
     void showMainFileText(QString treeItemName, QString fileName);
@@ -43,7 +44,7 @@ private:
     struct TableUndo : QUndoCommand
     {
         using ValueType = bool;
-        TableUndo(MainCSVTable* parent, QTableWidgetItem* target, ValueType newValue, ValueType oldValue)
+        TableUndo(MainCSVTable* parent, QModelIndex target, ValueType newValue, ValueType oldValue)
             : parent(parent), target(target), newValue(std::move(newValue)), oldValue(std::move(oldValue)){
         }
         ~TableUndo() {}
@@ -54,7 +55,7 @@ private:
 
     private:
         MainCSVTable* parent;
-        QTableWidgetItem* target;
+        QModelIndex target;
         ValueType newValue;
         ValueType oldValue;
 
@@ -63,10 +64,12 @@ private:
 
 
     std::vector<int> fetchTableSameFileRows(QString mainFileName);
+    void receive(DispatchType type, const QVariantList& args) override;
 
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
-    QTableWidget* tableWidget;
-    std::weak_ptr<LoadFileManager> loadFileManager;
+    CSVEditor* csvEditor;
+    //QTableWidget* tableWidget;
+    std::weak_ptr<CSVEditDataManager> loadFileManager;
 
 };

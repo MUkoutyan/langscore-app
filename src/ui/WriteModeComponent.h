@@ -9,7 +9,7 @@
 #include <QResizeEvent>
 
 #include "ComponentBase.h"
-#include "LoadFileManager.h"
+#include "CSVEditDataManager.h"
 #include "FileTree.h"
 #include "MainCSVTable.h"
 #include "ScriptCSVTable.h"
@@ -103,7 +103,7 @@ private:
 
     void changeUIColor();
 
-    std::shared_ptr<LoadFileManager> loadFileManager;
+    std::shared_ptr<CSVEditDataManager> csvEditDataManager;
     FileTree* fileTree;
     MainCSVTable* mainTable;
     ScriptCSVTable* scriptTable;

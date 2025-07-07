@@ -3,7 +3,7 @@
 #include <QTreeWidget>
 #include <QObject>
 #include "ComponentBase.h"
-#include "LoadFileManager.h"
+#include "CSVEditDataManager.h"
 #include "GraphicsImageLoader.h"
 
 class QLineEdit;
@@ -50,7 +50,7 @@ public:
     };
 
 
-    FileTree(ComponentBase* component, std::weak_ptr<LoadFileManager>, QWidget* parent = nullptr);
+    FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager>, QWidget* parent = nullptr);
     ~FileTree();
 
     void clear();
@@ -115,7 +115,7 @@ private:
     QHBoxLayout* searchLayout = nullptr;
     bool isFiltering = false;
 
-    std::weak_ptr<LoadFileManager> loadFileManager;
+    std::weak_ptr<CSVEditDataManager> loadFileManager;
     QTreeWidget* treeWidget;
     bool _suspendHistory;
 
