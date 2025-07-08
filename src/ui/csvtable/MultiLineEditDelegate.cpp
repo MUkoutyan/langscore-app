@@ -94,7 +94,8 @@ MultiLineEditDelegate::MultiLineTextEdit::MultiLineTextEdit(QWidget* parent)
 
 void MultiLineEditDelegate::MultiLineTextEdit::keyPressEvent(QKeyEvent* event)
 {
-    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) 
+    {
         // Ctrl+Enter または Shift+Enter で編集完了
         if (event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier)) {
             emit editingFinished();
@@ -104,9 +105,6 @@ void MultiLineEditDelegate::MultiLineTextEdit::keyPressEvent(QKeyEvent* event)
         QTextEdit::keyPressEvent(event);
     } else if (event->key() == Qt::Key_Tab) {
         // Tabで編集完了
-        emit editingFinished();
-    } else if (event->key() == Qt::Key_Escape) {
-        // Escapeで編集キャンセル
         emit editingFinished();
     } else {
         QTextEdit::keyPressEvent(event);

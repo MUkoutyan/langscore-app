@@ -16,6 +16,42 @@ public:
     using ColumnIndex = size_t;
     using CellData = QString;
 
+    // 行アクセス用プロキシクラス
+    class RowProxy {
+    public:
+        RowProxy(FastCSVContainer* container, RowIndex row) : container_(container), row_(row) {}
+        
+        CellData& operator[](ColumnIndex col) {
+            return container_->at(row_, col);
+        }
+        
+        CellData& operator[](const CellData& columnName) {
+            return container_->at(row_, columnName);
+        }
+        
+    private:
+        FastCSVContainer* container_;
+        RowIndex row_;
+    };
+
+    // const行アクセス用プロキシクラス
+    class ConstRowProxy {
+    public:
+        ConstRowProxy(const FastCSVContainer* container, RowIndex row) : container_(container), row_(row) {}
+        
+        const CellData& operator[](ColumnIndex col) const {
+            return container_->at(row_, col);
+        }
+        
+        const CellData& operator[](const CellData& columnName) const {
+            return container_->at(row_, columnName);
+        }
+        
+    private:
+        const FastCSVContainer* container_;
+        RowIndex row_;
+    };
+
     FastCSVContainer() = default;
     ~FastCSVContainer() = default;
 
@@ -24,6 +60,15 @@ public:
     FastCSVContainer(FastCSVContainer&&) = default;
     FastCSVContainer& operator=(const FastCSVContainer&) = default;
     FastCSVContainer& operator=(FastCSVContainer&&) = default;
+    
+    // []オペレータ
+    RowProxy operator[](RowIndex row) {
+        return RowProxy(this, row);
+    }
+    
+    ConstRowProxy operator[](RowIndex row) const {
+        return ConstRowProxy(this, row);
+    }
 
     // データ初期化
     bool loadFromCsvData(const std::vector<std::vector<CellData>>& csvData);
@@ -78,9 +123,13 @@ public:
     inline ColumnIndex getColumnIndex(const CellData& columnName) const;
     inline bool hasColumn(const CellData& columnName) const;
 
+    const std::vector<std::vector<CellData>>& dataRaw() const noexcept { return data_; }
+
     // Qt互換性
     QStringList toQStringListRow(RowIndex row) const { return getRow(row); }
     std::vector<QStringList> toQStringListVector() const;
+
+    
 
 private:
     QStringList headers_;

@@ -19,9 +19,9 @@
 using namespace langscore;
 
 MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
-    : ComponentBase(component), QWidget(parent), loadFileManager(std::move(loadFileManager))
+    : ComponentBase(component), QWidget(parent), loadFileManager(loadFileManager)
     , mainFileName(new QLabel(this)), mainFileWordCount(new QLabel(this))
-    , csvEditor(new CSVEditor(this))
+    , csvEditor(new CSVEditor(this->loadFileManager, this, this))
 {
 
     auto* vLayout = new QVBoxLayout();

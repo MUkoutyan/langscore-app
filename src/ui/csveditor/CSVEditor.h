@@ -9,7 +9,8 @@
 #include <QMenu>
 #include <QAction>
 #include <vector>
-#include "CSVEditorTable.h"
+#include "CSVEditorTableModel.h"
+#include "CSVEditDataManager.h"
 #include "FastCSVContainer.h"
 #include "../ComponentBase.h"
 
@@ -39,13 +40,13 @@ public:
         void applyCellEdits(bool isUndo);
     };
 
-    explicit CSVEditor(ComponentBase* component, QWidget* parent = nullptr);
+    explicit CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
 
     // CSV file operations
-    bool openCSV(const QString& filePath);
-    bool saveCSV(const QString& filePath);
-    bool saveAsCSV(const QString& filePath);
-    void newCSV();
+    bool openCSV(const QString& filePath, langscore::CSVEditorTableModel* model);
+    bool saveCSV(const QString& filePath, langscore::CSVEditorTableModel* model);
+    bool saveAsCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel);
+    void newCSV(langscore::CSVEditorTableModel* csvModel);
 
     // Edit operations
     void clearSelectedCells();
@@ -79,12 +80,15 @@ private:
     void setupActions();
     void setupContextMenu();
     void connectModelSignals();
+    void showContextMenu(const QPoint& globalPos);
     QModelIndexList getSelectedIndexes() const;
     QString formatCSVField(const QString& field) const;
     QStringList parseCSVLine(const QString& line) const;
     QStringList parseCSVRows(const QString& text) const;
     QString getSelectedCellsAsText() const;
     void executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits, const QString& description);
+
+    std::weak_ptr<CSVEditDataManager> loadFileManager;
 
     // Context menu
     QMenu* contextMenu;

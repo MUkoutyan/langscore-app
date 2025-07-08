@@ -101,8 +101,8 @@ set(PROJECT_SOURCES
     src/ui/csveditor/CSVEditDataManager.cpp
     src/ui/csveditor/CSVEditor.h
     src/ui/csveditor/CSVEditor.cpp
-    src/ui/csveditor/CSVEditorTable.h
-    src/ui/csveditor/CSVEditorTable.cpp
+    src/ui/csveditor/CSVEditorTableModel.h
+    src/ui/csveditor/CSVEditorTableModel.cpp
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h

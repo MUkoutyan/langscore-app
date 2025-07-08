@@ -4,18 +4,21 @@
 #include <QString>
 #include <vector>
 #include <optional>
+#include "FastCSVContainer.h"
 
 namespace langscore {
 
-class CSVEditorTable : public QAbstractTableModel {
+class CSVEditorTableModel : public QAbstractTableModel 
+{
     Q_OBJECT
 public:
-    CSVEditorTable(QObject* parent = nullptr);
-    explicit CSVEditorTable(const QString& path, QObject* parent = nullptr);
+    CSVEditorTableModel(QObject* parent = nullptr);
+    explicit CSVEditorTableModel(const QString& path, QObject* parent = nullptr);
 
     // CSV file operations
-    bool load(const QString& path);
-    bool save(const QString& path) const;
+    bool loadFromFile(const QString& path);
+    bool loadFromJsonFile(const QString& filePath);
+    bool saveToFile(const QString& path) const;
 
     // QAbstractTableModel overrides
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -25,24 +28,27 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    bool insertRows(int row, int count, const QModelIndex& parent = QModelIndex()) override;
-    bool removeRows(int row, int count, const QModelIndex& parent = QModelIndex()) override;
-    bool insertColumns(int column, int count, const QModelIndex& parent = QModelIndex()) override;
-    bool removeColumns(int column, int count, const QModelIndex& parent = QModelIndex()) override;
-
     // Convenience methods
     size_t rowCountRaw() const;
     size_t colCountRaw() const;
     std::optional<QString> getCell(size_t row, size_t col) const;
     bool setCell(size_t row, size_t col, const QString& value);
 
+    void insertColumn(size_t index, const QString& columnName);
+    void removeColumn(int column);
+
     const std::vector<std::vector<QString>>& dataRaw() const;
 
 
+    void clearAll() {
+        beginResetModel();
+        csvContainer.clear();
+        endResetModel();
+    }
+
+
 private:
-    std::vector<std::vector<QString>> csvData;
-    QStringList header;
-    std::vector<QStringList> contents;
+    langscore::FastCSVContainer csvContainer;
 };
 
 } // namespace langscore

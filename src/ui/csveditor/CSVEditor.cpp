@@ -15,8 +15,9 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QMimeData>
-#include "CSVEditorTable.h"
 #include "FastCSVContainer.h"
+
+using namespace langscore;
 
 // CSVEditCommand implementation
 void CSVEditor::CSVEditCommand::undo() {
@@ -44,9 +45,10 @@ void CSVEditor::CSVEditCommand::applyCellEdits(bool isUndo) {
 }
 
 // CSVEditor implementation
-CSVEditor::CSVEditor(ComponentBase* component, QWidget* parent)
+CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent)
     : QTableView(parent)
     , ComponentBase(component)
+    , loadFileManager(loadFileManager)
     , contextMenu(nullptr)
     , _isModified(false)
     , _suppressUndoTracking(false)
@@ -99,6 +101,12 @@ void CSVEditor::setupActions()
 void CSVEditor::setupContextMenu()
 {
     contextMenu = new QMenu(this);
+
+    cutAction->setEnabled(true);
+    copyAction->setEnabled(true);
+    pasteAction->setEnabled(true);
+    deleteAction->setEnabled(true);
+
     contextMenu->addAction(cutAction);
     contextMenu->addAction(copyAction);
     contextMenu->addAction(pasteAction);
@@ -124,6 +132,27 @@ void CSVEditor::onModelDataChanged()
 
 void CSVEditor::keyPressEvent(QKeyEvent* event)
 {
+    auto currentSelectedIndexes = getSelectedIndexes();
+    bool canEdit = true;
+    for(auto& index : currentSelectedIndexes)
+    {
+        if(index.isValid() == false) { continue; }
+
+        auto flag = model()->flags(index);
+        canEdit &= (flag & Qt::ItemIsEditable) != 0;
+    }
+
+    if(canEdit == false)
+    {
+        if(event->matches(QKeySequence::Cut) ||
+           event->matches(QKeySequence::Paste) ||
+           event->key() == Qt::Key_Delete)
+        {
+            QTableView::keyPressEvent(event);
+            return;
+        }
+    }
+
     if (event->matches(QKeySequence::Copy)) {
         copy();
         return;
@@ -152,22 +181,39 @@ void CSVEditor::keyPressEvent(QKeyEvent* event)
 
 void CSVEditor::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (contextMenu) {
-        contextMenu->exec(event->globalPos());
-    }
+    this->showContextMenu(event->globalPos());
 }
 
 void CSVEditor::onCustomContextMenuRequested(const QPoint& pos)
 {
-    if (contextMenu) {
-        contextMenu->exec(mapToGlobal(pos));
+    this->showContextMenu(mapToGlobal(pos));
+}
+
+
+void CSVEditor::showContextMenu(const QPoint& globalPos)
+{
+    if(contextMenu) 
+    {
+        auto currentSelectedIndexes = getSelectedIndexes();
+        for(auto& index : currentSelectedIndexes)
+        {
+            if(index.isValid() == false) { continue; }
+
+            auto flag = model()->flags(index);
+            bool isEditable = (flag & Qt::ItemIsEditable) != 0;
+            cutAction->setEnabled(isEditable);
+            pasteAction->setEnabled(isEditable);
+            deleteAction->setEnabled(isEditable);
+        } 
+
+        contextMenu->exec(globalPos);
     }
 }
 
 // CSV file operations
-bool CSVEditor::openCSV(const QString& filePath)
+bool CSVEditor::openCSV(const QString& filePath, CSVEditorTableModel* csvModel)
 {
-    auto* csvModel = new langscore::CSVEditorTable(filePath, this);
+    //auto* csvModel = new langscore::CSVEditorTableModel(filePath, this);
     if (csvModel->rowCount() == 0 && csvModel->columnCount() == 0) {
         delete csvModel;
         return false;
@@ -182,19 +228,19 @@ bool CSVEditor::openCSV(const QString& filePath)
     return true;
 }
 
-bool CSVEditor::saveCSV(const QString& filePath)
+bool CSVEditor::saveCSV(const QString& filePath, CSVEditorTableModel* csvModel)
 {
-    auto* csvModel = qobject_cast<langscore::CSVEditorTable*>(model());
+    //auto* csvModel = qobject_cast<langscore::CSVEditorTableModel*>(model());
     if (!csvModel) {
         return false;
     }
     
     QString saveFilePath = filePath.isEmpty() ? currentFilePath : filePath;
     if (saveFilePath.isEmpty()) {
-        return saveAsCSV(QString());
+        return saveAsCSV(QString(), csvModel);
     }
     
-    bool success = csvModel->save(saveFilePath);
+    bool success = csvModel->saveToFile(saveFilePath);
     if (success) {
         currentFilePath = saveFilePath;
         _isModified = false;
@@ -203,7 +249,7 @@ bool CSVEditor::saveCSV(const QString& filePath)
     return success;
 }
 
-bool CSVEditor::saveAsCSV(const QString& filePath)
+bool CSVEditor::saveAsCSV(const QString& filePath, CSVEditorTableModel* csvModel)
 {
     QString saveFilePath = filePath;
     if (saveFilePath.isEmpty()) {
@@ -214,12 +260,12 @@ bool CSVEditor::saveAsCSV(const QString& filePath)
         }
     }
     
-    return saveCSV(saveFilePath);
+    return saveCSV(saveFilePath, csvModel);
 }
 
-void CSVEditor::newCSV()
+void CSVEditor::newCSV(CSVEditorTableModel* csvModel)
 {
-    auto* csvModel = new langscore::CSVEditorTable(this);
+    //auto* csvModel = new langscore::CSVEditorTableModel(this);
     // 翻訳CSVの基本構造: 原文、翻訳文の列を作成
     csvModel->insertRows(0, 1);  // ヘッダー行
     csvModel->insertColumns(0, 2);  // 原文、翻訳文の列
@@ -368,6 +414,7 @@ void CSVEditor::executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits,
 
 QModelIndexList CSVEditor::getSelectedIndexes() const
 {
+    if(selectionModel() == nullptr) { return QModelIndexList{}; }
     return selectionModel()->selectedIndexes();
 }
 

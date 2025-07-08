@@ -66,10 +66,10 @@ private:
     std::vector<int> fetchTableSameFileRows(QString mainFileName);
     void receive(DispatchType type, const QVariantList& args) override;
 
+    std::weak_ptr<CSVEditDataManager> loadFileManager;
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
     CSVEditor* csvEditor;
-    //QTableWidget* tableWidget;
-    std::weak_ptr<CSVEditDataManager> loadFileManager;
+
 
 };
