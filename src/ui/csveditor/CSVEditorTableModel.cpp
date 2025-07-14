@@ -147,13 +147,26 @@ Qt::ItemFlags CSVEditorTableModel::flags(const QModelIndex& index) const
     return Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsEnabled;
 }
 
-QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientation, int role) const {
-    if(role != Qt::DisplayRole) {
-        return QVariant();
-    }
-
-    if(orientation == Qt::Horizontal && section >= 0 && section < static_cast<int>(csvContainer.columnCount())) {
-        return csvContainer.headerAt(static_cast<size_t>(section));
+QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientation, int role) const 
+{
+    if(orientation == Qt::Horizontal) {
+        if(role == Qt::DisplayRole) {
+            if(section >= 0 && section < static_cast<int>(csvContainer.columnCount())) {
+                auto name = csvContainer.headerAt(static_cast<size_t>(section));
+                if(name == "original") {
+                    return tr("Original");
+                }
+                else if(name == "type") {
+                    return tr("Type");
+                }
+                else {
+                    return name; // 他の列名はそのまま返す
+                }
+            }
+        }
+        else if(role == Qt::UserRole) {
+            return csvContainer.headerAt(static_cast<size_t>(section));
+        }
     }
     return QVariant();
 }

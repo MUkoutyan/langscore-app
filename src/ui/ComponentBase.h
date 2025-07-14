@@ -13,6 +13,8 @@ public:
     enum DispatchType {
         StatusMessage,  //文字列, 秒数
         SaveProject,    //無し
+        EnableBlur,
+        DisableBlur,
         ChangeColor     //Theme
     };
 

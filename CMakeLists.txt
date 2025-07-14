@@ -21,8 +21,8 @@ set(CMAKE_PREFIX_PATH ${QT_DIR})
 #https://stackoverflow.com/questions/78598141/first-stdmutexlock-crashes-in-application-built-with-latest-visual-studio
 add_definitions(-D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network LinguistTools)
 
 set(LANGUAGES "en" "ja" "zh_CN" "zh_TW")
 set(TS_FILES)
@@ -83,6 +83,9 @@ set(PROJECT_SOURCES
     src/ui/ClipDetectSettingTree.h
     src/ui/FileTree.cpp
     src/ui/FileTree.h
+    src/ui/TranslationApiSettingsDialog.h
+    src/ui/TranslationApiSettingsDialog.cpp
+    src/ui/TranslationApiSettingsDialog.ui
     src/ui/csvtable/ScriptCSVTable.h
     src/ui/csvtable/ScriptCSVTable.cpp
     src/ui/csvtable/MainCSVTable.h
@@ -106,6 +109,15 @@ set(PROJECT_SOURCES
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h
+    src/translation/TranslationService.h
+    src/translation/TranslationService.cpp
+    src/translation/DeepLTranslationService.h
+    src/translation/DeepLTranslationService.cpp
+    src/translation/TranslationManager.h
+    src/translation/TranslationManager.cpp
+    src/ui/TranslationProgressDialog.h
+    src/ui/TranslationProgressDialog.cpp
+    src/ui/TranslationProgressDialog.ui
 )
 
 include_directories(
@@ -114,6 +126,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/ui
     ${CMAKE_SOURCE_DIR}/src/ui/csveditor
     ${CMAKE_SOURCE_DIR}/src/ui/csvtable
+    ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -169,7 +182,7 @@ endif()
 # add_subdirectory(test)
 
 
-target_link_libraries(langscore-app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets icu.lib)
+target_link_libraries(langscore-app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network icu.lib)
 
 set_target_properties(langscore-app PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER breezesinfonia.langscore.app

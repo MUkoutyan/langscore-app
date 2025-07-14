@@ -53,8 +53,8 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     , scriptViewer(nullptr)
     , csvEditDataManager(std::make_shared<CSVEditDataManager>())
 {
-
     this->addDispatch(this);
+    csvEditDataManager->ensureUndoStack();
 
     ui->setupUi(this);
     {
@@ -93,10 +93,13 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         //この処理は元に戻せません。
         //※翻訳ファイルは書き出しを行うまで変更されません。
         mes.setLabelText(tr("When updated, the displayed content will be changed to the latest content.\nThis process cannot be undone.\nNote:The translation file will not be changed until it is exported."));
-        this->setGraphicsEffect(new QGraphicsBlurEffect);
+
+        this->dispatch(EnableBlur, {});
+        //this->setGraphicsEffect(new QGraphicsBlurEffect);
         this->changeEnabledUIState(false);
         auto result = mes.exec();
-        this->setGraphicsEffect(nullptr);
+        this->dispatch(DisableBlur, {});
+        //this->setGraphicsEffect(nullptr);
         if(result != QDialog::Accepted){
             this->changeEnabledUIState(true);
             return;
@@ -238,13 +241,15 @@ void WriteModeComponent::exportPlugin()
     if(this->setting->writeObj.exportDirectory.isEmpty()){
         this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
     }
-    this->setGraphicsEffect(new QGraphicsBlurEffect);
+    this->dispatch(EnableBlur, {});
+    //this->setGraphicsEffect(new QGraphicsBlurEffect);
     this->changeEnabledUIState(false);
 
     UpdatePluginDialog dialog(this->setting, this);
 
     auto execCode = dialog.exec();
-    this->setGraphicsEffect(nullptr);
+    this->dispatch(DisableBlur, {});
+    //this->setGraphicsEffect(nullptr);
     if(execCode == QDialog::Rejected){
         this->changeEnabledUIState(true);
         return;
@@ -271,13 +276,15 @@ void WriteModeComponent::exportTranslateFiles()
     if(this->setting->writeObj.exportDirectory.isEmpty()){
         this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
     }
-    this->setGraphicsEffect(new QGraphicsBlurEffect);
+    this->dispatch(EnableBlur, {});
+    //this->setGraphicsEffect(new QGraphicsBlurEffect);
     this->changeEnabledUIState(false);
 
     WriteDialog dialog(this->setting, this);
 
     auto execCode = dialog.exec();
-    this->setGraphicsEffect(nullptr);
+    this->dispatch(DisableBlur, {});
+    //this->setGraphicsEffect(nullptr);
     if(execCode == QDialog::Rejected){
         this->changeEnabledUIState(true);
         return;
@@ -309,13 +316,15 @@ void WriteModeComponent::firstExportTranslateFiles()
     if(this->setting->writeObj.exportDirectory.isEmpty()){
         this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
     }
-    this->setGraphicsEffect(new QGraphicsBlurEffect);
+    this->dispatch(EnableBlur, {});
+    //this->setGraphicsEffect(new QGraphicsBlurEffect);
     this->changeEnabledUIState(false);
 
     FirstWriteDialog dialog(this->setting, this);
 
     auto execCode = dialog.exec();
-    this->setGraphicsEffect(nullptr);
+    this->dispatch(DisableBlur, {});
+    //this->setGraphicsEffect(nullptr);
     if(execCode == QDialog::Rejected){
         this->changeEnabledUIState(true);
         return;
@@ -481,6 +490,12 @@ void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
     {
         const auto editFolder = this->setting->langscoreProjectDirectory + "/editing";
         this->csvEditDataManager->saveAllModels(editFolder);
+    }
+    else if(type == ComponentBase::EnableBlur) {
+        this->setGraphicsEffect(new QGraphicsBlurEffect);
+    }
+    else if(type == ComponentBase::DisableBlur) {
+        this->setGraphicsEffect(nullptr);
     }
 }
 

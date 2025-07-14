@@ -4,6 +4,7 @@
 #include "../graphics.hpp"
 
 #include "ColorDialog.h"
+#include "TranslationApiSettingsDialog.h"
 
 #include <QActionGroup>
 #include <QMenuBar>
@@ -136,6 +137,11 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     connect(darkAction,        &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::Dark));
     connect(systemThemeAction, &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::System));
 
+    // Translation API Settings
+    systemMenu->addSeparator();
+    auto translationApiSettings = systemMenu->addAction(tr("Translation API Settings..."));
+    connect(translationApiSettings, &QAction::triggered, this, &FormTaskBar::openTranslationApiSettings);
+
     {
         auto theme = ComponentBase::getColorTheme().getCurrentTheme();
         switch(theme){
@@ -194,6 +200,14 @@ FormTaskBar::~FormTaskBar()
     });
     recentProjs.erase(result, recentProjs.end());
     settings.sync();
+}
+
+void FormTaskBar::openTranslationApiSettings()
+{
+    this->dispatch(EnableBlur, {});
+    TranslationApiSettingsDialog dialog(this);
+    dialog.exec();
+    this->dispatch(DisableBlur, {});
 }
 
 void FormTaskBar::updateRecentMenu()

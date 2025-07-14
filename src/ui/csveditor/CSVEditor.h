@@ -1,18 +1,20 @@
 ﻿#pragma once
 
 #include <QTableView>
-#include <QAbstractTableModel>
-#include <QStringList>
-#include <QKeyEvent>
-#include <QUndoStack>
-#include <QUndoCommand>
-#include <QMenu>
 #include <QAction>
-#include <vector>
-#include "CSVEditorTableModel.h"
+#include <QMenu>
+#include <QUndoStack>
+#include <QClipboard>
+#include <memory>
+#include "ComponentBase.h"
 #include "CSVEditDataManager.h"
-#include "FastCSVContainer.h"
-#include "../ComponentBase.h"
+#include "../TranslationProgressDialog.h"
+#include "../../translation/TranslationManager.h"
+
+
+namespace langscore {
+    class CSVEditorTableModel;
+}
 
 class CSVEditor : public QTableView, public ComponentBase {
     Q_OBJECT
@@ -42,10 +44,9 @@ public:
 
     explicit CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
 
-    // CSV file operations
-    bool openCSV(const QString& filePath, langscore::CSVEditorTableModel* model);
-    bool saveCSV(const QString& filePath, langscore::CSVEditorTableModel* model);
-    bool saveAsCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel);
+    bool openCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel);
+    bool saveCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
+    bool saveAsCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
     void newCSV(langscore::CSVEditorTableModel* csvModel);
 
     // Edit operations
@@ -65,7 +66,6 @@ public:
     // Selection operations
     void selectAll();
 
-    // Modification state
     bool isModified() const { return _isModified; }
 
 protected:
@@ -75,33 +75,64 @@ protected:
 private slots:
     void onCustomContextMenuRequested(const QPoint& pos);
     void onModelDataChanged();
+    void openTranslationSettings();
+    void translateSelectedCells();
+    void onBatchTranslationCompleted(int batchId, const QList<TranslationManager::BatchTranslationResult>& results);
+    void onBatchTranslationError(int batchId, const QString& errorMessage);
+    void onTranslationProgress(int batchId, int completed, int total);
+    void hideLanguageColumns();
+    void showAllColumns();
 
 private:
     void setupActions();
     void setupContextMenu();
     void connectModelSignals();
     void showContextMenu(const QPoint& globalPos);
+    void updateTranslationMenu();
+    void updateColumnVisibilityMenu();
+    
+    // Translation helper methods
+    bool hasConfiguredTranslationService() const;
+    QList<QModelIndex> getEmptySelectedCells() const;
+    QString getOriginalTextForRow(int row) const;
+    QString getTargetLanguageForColumn(int column, TranslationService::ServiceType serviceType = TranslationService::ServiceType::DeepL) const;
+    int findOriginalColumn() const;
+    
+    // Column visibility helper methods
+    QStringList getRecognizedLanguageCodesInColumns() const;
+    //void hideColumnsWithLanguageCodes(const std::vector<std::pair<QString, bool>>& languageCodes);
+    void changeColumnsVisibleWithLanguageCodes(const std::vector<std::pair<QString, bool>>& languageCodes);
+    
+    // Private helper methods
+    void executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits, const QString& description);
     QModelIndexList getSelectedIndexes() const;
     QString formatCSVField(const QString& field) const;
     QStringList parseCSVLine(const QString& line) const;
     QStringList parseCSVRows(const QString& text) const;
     QString getSelectedCellsAsText() const;
-    void executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits, const QString& description);
 
     std::weak_ptr<CSVEditDataManager> loadFileManager;
-
-    // Context menu
-    QMenu* contextMenu;
+    
+    // Actions
     QAction* cutAction;
     QAction* copyAction;
     QAction* pasteAction;
     QAction* deleteAction;
     QAction* selectAllAction;
-
-    // Undo/Redo
-    QUndoStack* undoStack;
-
-    // Current file path
+    QAction* translationSettingsAction;
+    QAction* translateAction;
+    QAction* hideLanguageColumnsAction;
+    QAction* showAllColumnsAction;
+    
+    // Menus
+    QMenu* contextMenu;
+    QMenu* translationMenu;
+    QMenu* columnVisibilityMenu;
+    
+    // Translation
+    std::unique_ptr<TranslationManager> translationManager;
+    TranslationProgressDialog* progressDialog;
+    
     QString currentFilePath;
     bool _isModified;
     bool _suppressUndoTracking;

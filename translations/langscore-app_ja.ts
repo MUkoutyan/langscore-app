@@ -40,6 +40,142 @@
     </message>
 </context>
 <context>
+    <name>CSVEditor</name>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="208"/>
+        <source>Cut</source>
+        <translation>切り取り</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="212"/>
+        <source>Copy</source>
+        <translation>コピー</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="216"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="1032"/>
+        <source>Paste</source>
+        <translation>貼り付け</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="220"/>
+        <source>Delete</source>
+        <translation>削除</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="224"/>
+        <source>Select All</source>
+        <translation>全選択</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="229"/>
+        <source>Translation Settings...</source>
+        <translation>翻訳設定...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="232"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="300"/>
+        <source>Translate Selected Cells</source>
+        <translation>選択されたセルを翻訳</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="236"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="332"/>
+        <source>Hide Language Columns...</source>
+        <translation>言語列を非表示...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="239"/>
+        <source>Show All Columns</source>
+        <translation>全ての列を表示</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="279"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="343"/>
+        <source>Column Visibility</source>
+        <translation>列の表示設定</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="302"/>
+        <source>Translate %1 Empty Cell(s)</source>
+        <translation>%1個の空セルを翻訳</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="329"/>
+        <source>Hide Language Columns (%1)</source>
+        <translation>言語列を非表示にする (%1)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="344"/>
+        <source>No recognizable language columns found.</source>
+        <translation>認識可能な言語の列が見つかりませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="379"/>
+        <source>original</source>
+        <translation>原文</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="379"/>
+        <source>type</source>
+        <translation>種類</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="446"/>
+        <source>No empty cells selected for translation.</source>
+        <translation>翻訳対象として選択された空のセルはありません。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="452"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="494"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="753"/>
+        <source>Translation Error</source>
+        <translation>翻訳エラー</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="453"/>
+        <source>Could not find &apos;Original&apos; column for source text.</source>
+        <translation>ソーステキストに「Original」列が見つかりませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="495"/>
+        <source>No valid translation requests could be prepared.</source>
+        <translation>有効な翻訳リクエストを準備できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="738"/>
+        <source>Translate Cells</source>
+        <translation>セルを翻訳する</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="911"/>
+        <source>Save CSV File</source>
+        <translation>CSVを保存</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="912"/>
+        <source>CSV Files (*.csv)</source>
+        <translation>CSVファイル (*.csv)</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="928"/>
+        <source>Original</source>
+        <translation>原文</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="272"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="445"/>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="929"/>
+        <source>Translation</source>
+        <translation>翻訳</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="960"/>
+        <source>Clear Cells</source>
+        <translation>セルをクリア</translation>
+    </message>
+</context>
+<context>
     <name>ClipDetectSettingTreeDelegate</name>
     <message>
         <location filename="../src/ui/ClipDetectSettingTree.cpp" line="35"/>
@@ -130,26 +266,65 @@ No need to enter &quot;\&quot;</source>
     </message>
 </context>
 <context>
+    <name>DeepLTranslationService</name>
+    <message>
+        <location filename="../src/translation/DeepLTranslationService.cpp" line="30"/>
+        <source>DeepL API key not configured</source>
+        <translation>DeepL API キーが設定されていません</translation>
+    </message>
+    <message>
+        <location filename="../src/translation/DeepLTranslationService.cpp" line="38"/>
+        <source>Unsupported target language: %1</source>
+        <translation>サポートされていないターゲット言語: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/translation/DeepLTranslationService.cpp" line="112"/>
+        <source>Invalid response from DeepL API</source>
+        <translation>DeepL APIから無効な応答が返されました</translation>
+    </message>
+</context>
+<context>
     <name>FileTree</name>
     <message>
+        <location filename="../src/ui/FileTree.cpp" line="259"/>
+        <location filename="../src/ui/FileTree.cpp" line="333"/>
         <source>Unchecking the box excludes this script from translation.</source>
-        <translation type="obsolete">チェックを外すと、このスクリプトを翻訳から除外します。</translation>
+        <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
         <source>Main Tree Change Enable State</source>
         <translation type="obsolete">メインツリーのチェックを変更</translation>
     </message>
     <message>
+        <location filename="../src/ui/FileTree.cpp" line="463"/>
+        <source>Basics Tree Change Enable State</source>
+        <translation>Basicsの状態を変更</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FileTree.cpp" line="476"/>
+        <source>Map Tree Change Enable State</source>
+        <translation>マップツリーの状態を変更</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FileTree.cpp" line="504"/>
         <source>Script Tree Change Enable State</source>
-        <translation type="obsolete">スクリプトツリーのチェックを変更</translation>
+        <translation>スクリプトツリーのチェックを変更</translation>
     </message>
     <message>
+        <location filename="../src/ui/FileTree.cpp" line="568"/>
         <source>Graphics Tree Change Enable State</source>
-        <translation type="obsolete">画像ツリーのチェックを変更</translation>
+        <translation>画像ツリーのチェックを変更</translation>
     </message>
     <message>
+        <location filename="../src/ui/FileTree.cpp" line="738"/>
+        <source>Search...</source>
+        <translation>検索...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FileTree.cpp" line="861"/>
+        <location filename="../src/ui/FileTree.cpp" line="866"/>
         <source>Change Tree State : %1</source>
-        <translation type="obsolete">ツリーの状態を変更 : %1</translation>
+        <translation>ツリーの状態を変更 : %1</translation>
     </message>
 </context>
 <context>
@@ -210,103 +385,108 @@ No need to enter &quot;\&quot;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="85"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="86"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="86"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="87"/>
         <source>Open Game Project...</source>
         <translation>ゲームプロジェクトを開く...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="87"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="88"/>
         <source>Save Langscore Project...</source>
         <translation>Langscoreプロジェクトを保存...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="88"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="89"/>
         <source>Recent Project</source>
         <translation>最近開いたプロジェクト</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="91"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="92"/>
         <source>Quit</source>
         <translation>終了</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="97"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="98"/>
         <source>Open Game Project Folder...</source>
         <translation>ゲームプロジェクトのフォルダを開く...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="107"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="108"/>
         <source>Edit</source>
         <translation>編集</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="108"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="109"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="111"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="112"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="115"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="116"/>
         <source>Show Undo View...</source>
         <translation>操作履歴を表示...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="122"/>
-        <location filename="../src/ui/FormTaskBar.cpp" line="128"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="123"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="129"/>
         <source>System</source>
         <translation>システム</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="123"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="124"/>
         <source>Theme</source>
         <translation>テーマ</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="124"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="125"/>
         <source>Light</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="126"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="127"/>
         <source>Dark</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="150"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="142"/>
+        <source>Translation API Settings...</source>
+        <translation>翻訳APIの設定...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FormTaskBar.cpp" line="156"/>
         <source>Color</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="158"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="164"/>
         <source>Help</source>
         <translation>ヘルプ</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="160"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="166"/>
         <source>Manual... (Web site)</source>
         <translation>マニュアル...(Webサイト)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="166"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="172"/>
         <source>History... (Web site)</source>
         <translation>更新履歴...(Webサイト)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="172"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="178"/>
         <source>Version : </source>
         <translation>バージョン : </translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="213"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="227"/>
         <source>Not Found Directory. Delete this item from the history at the end of the project.</source>
         <translation>ディレクトリが見つかりません。プロジェクト終了時に履歴からこの項目を削除します。</translation>
     </message>
@@ -330,6 +510,39 @@ No need to enter &quot;\&quot;</source>
     </message>
 </context>
 <context>
+    <name>LanguageColumnSelectionDialog</name>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="40"/>
+        <source>Hide Language Columns</source>
+        <translation>言語列を非表示にする</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="73"/>
+        <source>Select language columns to hide:</source>
+        <translation>非表示にする言語の列を選択してください：</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="102"/>
+        <source>Select All</source>
+        <translation>すべて選択</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="103"/>
+        <source>Deselect All</source>
+        <translation>全て選択解除</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="115"/>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="116"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+</context>
+<context>
     <name>LanguageSelectComponent</name>
     <message>
         <source>Default</source>
@@ -348,6 +561,10 @@ No need to enter &quot;\&quot;</source>
         <translation type="obsolete">スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
+        <source>All Script Word Count : %1</source>
+        <translation type="obsolete">全てのスクリプトの単語数 : %1</translation>
+    </message>
+    <message>
         <source>Original</source>
         <translation type="obsolete">原文</translation>
     </message>
@@ -356,12 +573,37 @@ No need to enter &quot;\&quot;</source>
         <translation type="obsolete">種類</translation>
     </message>
     <message>
-        <source>Change Table State : %1</source>
-        <translation type="obsolete">テーブルの状態を変更 : %1</translation>
+        <source>Word Count : %1</source>
+        <translation type="obsolete">単語数 : %1</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="175"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="194"/>
+        <source>Change Table State : %1</source>
+        <translation>テーブルの状態を変更 : %1</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="177"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="196"/>
         <source>Change Table State : Row %1</source>
-        <translation type="obsolete">テーブルの状態を変更 : 行 %1</translation>
+        <translation>テーブルの状態を変更 : 行 %1</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="181"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="200"/>
+        <source>Change Table State</source>
+        <translation>テーブルの状態を変更</translation>
+    </message>
+</context>
+<context>
+    <name>MainCSVTableModel</name>
+    <message>
+        <source>Original</source>
+        <translation type="obsolete">原文</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation type="obsolete">種類</translation>
     </message>
 </context>
 <context>
@@ -756,52 +998,289 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <source>Text Width</source>
         <translation type="vanished">文章の表示長</translation>
     </message>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditor.h" line="32"/>
+        <source>Edit Cells</source>
+        <translation>セルを編集</translation>
+    </message>
 </context>
 <context>
     <name>ScriptCSVTable</name>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="109"/>
         <source>Show All Contents</source>
-        <translation type="obsolete">全ての内容を表示</translation>
+        <translation>全ての内容を表示</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="114"/>
         <source>Hide Ignore Contents</source>
-        <translation type="obsolete">無視にした内容を非表示</translation>
+        <translation>無視にした内容を非表示</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="141"/>
         <source>Uncheck Sign Only Text</source>
-        <translation type="obsolete">記号のみの文のチェックを外す</translation>
+        <translation>記号のみの文のチェックを外す</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="181"/>
         <source>Uncheck text that does not contain hiragana</source>
-        <translation type="obsolete">日本語を含まない文章のチェックを外す</translation>
+        <translation>日本語を含まない文章のチェックを外す</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="472"/>
         <source>All Script Word Count : %1</source>
-        <translation type="obsolete">全てのスクリプトの単語数 : %1</translation>
+        <translation>全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="706"/>
         <source>Change Script Table Check</source>
-        <translation type="obsolete">スクリプトテーブルのチェックを変更</translation>
+        <translation>スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="773"/>
         <source>Original</source>
-        <translation type="obsolete">原文</translation>
+        <translation>原文</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="773"/>
         <source>Type</source>
-        <translation type="obsolete">種類</translation>
+        <translation>種類</translation>
     </message>
     <message>
         <source>Word Count : %1</source>
         <translation type="obsolete">単語数 : %1</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="831"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="841"/>
         <source>Change Table State : %1</source>
-        <translation type="obsolete">テーブルの状態を変更 : %1</translation>
+        <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="834"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="844"/>
         <source>Change Table State : Row %1</source>
-        <translation type="obsolete">テーブルの状態を変更 : 行 %1</translation>
+        <translation>テーブルの状態を変更 : 行 %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScriptCSVTableModel</name>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTableModel.cpp" line="50"/>
+        <source>Original</source>
+        <translation>原文</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTableModel.cpp" line="50"/>
+        <source>Type</source>
+        <translation>種類</translation>
+    </message>
+</context>
+<context>
+    <name>TranslationApiSettingsDialog</name>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="14"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="19"/>
+        <source>Translation API Settings</source>
+        <translation>翻訳API設定</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="24"/>
+        <source>DeepL API</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="30"/>
+        <source>Enter your DeepL API key to enable DeepL translation service.</source>
+        <translation>DeepL API キーを入力するとDeepL 翻訳サービスが有効になります。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="42"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="159"/>
+        <source>API Key:</source>
+        <translation>API キー:</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="52"/>
+        <source>Enter DeepL API key</source>
+        <translation>DeepL API キーを入力</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="65"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="182"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="50"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="55"/>
+        <source>Show</source>
+        <translation>表示</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="82"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="199"/>
+        <source>Test Connection</source>
+        <translation>接続テスト</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="89"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="206"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="154"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="156"/>
+        <source>API key not set</source>
+        <translation>API キーが設定されていません</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="111"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="228"/>
+        <source>Usage Information</source>
+        <translation>利用情報</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="117"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="234"/>
+        <source>Characters used: 0</source>
+        <translation>利用文字数 : 0</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="141"/>
+        <source>Google Translate</source>
+        <translation>Google翻訳</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="147"/>
+        <source>Enter your Google Translate API key to enable Google translation service.</source>
+        <translation>Google翻訳 API キーを入力するとGoogle翻訳のサービスが有効になります。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="169"/>
+        <source>Enter Google Translate API key</source>
+        <translation>Google 翻訳 API キーを入力してください</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="293"/>
+        <source>⚠️ Important Notice</source>
+        <translation>⚠️ 重要</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="303"/>
+        <source>Please read and comply with the Terms of Service of the translation services you use (DeepL, Google Translate, etc.). Langscore is not responsible for any violations of these terms or any consequences arising from your use of these services.</source>
+        <extracomment>      Important Notice = 重要なお知らせ       Please read and comply with the Terms of Service... =        使用する翻訳サービス（DeepL、Google Translate等）の利用規約をお読みになり、       これに従ってください。Langscoreは、これらの規約違反やサービスの使用によって       生じる一切の結果について責任を負いません。</extracomment>
+        <translation>使用する翻訳サービス（DeepL、Google Translate等）の利用規約を読んだうえで使用して下さい。
+Langscoreは、これらの規約違反やサービスの使用によって 生じる一切の結果について責任を負いません。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.ui" line="318"/>
+        <source>Refresh Usage</source>
+        <translation>利用情報の更新</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="50"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="55"/>
+        <source>Hide</source>
+        <translation>非表示</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="154"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="156"/>
+        <source>API key configured</source>
+        <translation>API キー設定</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="165"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="176"/>
+        <source>Testing connection...</source>
+        <translation>接続を確認中...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="223"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="249"/>
+        <source>Connection successful</source>
+        <translation>接続に成功しました</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="233"/>
+        <source>Usage: %1 / %2 characters</source>
+        <translation>利用状況: %1 / %2 文字</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="238"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="252"/>
+        <source>Connection failed: %1</source>
+        <translation>接続に失敗しました: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="277"/>
+        <location filename="../src/ui/TranslationApiSettingsDialog.cpp" line="278"/>
+        <source>Characters used: %1</source>
+        <translation>利用文字数 %1</translation>
+    </message>
+</context>
+<context>
+    <name>TranslationManager</name>
+    <message>
+        <location filename="../src/translation/TranslationManager.cpp" line="38"/>
+        <source>No configured translation service available</source>
+        <translation>設定済みの翻訳サービスが利用できません</translation>
+    </message>
+</context>
+<context>
+    <name>TranslationProgressDialog</name>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.ui" line="14"/>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="12"/>
+        <source>Translation Progress</source>
+        <translation>翻訳の進捗状況</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.ui" line="20"/>
+        <source>Preparing translation...</source>
+        <translation>翻訳の準備中...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.ui" line="81"/>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="34"/>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="85"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="31"/>
+        <source>Starting translation...</source>
+        <translation>翻訳を開始します...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="42"/>
+        <source>Translating... %1 of %2 completed</source>
+        <translation>翻訳中... %1/%2 完了</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="60"/>
+        <source>Translating: %1</source>
+        <translation>翻訳中: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="65"/>
+        <source>Translation error: %1</source>
+        <translation>翻訳エラー: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="67"/>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="79"/>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="73"/>
+        <source>Translation completed successfully! %1 texts translated.</source>
+        <translation>翻訳完了！ %1 のテキストが翻訳されました。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="76"/>
+        <source>Translation completed with errors. %1 of %2 texts translated successfully.</source>
+        <translation>翻訳が完了しましたが、エラーが含まれています。%2のテキストのうち%1が正常に翻訳されました。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/TranslationProgressDialog.cpp" line="88"/>
+        <source>Cancelling translation...</source>
+        <translation>翻訳をキャンセルしています...</translation>
     </message>
 </context>
 <context>
@@ -990,100 +1469,91 @@ Unchecked text and images are excluded from translation.</source>
         <translation>再解析</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="208"/>
         <source>2</source>
-        <translation>2</translation>
+        <translation type="vanished">2</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="218"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="191"/>
         <source>Language</source>
         <translation>言語</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="240"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="213"/>
         <source>Main</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="269"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="242"/>
         <source>FileName</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="289"/>
-        <location filename="../src/ui/WriteModeComponent.ui" line="373"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1546"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="262"/>
         <source>Word Count : %1</source>
         <translation>単語数 : %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="327"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="272"/>
         <source>Scripts</source>
         <translation>スクリプト</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="366"/>
         <source>ScriptName</source>
-        <translation>スクリプト名</translation>
+        <translation type="vanished">スクリプト名</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="393"/>
         <source>Auto Check</source>
-        <translation>自動チェック</translation>
+        <translation type="vanished">自動チェック</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="450"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="309"/>
         <source>Graphic</source>
         <translation>画像</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="479"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="338"/>
         <source>Log</source>
         <translation>ログ</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="521"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="380"/>
         <source>Write Translate CSV And Plugin</source>
         <translation>翻訳CSVとプラグインの書き出し</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="536"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="395"/>
         <source>Update Plugin</source>
         <translation>プラグインの更新</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="561"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="896"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="420"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="400"/>
         <source>Write Translate CSV</source>
         <translation>翻訳CSVの書き出し</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="169"/>
         <source>Show All Contents</source>
-        <translation>全ての内容を表示</translation>
+        <translation type="vanished">全ての内容を表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="174"/>
         <source>Hide Ignore Contents</source>
-        <translation>無視にした内容を非表示</translation>
+        <translation type="vanished">無視にした内容を非表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="197"/>
         <source>Uncheck Sign Only Text</source>
-        <translation>記号のみの文のチェックを外す</translation>
+        <translation type="vanished">記号のみの文のチェックを外す</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="258"/>
         <source>Uncheck text that does not contain hiragana</source>
-        <translation>日本語を含まない文章のチェックを外す</translation>
+        <translation type="vanished">日本語を含まない文章のチェックを外す</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="282"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="91"/>
         <source>Update</source>
         <translation>更新する</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="286"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="95"/>
         <source>When updated, the displayed content will be changed to the latest content.
 This process cannot be undone.
 Note:The translation file will not be changed until it is exported.</source>
@@ -1092,38 +1562,38 @@ Note:The translation file will not be changed until it is exported.</source>
 ※翻訳ファイルは書き出しを行うまで変更されません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="298"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="110"/>
         <source>Update Projects...
 </source>
         <translation>プロジェクトの更新中...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="300"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="112"/>
         <source>Update to the latest content...</source>
         <translation>最新の内容に更新中...</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="318"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="130"/>
         <source> Complete.</source>
         <translation> 完了。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="768"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="267"/>
         <source>Update Plugin...
 </source>
         <translation>プラグインを更新...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="843"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="346"/>
         <source>Write Translate Files(First)...
 </source>
         <translation>翻訳ファイルの書き出し(初回)...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="892"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="396"/>
         <source>To export CSV, please select a language</source>
         <translation>CSVを書き出すには言語を選択して下さい</translation>
     </message>
@@ -1140,76 +1610,77 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation type="vanished">ログファイル (*.txt)</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="571"/>
         <source>Main Tree Change Enable State</source>
-        <translation>メインツリーのチェックを変更</translation>
+        <translation type="vanished">メインツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="599"/>
         <source>Script Tree Change Enable State</source>
-        <translation>スクリプトツリーのチェックを変更</translation>
+        <translation type="vanished">スクリプトツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="663"/>
         <source>Graphics Tree Change Enable State</source>
-        <translation>画像ツリーのチェックを変更</translation>
+        <translation type="vanished">画像ツリーのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="734"/>
         <source>Change Script Table Check</source>
-        <translation>スクリプトテーブルのチェックを変更</translation>
+        <translation type="vanished">スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="805"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="306"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="313"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="125"/>
         <source>Done.</source>
         <translation>完了。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1063"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1116"/>
         <source>Unchecking the box excludes this script from translation.</source>
-        <translation>チェックを外すと、このスクリプトを翻訳から除外します。</translation>
+        <translation type="vanished">チェックを外すと、このスクリプトを翻訳から除外します。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1484"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1895"/>
         <source>All Script Word Count : %1</source>
-        <translation>全てのスクリプトの単語数 : %1</translation>
+        <translation type="vanished">全てのスクリプトの単語数 : %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1523"/>
+        <source>Original</source>
+        <translation type="vanished">原文</translation>
+    </message>
+    <message>
+        <source>Type</source>
+        <translation type="vanished">種類</translation>
+    </message>
+    <message>
+        <source>Change Table State : %1</source>
+        <translation type="vanished">テーブルの状態を変更 : %1</translation>
+    </message>
+    <message>
+        <source>Change Table State : Row %1</source>
+        <translation type="vanished">テーブルの状態を変更 : 行 %1</translation>
+    </message>
+    <message>
+        <source>Change Tree State : %1</source>
+        <translation type="vanished">ツリーの状態を変更 : %1</translation>
+    </message>
+</context>
+<context>
+    <name>langscore::CSVEditorTableModel</name>
+    <message>
+        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="62"/>
+        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="143"/>
+        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="157"/>
         <source>Original</source>
         <translation>原文</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1523"/>
+        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="62"/>
+        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="143"/>
+        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="160"/>
         <source>Type</source>
         <translation>種類</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1956"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1966"/>
-        <source>Change Table State : %1</source>
-        <translation>テーブルの状態を変更 : %1</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1959"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1969"/>
-        <source>Change Table State : Row %1</source>
-        <translation>テーブルの状態を変更 : 行 %1</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1979"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1984"/>
-        <source>Change Tree State : %1</source>
-        <translation>ツリーの状態を変更 : %1</translation>
     </message>
 </context>
 </TS>

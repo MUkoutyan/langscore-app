@@ -18,8 +18,6 @@ class FormTaskBar : public QWidget, public ComponentBase
     Q_OBJECT
 
 public:
-
-
     explicit FormTaskBar(QUndoStack* history, ComponentBase* setting, QWidget *parent = nullptr);
     ~FormTaskBar();
 
@@ -45,6 +43,9 @@ signals:
 public slots:
     void updateRecentMenu();
     void emitChangeTheme(ColorTheme::Theme);
+
+private slots:
+    void openTranslationApiSettings();
 
 private:
     Ui::FormTaskBar *ui;

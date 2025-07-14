@@ -6,6 +6,42 @@
 #include <QFileInfo>
 #include <QDir>
 
+
+CSVEditDataManager::CSVEditDataManager(QObject* parent)
+    : QObject(parent)
+    , undoStack(nullptr)
+    , ownsUndoStack(false)
+{
+}
+
+CSVEditDataManager::~CSVEditDataManager()
+{
+    if (ownsUndoStack && undoStack) {
+        delete undoStack;
+    }
+}
+
+void CSVEditDataManager::setUndoStack(QUndoStack* stack)
+{
+    if (ownsUndoStack && undoStack) {
+        delete undoStack;
+        ownsUndoStack = false;
+    }
+    
+    undoStack = stack;
+    emit undoStackChanged(undoStack);
+}
+
+QUndoStack* CSVEditDataManager::ensureUndoStack()
+{
+    if (!undoStack) {
+        undoStack = new QUndoStack(this);
+        ownsUndoStack = true;
+        emit undoStackChanged(undoStack);
+    }
+    return undoStack;
+}
+
 QAbstractTableModel* CSVEditDataManager::getOrCreateModel(const QString& filePath, ModelType type) {
     auto it = sessions_.find(filePath);
     if(it != sessions_.end()) {
