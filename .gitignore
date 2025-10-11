@@ -83,3 +83,7 @@ manual/doxygen-awesome-css
 test/build-Test-デバッグ
 test/build-Test-プロファイル
 test/build-Test-リリース
+/out/build/x64-Debug
+/build/Desktop_Qt_6_9_0_MSVC2022_64bit-Debug
+/test/DummyProject
+/test/Project1
