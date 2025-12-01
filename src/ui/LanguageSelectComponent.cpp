@@ -61,7 +61,51 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
         emit this->ChangeUseLanguageState();
     });
     connect(defaultCheck, &QCheckBox::clicked, this, [this](bool is){
-        this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::Default, is, !is));
+        if(is && this->getUseLang() == false){
+            // 変更前にチェックされていたデフォルト言語を特定（設定から取得）
+            LanguageSelectComponent* previousDefaultComponent = nullptr;
+            QString previousDefaultLang = this->setting->defaultLanguage;
+            
+            // 現在の言語と異なる場合、ButtonGroupから該当するコンポーネントを探す
+            auto currentLang = settings::getLowerBcp47Name(this->locale);
+            if(previousDefaultLang.isEmpty() == false && previousDefaultLang != currentLang) {
+                if(auto* buttonGroup = qobject_cast<QButtonGroup*>(this->defaultCheck->group())) {
+                    auto buttons = buttonGroup->buttons();
+                    for(auto* btn : buttons) {
+                        if(btn == this->defaultCheck) { continue; }
+                        // ボタンから親のLanguageSelectComponentを取得
+                        QWidget* parent = btn->parentWidget();
+                        while(parent) {
+                            if(auto* langComp = qobject_cast<LanguageSelectComponent*>(parent)) {
+                                auto langCompName = settings::getLowerBcp47Name(langComp->locale);
+                                if(langCompName == previousDefaultLang) {
+                                    previousDefaultComponent = langComp;
+                                    break;
+                                }
+                            }
+                            parent = parent->parentWidget();
+                        }
+                        if(previousDefaultComponent){ break;}
+                    }
+                }
+            }
+
+            this->history->beginMacro("change default check");
+            
+            // 変更前のデフォルトチェックをオフにするUndoコマンドを追加
+            if(previousDefaultComponent) {
+                this->history->push(new LanguageButtonUndo(previousDefaultComponent, LanguageButtonUndo::Default, false, true));
+            }
+            
+            // 新しいデフォルトチェックをオンにするUndoコマンドを追加
+            this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::Default, is, !is));
+            this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::Enable,  is, !is));
+            this->history->endMacro();
+            emit this->ChangeUseLanguageState();
+        }
+        else{
+            this->history->push(new LanguageButtonUndo(this, LanguageButtonUndo::Default, is, !is));
+        }
     });
 
     connect(selectableFontList, &QComboBox::currentTextChanged, this, [this](const QString& text){
@@ -88,15 +132,18 @@ void LanguageSelectComponent::setUseLang(bool is)
     lang.enable = is;
 }
 
+bool LanguageSelectComponent::getUseLang() const
+{
+    auto shortName = settings::getLowerBcp47Name(this->locale);
+    auto& lang = this->setting->fetchLanguage(shortName);
+    return lang.enable;
+}
+
 void LanguageSelectComponent::setDefault(bool is)
 {
     this->defaultCheck->blockSignals(true);
     this->defaultCheck->setChecked(is);
     this->defaultCheck->blockSignals(false);
-
-    if(this->button->isChecked() == false){
-        this->button->setChecked(true);
-    }
 
     this->setting->defaultLanguage = settings::getLowerBcp47Name(this->locale);
 }
@@ -253,10 +300,47 @@ void LanguageSelectComponent::LanguageButtonUndo::setValue(Type t, const ValueTy
     switch(t)
     {
     case Type::Enable:
-        button->setUseLang(std::get<bool>(value));
+        {
+            bool enableValue = std::get<bool>(value);
+            button->setUseLang(enableValue);
+            // UIの状態も同期する
+            button->button->blockSignals(true);
+            button->button->setChecked(enableValue);
+            button->button->blockSignals(false);
+        }
         break;
     case Type::Default:
-        button->setDefault(std::get<bool>(value));
+        {
+            bool defaultValue = std::get<bool>(value);
+            
+            // QButtonGroupの排他制御を一時的に無効化
+            auto* buttonGroup = qobject_cast<QButtonGroup*>(button->defaultCheck->group());
+            if(buttonGroup) {
+                buttonGroup->setExclusive(false);
+            }
+            
+            // 全ての関連するチェックボックスのシグナルをブロック
+            if(buttonGroup) {
+                auto buttons = buttonGroup->buttons();
+                for(auto* btn : buttons) {
+                    btn->blockSignals(true);
+                }
+            }
+            
+            // 設定値を適用
+            button->setDefault(defaultValue);
+            button->defaultCheck->setChecked(defaultValue);
+            
+            // シグナルのブロックを解除
+            if(buttonGroup) {
+                auto buttons = buttonGroup->buttons();
+                for(auto* btn : buttons) {
+                    btn->blockSignals(false);
+                }
+                // 排他制御を再有効化
+                buttonGroup->setExclusive(true);
+            }
+        }
         break;
     case Type::FontFamilyIndex:
         button->setFont(std::get<QString>(value));
