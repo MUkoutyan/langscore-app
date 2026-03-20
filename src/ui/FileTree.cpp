@@ -828,7 +828,9 @@ void FileTree::onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* i
 {
     if(!item) { return; }
     if(image.isNull() == false) {
+        this->_suspendHistory = true;
         item->setIcon(column, QIcon(QPixmap::fromImage(image)));
+        this->_suspendHistory = false;
     }
 }
 
