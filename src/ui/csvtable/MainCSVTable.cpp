@@ -40,7 +40,9 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
         layout->addWidget(check);
 
         connect(check, &QCheckBox::clicked, this, [this](bool checked) {
-            this->currentModel->setUseLanguageFont(checked);
+            if(this->currentModel) {
+                this->currentModel->setUseLanguageFont(checked);
+            }
             this->csvEditor->update();
         });
 

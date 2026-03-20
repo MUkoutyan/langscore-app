@@ -635,7 +635,7 @@ void ScriptCSVTable::unckeckSignOnlyText()
                 c = qc.unicode();
                 if(c == 0) { continue; }
             }
-            if(c < 127) {
+            if(0 <= c && c < 127) {
                 is_find |= (std::isalpha(c) != 0);
             }
             else {
