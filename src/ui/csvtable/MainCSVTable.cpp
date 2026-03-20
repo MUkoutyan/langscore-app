@@ -8,6 +8,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QActionGroup>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QTimer>
 #include <icu.h>
 #include "../utility.hpp"
@@ -18,15 +20,71 @@
 
 using namespace langscore;
 
+
 MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
     : ComponentBase(component), QWidget(parent), loadFileManager(loadFileManager)
     , mainFileName(new QLabel(this)), mainFileWordCount(new QLabel(this))
+    , settingButton(new QToolButton(this))
+    , settingPane(new QWidget(this))
+    , currentModel(nullptr)
     , csvEditor(new CSVEditor(this->loadFileManager, this, this))
 {
+    //設定ダイアログ
+    {
+        settingPane->setWindowFlags(Qt::Popup);
+        settingPane->setVisible(false);
+
+        auto layout = new QVBoxLayout(this);
+        settingPane->setLayout(layout);
+        auto check = new QCheckBox("apply language font", this);
+        layout->addWidget(check);
+
+        connect(check, &QCheckBox::clicked, this, [this](bool checked) {
+            this->currentModel->setUseLanguageFont(checked);
+            this->csvEditor->update();
+        });
+
+        // --- Fixed Cell Width Option Start ---
+        auto fixedWidthLayout = new QHBoxLayout();
+        auto fixedWidthCheck = new QCheckBox("Fixed Cell Width", this);
+        auto widthSpinBox = new QSpinBox(this);
+        widthSpinBox->setRange(10, 2000);
+        widthSpinBox->setValue(100);
+        widthSpinBox->setSuffix(" px");
+        widthSpinBox->setEnabled(false);
+
+        fixedWidthLayout->addWidget(fixedWidthCheck);
+        fixedWidthLayout->addWidget(widthSpinBox);
+        layout->addLayout(fixedWidthLayout);
+
+        connect(fixedWidthCheck, &QCheckBox::toggled, this, [this, widthSpinBox](bool checked) {
+            widthSpinBox->setEnabled(checked);
+            auto header = this->csvEditor->horizontalHeader();
+            if(checked) {
+                header->setSectionResizeMode(QHeaderView::Fixed);
+                header->setDefaultSectionSize(widthSpinBox->value());
+            }
+            else {
+                header->setSectionResizeMode(QHeaderView::Interactive);
+            }
+        });
+
+        connect(widthSpinBox, &QSpinBox::valueChanged, this, [this, fixedWidthCheck](int value) {
+            if(fixedWidthCheck->isChecked()) {
+                this->csvEditor->horizontalHeader()->setDefaultSectionSize(value);
+            }
+        });
+        // --- Fixed Cell Width Option End ---
+
+        connect(settingButton, &QToolButton::clicked, this, [this](bool) {
+            this->settingPane->setVisible(true);
+            this->settingPane->move(QCursor::pos());
+        });
+    }
 
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
-    vLayout->setSpacing(0); 
+    vLayout->setSpacing(0);
 
     auto* hLayout = new QHBoxLayout();
     hLayout->setContentsMargins(0, 0, 0, 0);
@@ -34,15 +92,14 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     hLayout->addStretch(1);
     hLayout->addWidget(this->mainFileWordCount);
 
+    this->settingButton->setText("Settings");
+    hLayout->addWidget(this->settingButton);
+
     vLayout->addLayout(hLayout);
     vLayout->addWidget(this->csvEditor, 1);
     this->setLayout(vLayout);
 
-    // 親ウィジェットを作成してレイアウトを設定
-    //auto* parentWidget = this->parentWidget();
-    //if (parentWidget) {
-    //    parentWidget->setLayout(vLayout);
-    //}
+    this->setupTable();
 }
 
 void MainCSVTable::clear()
@@ -67,9 +124,9 @@ void MainCSVTable::setupTable()
     // 現在のモデルをクリア
     if (auto* mainModel = qobject_cast<MainCSVTableModel*>(this->csvEditor->model())) {
         mainModel->clearAll();
+        mainModel->setSettings(this->setting);
     }
     
-    const auto tempFolder = this->setting->analyzeDirectoryPath();
     this->csvEditor->blockSignals(false);
 }
 
@@ -106,14 +163,16 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         return;
     }
 
-    
     // CSVEditDataManagerからMainCSVTableModelを取得
     const auto editFolder = this->setting->langscoreProjectDirectory + "/editing";
     const auto editedData = editFolder + "/" + withoutExtension(fileName) + ".csv";
     auto* mainModel = manager->getMainCSVModel(editedData);
+    this->currentModel = mainModel;
     if(mainModel == nullptr) {
         return;
     }
+
+    this->csvEditor->horizontalHeader()->blockSignals(true);
 
     if(QFile::exists(editedData) == false) 
     {
@@ -128,6 +187,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     
     // テーブルビューにモデルを設定
     this->csvEditor->setModel(mainModel);
+    mainModel->setSettings(this->setting);
     
     // 言語列を追加
     size_t index = 1;
@@ -137,7 +197,6 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         index++;
     }
 
-    this->csvEditor->resizeRowsToContents();
 
     // ファイル名とワードカウントを更新
     this->mainFileName->setText(treeItemName);
@@ -145,9 +204,20 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     QTimer::singleShot(0, this, [this]() {
         this->csvEditor->setUpdatesEnabled(false);
         this->csvEditor->resizeRowsToContents();
+
+        size_t index = 0;
+        this->csvEditor->setColumnWidth(index, this->setting->originColumnWidth);
+        index++;
+        for(auto langs = this->setting->languages; auto& lang : langs) {
+            if(lang.enable == false) { continue; }
+            this->csvEditor->setColumnWidth(index, lang.columnSize);
+            index++;
+        }
         this->csvEditor->setUpdatesEnabled(true);
         this->csvEditor->update();
     });
+
+    this->csvEditor->horizontalHeader()->blockSignals(false);
 }
 
 void MainCSVTable::TableUndo::setValue(ValueType value) 
