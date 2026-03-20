@@ -106,6 +106,8 @@ set(PROJECT_SOURCES
     src/ui/csveditor/CSVEditor.cpp
     src/ui/csveditor/CSVEditorTableModel.h
     src/ui/csveditor/CSVEditorTableModel.cpp
+    src/ui/csveditor/CSVEditCommand.h
+    src/ui/csveditor/CSVEditCommand.cpp
     resources.qrc
     ColorDialog.cpp
     ColorDialog.h
@@ -132,16 +134,17 @@ include_directories(
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
-    qt_add_lupdate(
-        SOURCE_TARGETS langscore-app
-        TS_FILES ${TS_FILES}
-    )
-    
     qt_add_executable(langscore-app
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         ${CMAKE_CURRENT_BINARY_DIR}/version.rc
     )
+    
+    qt_add_lupdate(
+        SOURCE_TARGETS langscore-app
+        TS_FILES ${TS_FILES}
+    )
+
     qt_add_translations(langscore-app TS_FILES ${TS_FILES} SOURCES ${PROJECT_SOURCES})
 # App bundles on macOS have an .app suffix
 if(APPLE)

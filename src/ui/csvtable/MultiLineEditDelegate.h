@@ -8,6 +8,8 @@ class MultiLineEditDelegate : public QStyledItemDelegate {
     Q_OBJECT
 
 public:
+    class MultiLineTextEdit;
+
     explicit MultiLineEditDelegate(QObject* parent = nullptr);
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option, 
@@ -22,8 +24,6 @@ public:
 private slots:
     void commitAndCloseEditor();
 
-private:
-    class MultiLineTextEdit;
 };
 
 class MultiLineEditDelegate::MultiLineTextEdit : public QTextEdit {
@@ -36,5 +36,6 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
 
 signals:
-    void editingFinished();
+    // 編集終了のヒント（次のセルへ行くか等）を渡せるように変更
+    void editingFinished(bool shouldMoveDown);
 };

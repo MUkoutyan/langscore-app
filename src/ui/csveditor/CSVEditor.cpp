@@ -142,30 +142,7 @@ private:
     CSVEditor* csvEditor;
 };
 
-// CSVEditCommand implementation
-void CSVEditor::CSVEditCommand::undo() {
-    applyCellEdits(true);
-}
 
-void CSVEditor::CSVEditCommand::redo() {
-    applyCellEdits(false);
-}
-
-void CSVEditor::CSVEditCommand::applyCellEdits(bool isUndo) {
-    if (!parent || !parent->model()) return;
-
-    parent->_suppressUndoTracking = true;
-    
-    for (const auto& edit : edits) {
-        if (edit.index.isValid()) {
-            QVariant value = isUndo ? edit.oldValue : edit.newValue;
-            parent->model()->setData(edit.index, value, Qt::EditRole);
-        }
-    }
-    
-    parent->_suppressUndoTracking = false;
-    parent->_isModified = true;
-}
 
 // CSVEditor implementation
 CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent)
@@ -177,8 +154,6 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
     , columnVisibilityMenu(nullptr)
     , translationManager(std::make_unique<TranslationManager>(this))
     , progressDialog(nullptr)
-    , _isModified(false)
-    , _suppressUndoTracking(false)
 {
     this->setSelectionBehavior(QAbstractItemView::SelectItems);
     this->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -201,6 +176,12 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
             this, &CSVEditor::onBatchTranslationError);
     connect(translationManager.get(), &TranslationManager::translationProgress,
             this, &CSVEditor::onTranslationProgress);
+
+    auto hHeader = this->horizontalHeader();
+    hHeader->setHorizontalScrollMode(QHeaderView::ScrollPerPixel);
+    connect(hHeader, &QHeaderView::sectionResized, this, [this](int, int, int) {
+        this->viewport()->update();
+    });
 }
 
 void CSVEditor::setupActions()
@@ -778,6 +759,21 @@ void CSVEditor::onModelDataChanged()
     updateColumnVisibilityMenu(); // Update column visibility menu when data changes
 }
 
+void CSVEditor::selectAndEditNextCell()
+{
+    auto currentSelectedIndexes = getSelectedIndexes();
+    if(currentSelectedIndexes.isEmpty()) { return; }
+
+    auto index = currentSelectedIndexes.back();
+    if(this->model()->rowCount() <= index.row()) {
+        return;
+    }
+
+    auto newSelectIndex = this->model()->index(index.row() + 1, index.column(), index.parent());
+    this->selectionModel()->setCurrentIndex(newSelectIndex, QItemSelectionModel::SelectionFlag::Select);
+    this->edit(newSelectIndex);
+}
+
 void CSVEditor::keyPressEvent(QKeyEvent* event)
 {
     auto currentSelectedIndexes = getSelectedIndexes();
@@ -822,6 +818,12 @@ void CSVEditor::keyPressEvent(QKeyEvent* event)
     } else if (event->key() == Qt::Key_Delete) {
         clearSelectedCells();
         return;
+    }
+    else if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+        if(currentSelectedIndexes.isEmpty() == false) {
+            edit(currentSelectedIndexes[0]);
+            return;
+        }
     }
     
     QTableView::keyPressEvent(event);
@@ -937,6 +939,17 @@ void CSVEditor::newCSV(langscore::CSVEditorTableModel* csvModel)
     if (history) {
         history->clear();
     }
+}
+
+void CSVEditor::setText(QModelIndex index, QString newText)
+{
+    CSVEditCommand::CellEdit edit;
+    edit.index = index;
+    edit.oldValue = model()->data(index, Qt::EditRole);
+    edit.newValue = newText;
+    if(edit.oldValue == edit.newValue) { return; }
+
+    executeEditCommand({edit}, QString{});
 }
 
 // Edit operations
@@ -1218,6 +1231,11 @@ QString CSVEditor::getSelectedCellsAsText() const
     }
 
     return result;
+}
+
+void CSVEditor::setData(QModelIndex index, QVariant value, int role)
+{
+    this->model()->setData(index, value, role);
 }
 
 // Include the MOC file for the LanguageColumnSelectionDialog class

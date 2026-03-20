@@ -98,13 +98,37 @@ int CSVEditorTableModel::columnCount(const QModelIndex&) const {
     return static_cast<int>(csvContainer.columnCount());
 }
 
-QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const {
-    if(!index.isValid() || (role != Qt::DisplayRole && role != Qt::EditRole)) {
+QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const 
+{
+    if(index.isValid() == false) {
         return QVariant();
     }
 
     int row = index.row();
     int col = index.column();
+
+    if(role == Qt::FontRole) {
+        if(_settings && this->useLanguageFont) {
+            QString header = headerData(col, Qt::Horizontal, Qt::DisplayRole).toString();
+            for(const auto& lang : _settings->languages) {
+                if(lang.languageName == header) {
+                    auto font = lang.font.fontData;
+                    font.setPixelSize(12);
+                    return font;
+                }
+            }
+        }
+        return QVariant();
+    }
+    else if(role == Qt::SizeHintRole) 
+    {
+        QSize size(370, -1);
+        return size;
+    }
+
+    if(role != Qt::DisplayRole && role != Qt::EditRole) {
+        return QVariant();
+    }
 
     QString value;
     if(csvContainer.getValue(static_cast<size_t>(row), static_cast<size_t>(col), value)) {
@@ -164,6 +188,9 @@ QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientatio
                 }
             }
         }
+        else if(role == Qt::SizeHintRole) {
+            
+        }
         else if(role == Qt::UserRole) {
             return csvContainer.headerAt(static_cast<size_t>(section));
         }
@@ -218,6 +245,11 @@ void CSVEditorTableModel::removeColumn(int column)
 
 const std::vector<std::vector<QString>>& CSVEditorTableModel::dataRaw() const {
     return csvContainer.dataRaw();
+}
+
+void CSVEditorTableModel::setSettings(std::shared_ptr<settings> setting)
+{
+    this->_settings = std::move(setting);
 }
 
 } // namespace langscore

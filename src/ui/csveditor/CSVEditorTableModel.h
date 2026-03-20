@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include "FastCSVContainer.h"
+#include "../../settings.h"
 
 namespace langscore {
 
@@ -39,6 +40,11 @@ public:
 
     const std::vector<std::vector<QString>>& dataRaw() const;
 
+    void setSettings(std::shared_ptr<settings> setting);
+
+    void setUseLanguageFont(bool use) {
+        this->useLanguageFont = use;
+    }
 
     void clearAll() {
         beginResetModel();
@@ -49,6 +55,8 @@ public:
 
 private:
     langscore::FastCSVContainer csvContainer;
+    bool useLanguageFont = false;
+    std::shared_ptr<settings> _settings = nullptr;
 };
 
 } // namespace langscore

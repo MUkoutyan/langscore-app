@@ -3,11 +3,11 @@
 #include <QTableView>
 #include <QAction>
 #include <QMenu>
-#include <QUndoStack>
 #include <QClipboard>
 #include <memory>
 #include "ComponentBase.h"
 #include "CSVEditDataManager.h"
+#include "CSVEditCommand.h"
 #include "../TranslationProgressDialog.h"
 #include "../../translation/TranslationManager.h"
 
@@ -16,38 +16,18 @@ namespace langscore {
     class CSVEditorTableModel;
 }
 
-class CSVEditor : public QTableView, public ComponentBase {
+class CSVEditor : public QTableView, public ComponentBase, public CSVEditCommand::CellEditsListener {
     Q_OBJECT
 
 public:
-    struct CSVEditCommand : public QUndoCommand {
-        struct CellEdit {
-            QModelIndex index;
-            QVariant oldValue;
-            QVariant newValue;
-        };
-
-        CSVEditCommand(CSVEditor* parent, const QList<CellEdit>& edits, const QString& description = QString())
-            : parent(parent), edits(edits) {
-            setText(description.isEmpty() ? QObject::tr("Edit Cells") : description);
-        }
-
-        int id() const override { return 7; }
-        void undo() override;
-        void redo() override;
-
-    private:
-        CSVEditor* parent;
-        QList<CellEdit> edits;
-        void applyCellEdits(bool isUndo);
-    };
-
     explicit CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
 
     bool openCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel);
     bool saveCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
     bool saveAsCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
     void newCSV(langscore::CSVEditorTableModel* csvModel);
+
+    void setText(QModelIndex index, QString newText);
 
     // Edit operations
     void clearSelectedCells();
@@ -67,6 +47,8 @@ public:
     void selectAll();
 
     bool isModified() const { return _isModified; }
+
+    void selectAndEditNextCell();
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
@@ -111,6 +93,8 @@ private:
     QStringList parseCSVRows(const QString& text) const;
     QString getSelectedCellsAsText() const;
 
+    void setData(QModelIndex index, QVariant value, int role) override;
+
     std::weak_ptr<CSVEditDataManager> loadFileManager;
     
     // Actions
@@ -134,6 +118,4 @@ private:
     TranslationProgressDialog* progressDialog;
     
     QString currentFilePath;
-    bool _isModified;
-    bool _suppressUndoTracking;
 };
