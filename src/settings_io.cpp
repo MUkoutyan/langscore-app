@@ -408,7 +408,7 @@ void deserializeBasicDataList(settings* s, const QJsonArray& basicScripts)
         QRegularExpression re(R"(Map\d{3})");
         for(const auto& file : fileList) {
             auto fileViewName = file.completeBaseName();
-            if(fileViewName == "MapInfos") { continue; }
+            if(fileViewName == "Animations" || fileViewName == "Tilesets" || fileViewName == "MapInfos") { continue; }
             //Map~なければ追加。
             if(re.match(fileViewName).hasMatch() == false) {
                 s->fetchBasicDataInfo(fileViewName);
@@ -532,6 +532,7 @@ void deserializeMapInfoList(settings* s, const QJsonArray& basicScripts)
         auto isIgnore = jsonScript[key(JsonKey::Ignore)].toBool();
 
         if(name.contains("Map") == false) { continue; }
+        if(name.contains("MapInfos")) { continue; }
 
         try {
             auto& info = s->fetchMapInfo(name);
