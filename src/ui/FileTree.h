@@ -23,7 +23,8 @@ public:
 
     enum TreeColIndex {
         CheckBox = 0,
-        Name
+        Name = 0,
+        NumColumn
     };
 
 
@@ -76,6 +77,7 @@ public:
     QTreeWidgetItem* fetchScriptTreeSameFileItem(QString scriptName);
 
     void updateTreeTextColor();
+    void updateTreeVisibility();
 
 signals:
     // Scriptタブでスクリプトファイル名に該当する行をスクロール・選択する
@@ -115,6 +117,11 @@ private:
     QHBoxLayout* searchLayout = nullptr;
     bool isFiltering = false;
 
+    // 以下を追加
+    QToolButton* settingButton = nullptr;
+    QWidget* settingPane = nullptr;
+    QCheckBox* showHiddenCheckBox = nullptr;
+
     std::weak_ptr<CSVEditDataManager> loadFileManager;
     QTreeWidget* treeWidget;
     bool _suspendHistory;
@@ -125,4 +132,7 @@ private:
 
 private slots:
     void onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image);
+    void showContextMenu(const QPoint& position);
+    void toggleItemVisibility(QTreeWidgetItem* targetItem); // hideSelectedItem をこちらに変更します
+    void toggleShowHiddenFiles(bool isChecked);
 };

@@ -25,6 +25,7 @@ settings::settings()
     , languages()
     , defaultLanguage("ja")
     , isFirstExported(false)
+    , isShowHiddenFilesOnTree(true)
     , langscoreProjectDirectory("")
 {
 }
@@ -306,14 +307,20 @@ settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
     return list[list.size() - 1];
 }
 
-settings::MapInfo& settings::fetchMapInfo(QString fileName)
+settings::MapInfo& settings::fetchMapInfo(QString _fileName)
 {
-    fileName = langscore::withoutAllExtension(fileName);
+    auto fileName = langscore::withoutAllExtension(_fileName);
     if(fileName.isEmpty()) {
         throw "Load Invalid Basic Script Info";
     }
 
     fileName += ".json";
+    auto filePath = this->analyzeDirectoryPath() + "/" + fileName;
+
+    if(std::filesystem::exists(filePath.toStdString()) == false) {
+        throw "Not exists json file";
+    }
+
     auto& list = writeObj.mapDataInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x) {
         return x.fileName == name;
@@ -324,7 +331,7 @@ settings::MapInfo& settings::fetchMapInfo(QString fileName)
     }
 
     list.emplace_back(
-        settings::BasicData{fileName, this->analyzeDirectoryPath() + "/" + fileName}
+        settings::BasicData{fileName, filePath}
     );
     return list[list.size() - 1];
 }

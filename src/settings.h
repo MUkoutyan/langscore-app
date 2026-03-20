@@ -44,6 +44,7 @@ public:
         QString languageName = "";
         Font font;
         bool enable = false;
+        int columnSize = 370;
         bool operator==(QString langName) const {
             return this->languageName == langName;
         }
@@ -122,6 +123,7 @@ public:
         QString filePath = "";       // analyzeフォルダにおけるファイルのパス(絶対パス)
 
         bool ignore = false;
+        bool visible = true;
         int writeMode = 0;
         //key: typeName
         TextValidateTypeMap validateInfo = {};
@@ -148,6 +150,7 @@ public:
     struct GraphInfo : public BasicData {
         QString extension;
         QString folder; //画像フォルダをルートとした際の相対パス。ファイル名は含まない。
+        bool isFolder = false;
     };
 
     struct WriteProps
@@ -173,6 +176,9 @@ public:
     std::vector<Language> languages;
     QString defaultLanguage;
     bool isFirstExported;
+    bool isShowHiddenFilesOnTree;
+
+    int originColumnWidth = 370;
 
     //Analyze
     QString langscoreProjectDirectory;

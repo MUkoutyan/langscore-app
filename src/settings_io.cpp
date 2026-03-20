@@ -27,12 +27,14 @@ namespace {
     QJsonArray serializeScripts(const settings::settings::WriteProps& writeObj);
     QJsonArray serializeIgnorePictures(const settings::settings::WriteProps& writeObj);
     QJsonObject serializeValidate(const settings::ValidationProps& validateObj);
+    QJsonArray serializePicturesInfo(const settings::WriteProps& writeObj);
     void deserializeLanguages(settings* s, const QJsonArray& jsonLanguages, const QString& configVer);
     void deserializeBasicDataList(settings* s, const QJsonArray& basicScripts);
     void deserializeMapInfoList(settings* s, const QJsonArray& basicScripts);
     void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QString& tempScriptFileDir);
     void deserializeIgnorePictures(settings* s, const QJsonArray& jsonIgnorePictures);
     void deserializeValidate(settings* s, const QJsonObject& validateJsonObj);
+    void deserializePicturesInfo(settings* s, const QJsonArray& jsonIgnorePictures);
 
     void loadGraphicsFiles(settings* setting)
     {
@@ -51,6 +53,13 @@ namespace {
                 QDir childDir(subFolder.absoluteFilePath());
                 addGraphicsFolderToTree(childDir);
             }
+
+
+            settings::GraphInfo info;
+            info.fileName = dir.dirName();
+            info.filePath = dir.absolutePath();
+            info.isFolder = true;
+            graphList.emplace_back(std::move(info));
 
             // 画像ファイルを取得
             QFileInfoList files = dir.entryInfoList(QStringList() << "*.jpg" << "*.png" << "*.bmp", QDir::Files);
@@ -155,11 +164,14 @@ void settings::load(QString path)
     writeObj.enableTranslateDefLang = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
     this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
 
+    this->isShowHiddenFilesOnTree = write["IsShowHiddenFilesOnTree"].toBool();
+
     auto basicDataList = write[key(JsonKey::RPGMakerBasicData)].toArray();
     deserializeBasicDataList(this, basicDataList);
     deserializeMapInfoList(this, basicDataList);
     deserializeScripts(this, write[key(JsonKey::RPGMakerScripts)].toArray(), this->tempScriptFileDirectoryPath());
     deserializeIgnorePictures(this, write[key(JsonKey::IgnorePictures)].toArray());
+    deserializePicturesInfo(this, write["Pictures"].toArray());
 
     this->packingInputDirectory = root[key(JsonKey::PackingInputDir)].toString();
     deserializeValidate(this, root[key(JsonKey::Validate)].toObject());
@@ -222,6 +234,10 @@ QJsonObject serializeWrite(const settings* s) {
     write[key(JsonKey::IsFirstExported)] = s->isFirstExported;
     write[key(JsonKey::RPGMakerScripts)] = serializeScripts(s->writeObj);
     write[key(JsonKey::IgnorePictures)] = serializeIgnorePictures(s->writeObj);
+
+    write["Pictures"] = serializePicturesInfo(s->writeObj);
+    write["IsShowHiddenFilesOnTree"] = s->isShowHiddenFilesOnTree;
+
     return write;
 }
 
@@ -233,6 +249,7 @@ QJsonArray serializeBasicDataList(const settings::settings::WriteProps& writeObj
         QJsonObject script;
         script[key(JsonKey::Name)] = info.fileName;
         script[key(JsonKey::Ignore)] = info.ignore;
+        script["IsVisible"] = info.visible;
 
         QJsonArray textCategory;
         for(const auto& [typeName, lang_infos] : info.validateInfo) {
@@ -266,6 +283,7 @@ QJsonArray serializeBasicDataList(const settings::settings::WriteProps& writeObj
         QJsonObject script;
         script[key(JsonKey::Name)] = info.fileName;
         script[key(JsonKey::Ignore)] = info.ignore;
+        script["IsVisible"] = info.visible;
 
         QJsonArray textCategory;
         for(const auto& [typeName, lang_infos] : info.validateInfo) {
@@ -333,6 +351,21 @@ QJsonArray serializeScripts(const settings::WriteProps& writeObj)
         scripts.append(script);
     }
     return scripts;
+}
+
+QJsonArray serializePicturesInfo(const settings::WriteProps& writeObj)
+{
+    auto& graphList = writeObj.graphDataInfo;
+    QJsonArray jsonGraphList;
+    for(const auto& graph : graphList) {
+        if(graph.visible == false) {
+            QJsonObject graphInfo;
+            graphInfo["Name"] = graph.filePath;
+            graphInfo["IsVisible"] = false;
+            jsonGraphList.append(graphInfo);
+        }
+    }
+    return jsonGraphList;
 }
 
 QJsonArray serializeIgnorePictures(const settings::WriteProps& writeObj) {
@@ -821,6 +854,21 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
     //        // error handling
     //    }
     //}
+}
+
+
+void deserializePicturesInfo(settings* s, const QJsonArray& jsonIgnorePictures) 
+{
+    for(const auto& elem : jsonIgnorePictures) 
+    {
+        auto pictureObj = elem.toObject();
+        auto picturePath = pictureObj["Name"].toStringView();
+
+        auto it = std::ranges::find(s->writeObj.graphDataInfo, picturePath, &settings::GraphInfo::filePath);
+        if(it != s->writeObj.graphDataInfo.end()) {
+            it->visible = pictureObj["IsVisible"].toBool();
+        }
+    }
 }
 
 void deserializeIgnorePictures(settings* s, const QJsonArray& jsonIgnorePictures) {
