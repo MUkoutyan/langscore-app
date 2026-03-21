@@ -208,7 +208,7 @@ void FormTaskBar::updateRecentMenu()
         auto action = new QAction(dir.dirName() + " (" + path + ")");
         action->setEnabled(dir.exists());
 
-        if(dir.exists()){
+        if(dir.exists() == false){
             //ディレクトリが見つかりません。プロジェクト終了時に履歴からこの項目を削除します。
             action->setToolTip(tr("Not Found Directory. Delete this item from the history at the end of the project."));
         }
