@@ -83,3 +83,6 @@ manual/doxygen-awesome-css
 test/build-Test-デバッグ
 test/build-Test-プロファイル
 test/build-Test-リリース
+build
+.vscode
+test
