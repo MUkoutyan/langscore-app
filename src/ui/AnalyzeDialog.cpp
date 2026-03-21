@@ -59,6 +59,33 @@ AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
 
         emit this->toWriteMode(this->setting->gameProjectPath);
     });
+
+    {
+        auto&& settings = ComponentBase::getAppSettings();
+        QVariantList recentFiles;
+        auto recentProjs = settings.value("recentFiles", recentFiles).toList();
+        for(auto& proj : recentProjs) 
+        {
+            auto path = proj.toString();
+            auto dir = QDir(path);
+
+            if(dir.exists() == false) {
+                continue;
+            }
+
+            auto treeItem = new QTreeWidgetItem();
+            treeItem->setSizeHint(0, QSize{-1, 80});
+            treeItem->setText(0, dir.dirName() + " (" + dir.absolutePath() + ")");
+            treeItem->setData(0, Qt::UserRole, dir.absolutePath());
+            
+            this->ui->recentProjectTree->addTopLevelItem(treeItem);
+        }
+
+        connect(this->ui->recentProjectTree, &QTreeWidget::doubleClicked, this, [this](const QModelIndex& index) {
+            auto path = index.data(Qt::UserRole).toString();
+            emit this->openFile(path);
+        });
+    }
 }
 
 AnalyzeDialog::~AnalyzeDialog()
@@ -95,7 +122,6 @@ void AnalyzeDialog::dropEvent(QDropEvent *event)
         else if(fi.isDir()){
             if(settings::getProjectType(url.toLocalFile()) != settings::ProjectType::None){
                 this->openFile(url.toLocalFile());
-                return;
             }
         }
     }
@@ -143,6 +169,8 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
         this->ui->lineEdit->setText(this->setting->langscoreProjectDirectory);
         this->ui->lineEdit->setReadOnly(false);
         this->ui->invokeLog->setVisible(true);
+        this->ui->recentProjectTree->setVisible(false);
+        this->ui->recentProjectLabel->setVisible(false);
     }
 }
 
