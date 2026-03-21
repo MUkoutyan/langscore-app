@@ -27,7 +27,7 @@ QList<QPushButton *> ColorDialog::createButtons(QPalette::ColorGroup colorGroup)
         QPushButton *button = new QPushButton(paletteEnum.valueToKey(i));
         button->setFixedSize(100, 20);
         button->setStyleSheet(QString("background-color: %1; color: %2").arg(bgColor.name(), bgColor.value() < 128 ? "#ffffff" : "#000000"));
-        connect(button, &QPushButton::clicked, this, [=] {
+        connect(button, &QPushButton::clicked, this, [this, colorGroup, button, i] {
             QColor color = QColorDialog::getColor(qApp->palette().color(static_cast<QPalette::ColorRole>(i)), this);
             if (color.isValid()) {
                 QPalette pal = qApp->palette();
