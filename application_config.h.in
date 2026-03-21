@@ -15,7 +15,7 @@
 
 #define VER_INTERNALNAME_STR     PROJECT_NAME
 #define VER_ORIGINALFILENAME_STR "langscore.exe"
-#define VER_LEGALCOPYRIGHT_STR   "(C) 2022 BreezeSinfonia All Rights Reserved"
+#define VER_LEGALCOPYRIGHT_STR   "(C) 2022-2026 BreezeSinfonia All Rights Reserved"
 #define VER_PRODUCTNAME_STR      "Langscore"
 
 #ifndef DEBUG
