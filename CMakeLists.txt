@@ -31,6 +31,7 @@ foreach(LANG ${LANGUAGES})
 endforeach()
 
 set(PROJECT_SOURCES
+    resources.qrc
     main.cpp
     MainWindow.cpp
     MainWindow.h
@@ -43,23 +44,9 @@ set(PROJECT_SOURCES
     src/settings.cpp
     src/settings_io.cpp
     src/graphics.hpp
-    src/ui/ComponentBase.h
-    src/ui/FormTaskBar.h
-    src/ui/FormTaskBar.cpp
-    src/ui/FormTaskBar.ui
     src/ui/dialog/AnalyzeDialog.h
     src/ui/dialog/AnalyzeDialog.cpp
     src/ui/dialog/AnalyzeDialog.ui
-    src/ui/WriteModeComponent.h
-    src/ui/WriteModeComponent.cpp
-    src/ui/WriteModeComponent.ui
-    src/ui/LanguageSelectComponent.h
-    src/ui/LanguageSelectComponent.cpp
-    src/ui/PackingMode.h
-    src/ui/PackingMode.cpp
-    src/ui/PackingMode.ui
-    src/ui/ScriptViewer.h
-    src/ui/ScriptViewer.cpp
     src/ui/dialog/WriteDialog.h
     src/ui/dialog/WriteDialog.cpp
     src/ui/dialog/WriteDialog.ui
@@ -73,19 +60,12 @@ set(PROJECT_SOURCES
     src/ui/dialog/PopupDialogBase.cpp
     src/ui/dialog/MessageDialog.cpp
     src/ui/dialog/MessageDialog.h
-    src/ui/FramelessWindow.cpp
-    src/ui/FramelessWindow.h
-    src/ui/InvokerLogViewer.cpp
-    src/ui/InvokerLogViewer.h
-    src/ui/ColorTheme.cpp
-    src/ui/ColorTheme.h
-    src/ui/ClipDetectSettingTree.cpp
-    src/ui/ClipDetectSettingTree.h
-    src/ui/FileTree.cpp
-    src/ui/FileTree.h
     src/ui/dialog/TranslationApiSettingsDialog.h
     src/ui/dialog/TranslationApiSettingsDialog.cpp
     src/ui/dialog/TranslationApiSettingsDialog.ui
+    src/ui/dialog/TranslationProgressDialog.h
+    src/ui/dialog/TranslationProgressDialog.cpp
+    src/ui/dialog/TranslationProgressDialog.ui
     src/ui/csvtable/ScriptCSVTable.h
     src/ui/csvtable/ScriptCSVTable.cpp
     src/ui/csvtable/MainCSVTable.h
@@ -96,8 +76,6 @@ set(PROJECT_SOURCES
     src/ui/csvtable/ScriptCSVTableModel.cpp
     src/ui/csvtable/MultiLineEditDelegate.h
     src/ui/csvtable/MultiLineEditDelegate.cpp
-    src/ui/GraphicsImageLoader.h
-    src/ui/GraphicsImageLoader.cpp
     src/ui/csveditor/FastCSVContainer.h
     src/ui/csveditor/FastCSVContainer.cpp
     src/ui/csveditor/CSVEditDataManager.h
@@ -108,7 +86,28 @@ set(PROJECT_SOURCES
     src/ui/csveditor/CSVEditorTableModel.cpp
     src/ui/csveditor/CSVEditCommand.h
     src/ui/csveditor/CSVEditCommand.cpp
-    resources.qrc
+    src/ui/ComponentBase.h
+    src/ui/FormTaskBar.h
+    src/ui/FormTaskBar.cpp
+    src/ui/FormTaskBar.ui
+    src/ui/WriteModeComponent.h
+    src/ui/WriteModeComponent.cpp
+    src/ui/WriteModeComponent.ui
+    src/ui/LanguageSelectComponent.h
+    src/ui/LanguageSelectComponent.cpp
+    src/ui/PackingMode.h
+    src/ui/PackingMode.cpp
+    src/ui/PackingMode.ui
+    src/ui/ScriptViewer.h
+    src/ui/ScriptViewer.cpp
+    src/ui/FramelessWindow.cpp
+    src/ui/FramelessWindow.h
+    src/ui/InvokerLogViewer.cpp
+    src/ui/InvokerLogViewer.h
+    src/ui/ClipDetectSettingTree.cpp
+    src/ui/ClipDetectSettingTree.h
+    src/ui/FileTree.cpp
+    src/ui/FileTree.h
     ColorDialog.cpp
     ColorDialog.h
     src/translation/TranslationService.h
@@ -117,9 +116,13 @@ set(PROJECT_SOURCES
     src/translation/DeepLTranslationService.cpp
     src/translation/TranslationManager.h
     src/translation/TranslationManager.cpp
-    src/ui/dialog/TranslationProgressDialog.h
-    src/ui/dialog/TranslationProgressDialog.cpp
-    src/ui/dialog/TranslationProgressDialog.ui
+    src/service/ColorTheme.cpp
+    src/service/ColorTheme.h
+    src/service/GraphicsImageLoader.h
+    src/service/GraphicsImageLoader.cpp
+    src/service/ValidationService.h
+    src/service/ValidationService.cpp
+    src/service/ValidationErrorInfo.h
 )
 
 include_directories(
