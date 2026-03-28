@@ -47,9 +47,9 @@ set(PROJECT_SOURCES
     src/ui/FormTaskBar.h
     src/ui/FormTaskBar.cpp
     src/ui/FormTaskBar.ui
-    src/ui/AnalyzeDialog.h
-    src/ui/AnalyzeDialog.cpp
-    src/ui/AnalyzeDialog.ui
+    src/ui/dialog/AnalyzeDialog.h
+    src/ui/dialog/AnalyzeDialog.cpp
+    src/ui/dialog/AnalyzeDialog.ui
     src/ui/WriteModeComponent.h
     src/ui/WriteModeComponent.cpp
     src/ui/WriteModeComponent.ui
@@ -60,19 +60,19 @@ set(PROJECT_SOURCES
     src/ui/PackingMode.ui
     src/ui/ScriptViewer.h
     src/ui/ScriptViewer.cpp
-    src/ui/WriteDialog.h
-    src/ui/WriteDialog.cpp
-    src/ui/WriteDialog.ui
-    src/ui/UpdatePluginDialog.h
-    src/ui/UpdatePluginDialog.cpp
-    src/ui/UpdatePluginDialog.ui
-    src/ui/FirstWriteDialog.h
-    src/ui/FirstWriteDialog.cpp
-    src/ui/FirstWriteDialog.ui
-    src/ui/PopupDialogBase.h
-    src/ui/PopupDialogBase.cpp
-    src/ui/MessageDialog.cpp
-    src/ui/MessageDialog.h
+    src/ui/dialog/WriteDialog.h
+    src/ui/dialog/WriteDialog.cpp
+    src/ui/dialog/WriteDialog.ui
+    src/ui/dialog/UpdatePluginDialog.h
+    src/ui/dialog/UpdatePluginDialog.cpp
+    src/ui/dialog/UpdatePluginDialog.ui
+    src/ui/dialog/FirstWriteDialog.h
+    src/ui/dialog/FirstWriteDialog.cpp
+    src/ui/dialog/FirstWriteDialog.ui
+    src/ui/dialog/PopupDialogBase.h
+    src/ui/dialog/PopupDialogBase.cpp
+    src/ui/dialog/MessageDialog.cpp
+    src/ui/dialog/MessageDialog.h
     src/ui/FramelessWindow.cpp
     src/ui/FramelessWindow.h
     src/ui/InvokerLogViewer.cpp
@@ -83,9 +83,9 @@ set(PROJECT_SOURCES
     src/ui/ClipDetectSettingTree.h
     src/ui/FileTree.cpp
     src/ui/FileTree.h
-    src/ui/TranslationApiSettingsDialog.h
-    src/ui/TranslationApiSettingsDialog.cpp
-    src/ui/TranslationApiSettingsDialog.ui
+    src/ui/dialog/TranslationApiSettingsDialog.h
+    src/ui/dialog/TranslationApiSettingsDialog.cpp
+    src/ui/dialog/TranslationApiSettingsDialog.ui
     src/ui/csvtable/ScriptCSVTable.h
     src/ui/csvtable/ScriptCSVTable.cpp
     src/ui/csvtable/MainCSVTable.h
@@ -117,9 +117,9 @@ set(PROJECT_SOURCES
     src/translation/DeepLTranslationService.cpp
     src/translation/TranslationManager.h
     src/translation/TranslationManager.cpp
-    src/ui/TranslationProgressDialog.h
-    src/ui/TranslationProgressDialog.cpp
-    src/ui/TranslationProgressDialog.ui
+    src/ui/dialog/TranslationProgressDialog.h
+    src/ui/dialog/TranslationProgressDialog.cpp
+    src/ui/dialog/TranslationProgressDialog.ui
 )
 
 include_directories(
