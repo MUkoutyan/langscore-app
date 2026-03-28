@@ -6,6 +6,7 @@
 #include "src/ui/ComponentBase.h"
 #include "src/settings.h"
 #include "src/ui/FormTaskBar.h"
+#include "src/service/ValidationService.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {

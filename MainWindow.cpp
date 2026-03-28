@@ -1,9 +1,10 @@
 ﻿#include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "./src/ui/FormTaskBar.h"
-#include "./src/ui/AnalyzeDialog.h"
+#include "./src/ui/dialog/AnalyzeDialog.h"
 #include "./src/ui/WriteModeComponent.h"
 #include "./src/ui/PackingMode.h"
+#include "./src/invoker.h"
 
 #include <QFile>
 #include <QDir>

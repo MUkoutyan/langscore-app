@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include "FastCSVContainer.h"
+#include "service/ValidationErrorInfo.h"
 #include "../../settings.h"
 
 namespace langscore {

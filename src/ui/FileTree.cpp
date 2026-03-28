@@ -9,10 +9,12 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QToolButton>
+#include <QTimer>
 #include "../settings.h"
 #include "../csv.hpp"
+#include "../invoker.h"
 #include "../utility.hpp"
-#include "GraphicsImageLoader.h"
+#include "service/GraphicsImageLoader.h"
 
 constexpr int FILEPATH_ROLE = Qt::UserRole + 1;
 constexpr int VISIBLE_ROLE = Qt::UserRole + 2;

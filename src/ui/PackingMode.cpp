@@ -4,6 +4,7 @@
 #include "../invoker.h"
 #include "../csv.hpp"
 #include "../settings.h"
+#include "service/ValidationErrorInfo.h"
 
 #include <QFileInfo>
 #include <QScrollBar>

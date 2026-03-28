@@ -1,7 +1,7 @@
 ﻿#include "CSVEditor.h"
 #include "CSVEditorTableModel.h"
 #include "../csvtable/MultiLineEditDelegate.h"
-#include "../TranslationApiSettingsDialog.h"
+#include "../dialog/TranslationApiSettingsDialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFile>

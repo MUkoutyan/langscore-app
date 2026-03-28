@@ -7,7 +7,7 @@
 #include <QMenu>
 
 #include "ComponentBase.h"
-#include "ColorTheme.h"
+#include "service/ColorTheme.h"
 
 namespace Ui {
 class FormTaskBar;

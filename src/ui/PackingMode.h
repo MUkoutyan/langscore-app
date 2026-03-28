@@ -11,6 +11,7 @@
 #include <QComboBox>
 #include "ComponentBase.h"
 #include "ClipDetectSettingTree.h"
+#include "service/ValidationErrorInfo.h"
 
 namespace Ui {
 class PackingMode;

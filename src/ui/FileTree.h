@@ -4,7 +4,10 @@
 #include <QObject>
 #include "ComponentBase.h"
 #include "CSVEditDataManager.h"
-#include "GraphicsImageLoader.h"
+#include "service/GraphicsImageLoader.h"
+#include "service/ValidationErrorInfo.h"
+
+#include <mutex>
 
 class QLineEdit;
 class QToolButton;

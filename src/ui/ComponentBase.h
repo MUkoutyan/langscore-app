@@ -4,7 +4,8 @@
 #include <QCoreApplication>
 #include <QSettings>
 #include <QUndoStack>
-#include "ColorTheme.h"
+#include "service/ColorTheme.h"
+#include "service/ValidationErrorInfo.h"
 
 class ComponentBase
 {

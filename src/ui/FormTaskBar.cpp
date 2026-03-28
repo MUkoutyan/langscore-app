@@ -4,7 +4,7 @@
 #include "../graphics.hpp"
 
 #include "ColorDialog.h"
-#include "TranslationApiSettingsDialog.h"
+#include "dialog/TranslationApiSettingsDialog.h"
 
 #include <QActionGroup>
 #include <QMenuBar>

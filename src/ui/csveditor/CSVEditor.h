@@ -8,7 +8,7 @@
 #include "ComponentBase.h"
 #include "CSVEditDataManager.h"
 #include "CSVEditCommand.h"
-#include "../TranslationProgressDialog.h"
+#include "../dialog/TranslationProgressDialog.h"
 #include "../../translation/TranslationManager.h"
 
 
