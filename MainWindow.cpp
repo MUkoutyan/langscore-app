@@ -16,6 +16,8 @@
 #include <QFontDatabase>
 #include <QMessageBox>
 
+using namespace langscore;
+
 MainWindow::MainWindow(QWidget *parent)
     : FramelessWindow(parent)
     , ComponentBase()
@@ -24,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     , analyzeDialog(new AnalyzeDialog(this, this))
     , writeUi(new WriteModeComponent(this, this))
     , packingUi(new PackingMode(this, this))
+    , validationService(new ValidationService(this))
     , undoView(nullptr)
     , initialAnalysis(false)
     , explicitSave(false)
@@ -47,6 +50,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     this->ui->mainStackedWidget->addWidget(this->writeUi);
     this->ui->mainStackedWidget->addWidget(this->packingUi);
+
+    this->addDispatch(validationService);
+
 
     connect(this->writeUi, &WriteModeComponent::toNextPage, this, [this](){
         this->ui->mainStackedWidget->setCurrentWidget(this->packingUi);
@@ -109,7 +115,6 @@ MainWindow::MainWindow(QWidget *parent)
             this->setWindowTitle("Langscore");
         }
     });
-
 
     {
         attachTheme(ComponentBase::getColorTheme().getCurrentTheme());

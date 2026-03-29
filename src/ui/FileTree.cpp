@@ -19,6 +19,7 @@
 constexpr int FILEPATH_ROLE = Qt::UserRole + 1;
 constexpr int VISIBLE_ROLE = Qt::UserRole + 2;
 constexpr int PREVIOUSCHECKSTATE_ROLE = Qt::UserRole + 2;
+constexpr int ERROR_ITEM_ROLE = Qt::UserRole + 3;
 
 namespace {
     QTreeWidgetItem* getTopLevelItem(QTreeWidgetItem* item) {
@@ -86,6 +87,8 @@ FileTree::FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager> l
     , _suspendHistory(false)
     , graphicsImageLoader(nullptr)
     , graphicsLoaderThread(nullptr)
+    , attentionIcon(QIcon(":/images/resources/image/attention.svg"))
+    , warningIcon(QIcon(":/images/resources/image/warning.svg"))
 {
 
     this->treeWidget->header()->setVisible(false);
@@ -117,6 +120,7 @@ FileTree::FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager> l
     connect(graphicsImageLoader, &GraphicsImageLoader::imageLoaded,
             this, &FileTree::onGraphicsImageLoaded, Qt::QueuedConnection);
     graphicsLoaderThread->start();
+
 
 }
 
@@ -1008,6 +1012,14 @@ void FileTree::resetItemVisibility(QTreeWidgetItem* item)
     }
 }
 
+void FileTree::receive(DispatchType type, const QVariantList& args)
+{
+    if(type == DispatchType::NotifyFinishValidateCSV)
+    {
+        this->updateErrorTree();
+    }
+}
+
 void FileTree::FileTreeUndo::setValue(ValueType value) {
     this->parent->setTreeItemCheck(this->target, value);
 }
@@ -1216,4 +1228,372 @@ void FileTree::updateTreeVisibility()
     }
 
     this->update();
+}
+
+
+
+void FileTree::clearErrors()
+{
+    std::lock_guard<std::mutex> locker(this->errorMutex);
+    this->runtimeData->errors.clear();
+    this->runtimeData->updateList.clear();
+    this->errorInfoIndex = 0;
+
+    // 既存のツリーアイテムからエラー表示（子アイテムとアイコン）を削除
+    const int topLevelCount = this->treeWidget->topLevelItemCount();
+    for(int i = 0; i < topLevelCount; ++i)
+    {
+        QTreeWidgetItem* topItem = this->treeWidget->topLevelItem(i);
+        this->clearErrorItemsRecursive(topItem);
+    }
+}
+
+void FileTree::clearErrorItemsRecursive(QTreeWidgetItem* parent)
+{
+    // 子アイテムを削除するため、後ろからループ処理を行う
+    for(int i = parent->childCount() - 1; i >= 0; --i)
+    {
+        QTreeWidgetItem* child = parent->child(i);
+
+        // エラーアイテムとして追加されたものか判定する
+        if(child->data(TreeColIndex::Name, ERROR_ITEM_ROLE).toBool() == true)
+        {
+            parent->removeChild(child);
+            delete child;
+        }
+        else
+        {
+            // 通常のファイルアイテムならアイコンを消去し、さらにその子を再帰的にチェック
+            child->setIcon(TreeColIndex::Name, QIcon());
+            if(child->childCount() > 0)
+            {
+                this->clearErrorItemsRecursive(child);
+            }
+        }
+    }
+}
+
+QTreeWidgetItem* FileTree::findTreeItemByFileName(const QString& fileName)
+{
+    const int topLevelCount = this->treeWidget->topLevelItemCount();
+    for(int i = 0; i < topLevelCount; ++i)
+    {
+        QTreeWidgetItem* topItem = this->treeWidget->topLevelItem(i);
+        QTreeWidgetItem* foundItem = this->findTreeItemRecursive(topItem, fileName);
+        if(foundItem != nullptr)
+        {
+            return foundItem;
+        }
+    }
+    return nullptr;
+}
+
+QTreeWidgetItem* FileTree::findTreeItemRecursive(QTreeWidgetItem* parent, const QString& fileName)
+{
+    const int childCount = parent->childCount();
+    for(int i = 0; i < childCount; ++i)
+    {
+        QTreeWidgetItem* child = parent->child(i);
+
+        QString itemFileName = child->data(TreeColIndex::Name, Qt::UserRole).toString();
+
+        // ファイル名が完全に一致するか判定する
+        if(itemFileName == fileName)
+        {
+            return child;
+        }
+
+        if(child->childCount() > 0)
+        {
+            QTreeWidgetItem* foundItem = this->findTreeItemRecursive(child, fileName);
+            if(foundItem != nullptr)
+            {
+                return foundItem;
+            }
+        }
+    }
+    return nullptr;
+}
+
+void FileTree::addErrorText(QString text)
+{
+    if(text.isEmpty() == true)
+    {
+        return;
+    }
+
+    std::vector<ValidationErrorInfo> parsedInfos = this->processJsonBuffer(text);
+
+    this->errorMutex.lock();
+    for(auto&& info : parsedInfos)
+    {
+        QFileInfo fileInfo(info.filePath);
+        QString fileName = fileInfo.baseName();
+
+        this->runtimeData->errors[fileName].emplace_back(std::move(info));
+        this->runtimeData->updateList[fileName] = true;
+    }
+    this->errorMutex.unlock();
+
+    this->update();
+}
+
+void FileTree::updateErrorTree()
+{
+    bool updated = false;
+    for(auto& updateInfo : this->runtimeData->updateList)
+    {
+        if(updateInfo.second == false)
+        {
+            continue;
+        }
+        updated = true;
+
+        std::lock_guard<std::mutex> locker(this->errorMutex);
+        auto& infoList = this->runtimeData->errors[updateInfo.first];
+
+        QTreeWidgetItem* targetItem = this->findTreeItemByFileName(updateInfo.first);
+        if(targetItem == nullptr)
+        {
+            updateInfo.second = false;
+            continue;
+        }
+
+        for(auto& info : infoList)
+        {
+            if(info.shown == true)
+            {
+                continue;
+            }
+
+            // アイコンの設定（エラー優先で、警告は次点とする）
+            auto errorIter = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& infoItem) {
+                return infoItem.type == ValidationErrorInfo::Error;
+            });
+
+            if(errorIter != infoList.cend())
+            {
+                targetItem->setIcon(TreeColIndex::Name, this->attentionIcon);
+            }
+            else
+            {
+                auto warnIter = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& infoItem) {
+                    return infoItem.type == ValidationErrorInfo::Warning;
+                });
+
+                if(warnIter != infoList.cend())
+                {
+                    targetItem->setIcon(TreeColIndex::Name, this->warningIcon);
+                }
+            }
+
+            // エラー表示用の子アイテムを構築する
+            QTreeWidgetItem* child = new QTreeWidgetItem();
+            QString text;
+
+            if(info.type == ValidationErrorInfo::Warning)
+            {
+                child->setIcon(TreeColIndex::Name, this->warningIcon);
+                child->setForeground(TreeColIndex::Name, QColor(240, 227, 0));
+            }
+            else if(info.type == ValidationErrorInfo::Error)
+            {
+                child->setIcon(TreeColIndex::Name, this->attentionIcon);
+                child->setForeground(TreeColIndex::Name, QColor(236, 11, 0));
+            }
+
+            switch(info.summary)
+            {
+            case ValidationErrorInfo::EmptyCol:
+                text += tr(" Empty Column") + "[" + info.language + "]";
+                break;
+            case ValidationErrorInfo::NotFoundEsc:
+                text += tr(" Not Found Esc") + "[" + info.language + "] (" + info.detail + ")";
+                break;
+            case ValidationErrorInfo::UnclosedEsc:
+                text += tr(" Unclosed Esc") + "[" + info.language + "] (" + info.detail + ")";
+                break;
+            case ValidationErrorInfo::IncludeCR:
+                text += tr(" Include \"\r\n\"");
+                break;
+            case ValidationErrorInfo::NotEQLang:
+                text += tr(" The specified language does not match the language in the CSV");
+                break;
+            case ValidationErrorInfo::PartiallyClipped:
+                text += tr(" Part of this text is cut off.");
+                break;
+            case ValidationErrorInfo::FullyClipped:
+                text += tr(" This text is completely cut off.");
+                break;
+            case ValidationErrorInfo::OverTextCount:
+                text += tr(" The specified number of characters has been exceeded. (num %1)").arg(info.width);
+                break;
+            case ValidationErrorInfo::InvalidCSV:
+                if(info.detail.isEmpty() == true)
+                {
+                    text += tr(" Invalid CSV, This may be due to the description around the %1 line.").arg(info.row);
+                }
+                else
+                {
+                    text += tr(" Invalid CSV. The description around %2 in the %1 row may be cause.").arg(info.row).arg(info.detail);
+                }
+                break;
+            default:
+                break;
+            }
+
+            child->setText(TreeColIndex::Name, tr("Line") + QString::number(info.row) + " : " + text);
+            child->setData(TreeColIndex::Name, Qt::UserRole, info.id);
+            child->setData(TreeColIndex::Name, ERROR_ITEM_ROLE, true); // エラーアイテムとしての識別用フラグ
+
+            targetItem->addChild(child);
+            targetItem->setExpanded(true); // エラーが発生したアイテムは展開して見やすくする
+
+            info.shown = true;
+        }
+
+        updateInfo.second = false;
+    }
+}
+
+std::vector<ValidationErrorInfo> FileTree::processJsonBuffer(const QString& input)
+{
+    std::vector<ValidationErrorInfo> parsedErrors;
+    int currentPos = 0;
+    const int inputLength = input.length();
+
+    while(currentPos < inputLength)
+    {
+        int startIndex = input.indexOf('{', currentPos);
+        if(startIndex == -1)
+        {
+            break;
+        }
+
+        int depth = 0;
+        bool inString = false;
+        bool isEscaped = false;
+        int endIndex = -1;
+
+        for(int i = startIndex; i < inputLength; ++i)
+        {
+            QChar character = input.at(i);
+            if(inString == true)
+            {
+                if(isEscaped == true)
+                {
+                    isEscaped = false;
+                }
+                else
+                {
+                    if(character == '\\')
+                    {
+                        isEscaped = true;
+                    }
+                    else if(character == '"')
+                    {
+                        inString = false;
+                    }
+                }
+            }
+            else
+            {
+                if(character == '"')
+                {
+                    inString = true;
+                }
+                else if(character == '{')
+                {
+                    ++depth;
+                }
+                else if(character == '}')
+                {
+                    --depth;
+                    if(depth == 0)
+                    {
+                        endIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(endIndex == -1)
+        {
+            break;
+        }
+
+        QString jsonStr = input.mid(startIndex, endIndex - startIndex + 1).trimmed();
+
+        QJsonParseError parseError;
+        QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
+        if(parseError.error != QJsonParseError::NoError)
+        {
+            qWarning() << "JSON parse error:" << parseError.errorString() << "in:" << jsonStr;
+        }
+        else if(jsonDocument.isObject() == false)
+        {
+            qWarning() << "JSON is not an object:" << jsonStr;
+        }
+        else
+        {
+            QJsonObject jsonObject = jsonDocument.object();
+            ValidationErrorInfo errorInfo;
+
+            this->errorInfoIndex = this->errorInfoIndex + 1;
+            errorInfo.id = this->errorInfoIndex;
+
+            if(jsonObject.contains("Type") == true)
+            {
+                int typeValue = jsonObject.value("Type").toInt();
+                if(ValidationErrorInfo::Error <= typeValue && typeValue < ValidationErrorInfo::Invalid)
+                {
+                    errorInfo.type = static_cast<ValidationErrorInfo::ErrorType>(typeValue);
+                }
+                else
+                {
+                    errorInfo.type = ValidationErrorInfo::Invalid;
+                }
+            }
+
+            if(jsonObject.contains("Summary") == true)
+            {
+                int summaryValue = jsonObject.value("Summary").toInt();
+                if(ValidationErrorInfo::None < summaryValue && summaryValue < ValidationErrorInfo::Max)
+                {
+                    errorInfo.summary = static_cast<ValidationErrorInfo::ErrorSummary>(summaryValue);
+                }
+                else
+                {
+                    errorInfo.summary = ValidationErrorInfo::None;
+                }
+            }
+            if(jsonObject.contains("File") == true)
+            {
+                errorInfo.filePath = jsonObject.value("File").toString();
+            }
+            if(jsonObject.contains("Row") == true)
+            {
+                errorInfo.row = static_cast<size_t>(jsonObject.value("Row").toInteger());
+            }
+            if(jsonObject.contains("Width") == true)
+            {
+                errorInfo.width = jsonObject.value("Width").toInt();
+            }
+            if(jsonObject.contains("Language") == true)
+            {
+                errorInfo.language = jsonObject.value("Language").toString();
+            }
+            if(jsonObject.contains("Details") == true)
+            {
+                errorInfo.detail = jsonObject.value("Details").toString();
+            }
+
+            parsedErrors.emplace_back(std::move(errorInfo));
+        }
+
+        currentPos = endIndex + 1;
+    }
+
+    return parsedErrors;
 }

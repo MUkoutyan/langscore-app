@@ -376,13 +376,21 @@ QJsonArray serializeIgnorePictures(const settings::WriteProps& writeObj) {
     return ignorePictures;
 }
 
-QJsonObject serializeValidate(const settings::ValidationProps& validateObj) {
+QJsonObject serializeValidate(const settings::ValidationProps& validateObj) 
+{
     QJsonObject validateJsonObjs;
     QJsonArray controlCharList;
     for(const auto& controlChar : validateObj.controlCharList) {
         controlCharList.append(controlChar);
     }
     validateJsonObjs[key(JsonKey::ControlCharList)] = controlCharList;
+
+    QJsonArray csvNameList;
+    for(const auto& name : validateObj.csvNameList) {
+        csvNameList.append(name);
+    }
+    validateJsonObjs[key(JsonKey::ValidateCSVNameList)] = csvNameList;
+
     return validateJsonObjs;
 }
 

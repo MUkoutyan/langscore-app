@@ -159,6 +159,9 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
     this->setSelectionMode(QAbstractItemView::ExtendedSelection);
     this->setContextMenuPolicy(Qt::CustomContextMenu);
 
+    this->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+    this->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+
     // マルチライン編集デリゲートを設定
     auto* multiLineDelegate = new MultiLineEditDelegate(this);
     this->setItemDelegate(multiLineDelegate);
@@ -178,7 +181,6 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
             this, &CSVEditor::onTranslationProgress);
 
     auto hHeader = this->horizontalHeader();
-    hHeader->setHorizontalScrollMode(QHeaderView::ScrollPerPixel);
     connect(hHeader, &QHeaderView::sectionResized, this, [this](int, int, int) {
         this->viewport()->update();
     });

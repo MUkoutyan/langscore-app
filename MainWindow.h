@@ -18,6 +18,7 @@ QT_END_NAMESPACE
 class WriteModeComponent;
 class AnalyzeDialog;
 class PackingMode;
+class invoker;
 class MainWindow : public FramelessWindow, public ComponentBase
 {
     Q_OBJECT
@@ -34,7 +35,10 @@ private:
     AnalyzeDialog* analyzeDialog;
     WriteModeComponent* writeUi;
     PackingMode* packingUi;
+    langscore::ValidationService* validationService;
     QUndoView* undoView;
+
+    bool _finishInvoke;
 
     bool initialAnalysis;
     bool explicitSave;

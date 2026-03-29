@@ -65,12 +65,15 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         this->ui->scriptViewer = this->scriptViewer;
 
         this->fileTree = new FileTree(this, this->csvEditDataManager, this);
+        this->addDispatch(this->fileTree);
         this->ui->splitter_2->insertWidget(0, this->fileTree);
 
         this->mainTable = new MainCSVTable(this, this->csvEditDataManager, this);
+        this->addDispatch(this->mainTable);
         this->ui->verticalLayout->addWidget(this->mainTable, 1);
 
         this->scriptTable = new ScriptCSVTable(this, this->csvEditDataManager, this);
+        this->addDispatch(this->scriptTable);
         this->ui->verticalLayout_8->addWidget(this->scriptTable, 1);
     }
 

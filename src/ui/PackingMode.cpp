@@ -19,16 +19,6 @@
 #include <QJsonObject>
 #include <QClipboard>
 
-enum ErrorTextCol
-{
-    Type = 0,
-    Summary,
-    Language,
-    Details,
-    File,
-    Row,
-};
-
 PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     : QWidget{parent}
     , ComponentBase(settings)
@@ -38,13 +28,10 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     , csvTableViewModel(new PackingCSVTableViewModel())
     , clipDetectSettingTree(new ClipDetectSettingTree(this->setting, this->history, this))
     , _finishInvoke(false)
-    , errorInfoIndex(0)
     , currentShowCSVName("")
     , isValidate(false)
     , showLog(false)
     , suspendResizeToContents(false)
-    , attentionIcon(":/images/resources/image/attention.svg")
-    , warningIcon(":/images/resources/image/warning.svg")
     , treeMenu(nullptr)
 {
     ui->setupUi(this);
@@ -82,7 +69,6 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     connect(this->ui->packingSourceDirectory, &QLineEdit::textChanged, this, &PackingMode::setPackingSourceDir);
 
     connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
-    connect(_invoker, &invoker::getStdOut, this, &PackingMode::addErrorText);
     connect(_invoker, &invoker::finish, this, [this](int, QProcess::ExitStatus status)
     {
         if(status == QProcess::ExitStatus::CrashExit){
@@ -130,7 +116,7 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         if(item->parent()){
             //警告やエラーのアイテムがクリックされた。
             this->setupCsvTable(item->parent()->data(0, Qt::UserRole).toString());
-            this->highlightError(item);
+            //this->highlightError(item);
         }
         else{
             this->setupCsvTable(item->data(0, Qt::UserRole).toString());
@@ -264,7 +250,7 @@ void PackingMode::setupCsvTable(QString fileName)
         this->currentShowCSVName = fileName;
     };
 
-    if(this->errors.find(fileName) != this->errors.end()) {
+/*    if(this->errors.find(fileName) != this->errors.end()) {
         auto find_result = std::ranges::find_if(this->errors[fileName], [](const auto& x) {
             return x.type == ValidationErrorInfo::Error && x.summary == ValidationErrorInfo::InvalidCSV;
         });
@@ -276,7 +262,7 @@ void PackingMode::setupCsvTable(QString fileName)
             SetInvalidCsvMessage(info.row, info.detail);
             return;
         }
-    }
+    }*/
 
     std::vector<std::vector<QString>> allRows;
     QStringList _header;
@@ -367,11 +353,11 @@ void PackingMode::setupCsvTable(QString fileName)
         this->ui->tableView->show();
     }
 
-    _mutex.lock();
+/*    _mutex.lock();
     if(errors.find(fileName) != errors.end()) {
         this->csvTableViewModel->appendErrors(errors[fileName]);
     }
-    _mutex.unlock();
+    _mutex.unlock();*/
 
     auto *targetTable = this->ui->tableView;
     targetTable->setModel(csvTableViewModel);
@@ -415,13 +401,13 @@ void PackingMode::setupCsvTree()
         item->setData(0, Qt::UserRole, fileName);
         item->setText(0, fileName);
 
-        treeTopItemList[fileName] = item;
+        //treeTopItemList[fileName] = item;
         this->ui->treeWidget->addTopLevelItem(item);
     }
 
 }
 
-void PackingMode::highlightError(QTreeWidgetItem *treeItem)
+/*void PackingMode::highlightError(QTreeWidgetItem *treeItem)
 {
     auto id = treeItem->data(0, Qt::UserRole).toULongLong();
     if(id == 0){ return; }
@@ -460,7 +446,7 @@ void PackingMode::highlightError(QTreeWidgetItem *treeItem)
         }
     }
 
-}
+}*/
 
 void PackingMode::showEvent(QShowEvent*)
 {
@@ -520,14 +506,13 @@ void PackingMode::validate()
     this->ui->tableView->blockSignals(true);
 
     this->ui->treeWidget->clear();
-    this->treeTopItemList.clear();
+    //this->treeTopItemList.clear();
     // this->ui->tableView->clear();
     // this->ui->tableView->clearContents();
-    this->updateList.clear();
-    this->errors.clear();
+    //this->updateList.clear();
+    //this->errors.clear();
 
     this->currentShowCSVName = "";
-    this->errorInfoIndex = 0;
     this->isValidate = true;
 
     auto searchPackingSourceDir = this->ui->packingSourceDirectory->text();
@@ -569,11 +554,7 @@ void PackingMode::validate()
     }
 
     this->showLog = false;
-    _finishInvoke = false;
-    _invoker->validate();
-    updateTimer = new QTimer();
-    connect(updateTimer, &QTimer::timeout, this, &PackingMode::updateTree);
-    updateTimer->start(100);
+
 }
 
 void PackingMode::packing()
@@ -592,204 +573,7 @@ void PackingMode::packing()
     _invoker->packing();
 }
 
-std::vector<ValidationErrorInfo> PackingMode::processJsonBuffer(const QString& input)
-{
-    std::vector<ValidationErrorInfo> errors;
-    int pos = 0;
-    const int len = input.length();
 
-    // 入力全体を走査
-    while(pos < len)
-    {
-        // JSON オブジェクトは '{' で始まると仮定
-        int start = input.indexOf('{', pos);
-        if(start == -1)
-            break;  // '{' が見つからなければ終了
-
-        // '{' から対応する '}' を探す
-        int depth = 0;
-        bool inString = false;  // ダブルクォート内かどうか
-        bool escape = false;    // エスケープ中かどうか
-        int end = -1;
-        for(int i = start; i < len; ++i)
-        {
-            QChar ch = input.at(i);
-            if(inString)
-            {
-                // 文字列内はエスケープ処理に注意
-                if(escape)
-                {
-                    escape = false;
-                }
-                else
-                {
-                    if(ch == '\\')
-                        escape = true;
-                    else if(ch == '"')
-                        inString = false;
-                }
-            }
-            else
-            {
-                if(ch == '"')
-                {
-                    inString = true;
-                }
-                else if(ch == '{')
-                {
-                    ++depth;
-                }
-                else if(ch == '}')
-                {
-                    --depth;
-                    if(depth == 0)
-                    {
-                        end = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // 終端が見つからなければ、後続のデータを待つ必要があるので break
-        if(end == -1)
-            break;
-
-        // 完全な JSON オブジェクトを抽出（trim() して不要な空白を除去）
-        QString jsonStr = input.mid(start, end - start + 1).trimmed();
-
-        // UTF-8 に変換してから QJsonDocument でパース
-        QJsonParseError parseError;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
-        if(parseError.error != QJsonParseError::NoError)
-        {
-            qWarning() << "JSON parse error:" << parseError.errorString() << "in:" << jsonStr;
-        }
-        else if(!doc.isObject())
-        {
-            qWarning() << "JSON is not an object:" << jsonStr;
-        }
-        else
-        {
-            QJsonObject obj = doc.object();
-            ValidationErrorInfo info;
-            info.id = (++errorInfoIndex);   //1開始にする
-
-            if(obj.contains("Type"))
-            {
-                int type = obj.value("Type").toInt();
-                if(ValidationErrorInfo::Error <= type && type < ValidationErrorInfo::Invalid) {
-                    info.type = static_cast<ValidationErrorInfo::ErrorType>(type);
-                }
-                else {
-                    info.type = ValidationErrorInfo::Invalid;
-                }
-            }
-
-            if(obj.contains("Summary"))
-            {
-                int summary = obj.value("Summary").toInt();
-                if(ValidationErrorInfo::None < summary && summary < ValidationErrorInfo::Max) {
-                    info.summary = static_cast<ValidationErrorInfo::ErrorSummary>(summary);
-                } 
-                else {
-                    info.summary = ValidationErrorInfo::None;
-                }
-            }
-            if(obj.contains("File")) {
-                info.filePath = obj.value("File").toString();
-            }
-            if(obj.contains("Row")) {
-                info.row = static_cast<size_t>(obj.value("Row").toInteger());
-            }
-            if(obj.contains("Width")) {
-                info.width = obj.value("Width").toInt();
-            }
-            if(obj.contains("Language")) {
-                info.language = obj.value("Language").toString();
-            }
-            if(obj.contains("Details")) {
-                info.detail = obj.value("Details").toString();
-            }
-
-
-            // 1件の ErrorInfo を追加
-            errors.emplace_back(std::move(info));
-        }
-
-        // 次の JSON オブジェクトの探索位置を更新
-        pos = end + 1;
-    }
-
-    return errors;
-}
-
-void PackingMode::addErrorText(QString text)
-{
-    if(text.isEmpty()){ return; }
-
-    auto infos = processJsonBuffer(text);
-    std::vector<ValidationErrorInfo> needUpdateErrorInfos;
-    auto currentFileName = this->csvTableViewModel->getCurrentCsvFileName();
-    for(auto&& info : infos)
-    {
-        QFileInfo fileInfo(info.filePath);
-        auto fileName = fileInfo.baseName();
-        _mutex.lock();
-        if(currentFileName == fileName) {
-            if(fileName == currentFileName) {
-                needUpdateErrorInfos.emplace_back(info);
-            }
-        }
-        errors[fileName].emplace_back(std::move(info));
-        updateList[fileName] = true;
-        _mutex.unlock();
-    }
-
-    if(needUpdateErrorInfos.empty() == false) {
-        this->csvTableViewModel->appendErrors(std::move(needUpdateErrorInfos));
-    }
-
-    this->update();
-}
-
-ValidationErrorInfo PackingMode::convertErrorInfo(std::vector<QString> csvText)
-{
-    ValidationErrorInfo info;
-
-    auto typeText = csvText[ErrorTextCol::Type];
-    if(typeText == "Warning"){
-        info.type = ValidationErrorInfo::Warning;
-    }
-    else if(typeText == "Error"){
-        info.type = ValidationErrorInfo::Error;
-    }
-    else {
-        info.type = ValidationErrorInfo::Invalid;
-        return info;
-    }
-
-    bool isOk = false;
-    auto summaryRaw = csvText[ErrorTextCol::Summary].toInt(&isOk);
-    if(isOk)
-    {
-        if(ValidationErrorInfo::EmptyCol <= summaryRaw && summaryRaw <= ValidationErrorInfo::Max){
-            info.summary = static_cast<ValidationErrorInfo::ErrorSummary>(summaryRaw);
-        }
-        else{
-            info.summary = ValidationErrorInfo::None;
-            info.type = ValidationErrorInfo::Invalid;
-            return info;
-        }
-    }
-
-    info.language   = csvText[ErrorTextCol::Language];
-    info.detail     = csvText[ErrorTextCol::Details];
-    info.row        = csvText[ErrorTextCol::Row].toULongLong();
-    info.id         = (++errorInfoIndex);   //1開始にする
-
-    return info;
-}
 
 void PackingMode::resizeCsvTable()
 {
@@ -800,121 +584,6 @@ void PackingMode::resizeCsvTable()
     this->ui->tableView->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
 }
 
-void PackingMode::updateTree()
-{
-    bool updated = false;
-    for(auto& updateInfo : updateList)
-    {
-        if(updateInfo.second == false){ continue; }
-        updated = true;
-
-        std::lock_guard<std::mutex> locker(_mutex);
-        auto& infoList = errors[updateInfo.first];
-        for(auto& info : infoList)
-        {
-            if(info.shown){ continue; }
-
-            QTreeWidgetItem* item = nullptr;
-            if(treeTopItemList.find(updateInfo.first) == treeTopItemList.end()){
-                item = new QTreeWidgetItem();
-                item->setText(0, updateInfo.first);
-
-                treeTopItemList[updateInfo.first] = item;
-                this->ui->treeWidget->addTopLevelItem(item);
-            }
-            else {
-                item = treeTopItemList[updateInfo.first];
-
-                //アイコンの設定　エラー優先で警告は次点
-                auto error = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& x){ return x.type == ValidationErrorInfo::Error; });
-                if(error != infoList.cend()){
-                    item->setIcon(0, attentionIcon);
-                }
-                else
-                {
-                    auto warn = std::find_if(infoList.cbegin(), infoList.cend(), [](const auto& x){ return x.type == ValidationErrorInfo::Warning; });
-                    if(warn != infoList.cend()){
-                        item->setIcon(0, warningIcon);
-                    }
-                }
-            }
-
-            auto child = new QTreeWidgetItem();
-            [&](QTreeWidgetItem* item)
-            {
-                QString text;
-                if(info.type == ValidationErrorInfo::Warning){
-                    item->setIcon(0, warningIcon);
-                    item->setForeground(0, QColor(240, 227, 0));
-                }
-                else if(info.type == ValidationErrorInfo::Error){
-                    item->setIcon(0, attentionIcon);
-                    item->setForeground(0, QColor(236, 11, 0));
-                }
-
-
-                 switch(info.summary){
-                     case ValidationErrorInfo::EmptyCol:
-                         text += tr(" Empty Column") + "[" + info.language + "]";
-                         break;
-                     case ValidationErrorInfo::NotFoundEsc:
-                         text += tr(" Not Found Esc") + "[" + info.language + "] (" + info.detail + ")";
-                         break;
-                     case ValidationErrorInfo::UnclosedEsc:
-                         text += tr(" Unclosed Esc") + "[" + info.language + "] (" + info.detail + ")";
-                         break;
-                     case ValidationErrorInfo::IncludeCR:
-                         text += tr(" Include \"\r\n\"");
-                         break;
-                     case ValidationErrorInfo::NotEQLang:
-                         text += tr(" The specified language does not match the language in the CSV");
-                         break;
-                     case ValidationErrorInfo::PartiallyClipped:
-                         //この文章は一部が見切れています。
-                         text += tr(" Part of this text is cut off.");
-                         break;
-                     case ValidationErrorInfo::FullyClipped:
-                         //この文章は完全に見切れています。
-                         text += tr(" This text is completely cut off.");
-                         break;
-                     case ValidationErrorInfo::OverTextCount:
-                         //指定した文字数を超過しています。
-                         text += tr(" The specified number of characters has been exceeded. (num %1)").arg(info.width);
-                         break;
-                     case ValidationErrorInfo::InvalidCSV:
-                         if(info.detail.isEmpty()) {
-                             //無効なCSVです。%1行目辺りの記述が原因かもしれません。
-                             text += tr(" Invalid CSV, This may be due to the description around the %1 line.").arg(info.row);
-                         }
-                         else {
-                             //無効なCSVです。%1行目の%2辺りの記述が原因かもしれません。
-                             text += tr(" Invalid CSV. The description around %2 in the %1 row may be cause.").arg(info.row).arg(info.detail);
-                         }
-                         break;
-                     default:
-                         break;
-                 }
-                 
-                child->setText(0, tr("Line") + QString::number(info.row)+" : " + text);
-
-            }(child);
-            child->setData(0, Qt::UserRole, info.id);
-            item->addChild(child);
-            info.shown = true;
-        }
-        updateInfo.second = false;
-    }
-
-    if(_finishInvoke && updated == false){
-        delete this->updateTimer;
-        this->updateTimer = nullptr;
-        this->ui->validateButton->setEnabled(true);
-
-        if(this->ui->treeWidget->topLevelItemCount() == 0){
-            this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
-        }
-    }
-}
 
 void PackingMode::setPackingSourceDir(QString path)
 {

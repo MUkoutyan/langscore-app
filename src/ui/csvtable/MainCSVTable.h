@@ -13,6 +13,7 @@
 
 struct ScriptTextData; // 前方宣言
 class MainCSVTableModel;
+class invoker;
 class MainCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
@@ -69,10 +70,12 @@ private:
     std::weak_ptr<CSVEditDataManager> loadFileManager;
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
+    QPushButton* validateButton;
     QToolButton* settingButton;
     QWidget* settingPane;
     MainCSVTableModel* currentModel;
     CSVEditor* csvEditor;
-
-
+    invoker* _invoker;
+    QTimer* updateTimer;
+    bool _finishInvoke;
 };

@@ -15,6 +15,7 @@
 #include "../utility.hpp"
 #include "../csv.hpp"
 #include "../graphics.hpp"
+#include "../invoker.h"
 #include "CSVEditDataManager.h"
 #include "MainCSVTableModel.h"
 
@@ -22,12 +23,17 @@ using namespace langscore;
 
 
 MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
-    : ComponentBase(component), QWidget(parent), loadFileManager(loadFileManager)
+    : ComponentBase(component), QWidget(parent)
+    , loadFileManager(loadFileManager)
     , mainFileName(new QLabel(this)), mainFileWordCount(new QLabel(this))
+    , validateButton(new QPushButton(tr("Validate")))
     , settingButton(new QToolButton(this))
     , settingPane(new QWidget(this))
     , currentModel(nullptr)
     , csvEditor(new CSVEditor(this->loadFileManager, this, this))
+    , _invoker(new invoker(this))
+    , updateTimer(nullptr)
+    , _finishInvoke(false)
 {
     //設定ダイアログ
     {
@@ -84,6 +90,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
         });
     }
 
+    this->validateButton->setEnabled(false);
+
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
     vLayout->setSpacing(0);
@@ -92,6 +100,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     hLayout->setContentsMargins(0, 0, 0, 0);
     hLayout->addWidget(this->mainFileName);
     hLayout->addStretch(1);
+    hLayout->addWidget(this->validateButton);
     hLayout->addWidget(this->mainFileWordCount);
 
     this->settingButton->setText("Settings");
@@ -102,6 +111,11 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     this->setLayout(vLayout);
 
     this->setupTable();
+
+    connect(validateButton, &QPushButton::clicked, this, [this]()
+    {
+        this->dispatch(DispatchType::ValidateCSV, {this->mainFileName->text()});
+    });
 }
 
 void MainCSVTable::clear()
@@ -127,6 +141,7 @@ void MainCSVTable::setupTable()
     if (auto* mainModel = qobject_cast<MainCSVTableModel*>(this->csvEditor->model())) {
         mainModel->clearAll();
         mainModel->setSettings(this->setting);
+        mainModel->setRuntimeData(this->runtimeData);
     }
     
     this->csvEditor->blockSignals(false);
@@ -190,6 +205,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     // テーブルビューにモデルを設定
     this->csvEditor->setModel(mainModel);
     mainModel->setSettings(this->setting);
+    mainModel->setRuntimeData(this->runtimeData);
     
     // 言語列を追加
     size_t index = 1;
@@ -202,6 +218,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
 
     // ファイル名とワードカウントを更新
     this->mainFileName->setText(treeItemName);
+    this->validateButton->setEnabled(true);
     
     QTimer::singleShot(0, this, [this]() {
         this->csvEditor->setUpdatesEnabled(false);
@@ -234,6 +251,19 @@ void MainCSVTable::TableUndo::setValue(ValueType value)
         currentModel->setData(this->target, value, Qt::EditRole);
     }
 }
+
+void MainCSVTable::receive(DispatchType type, const QVariantList& args)
+{
+    if(type == DispatchType::SaveProject)
+    {
+        auto editingDir = this->setting->langscoreProjectDirectory + "/editing";
+    }
+    else if(type == DispatchType::NotifyFinishValidateCSV)
+    {
+        this->update();
+    }
+}
+
 
 void MainCSVTable::TableUndo::undo() {
     this->setValue(oldValue);

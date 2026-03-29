@@ -812,15 +812,6 @@ void ScriptCSVTable::setScriptFileName(QString fileName)
     this->scriptFileName->setText(fileName);
 }
 
-void MainCSVTable::receive(DispatchType type, const QVariantList& args)
-{
-    if(type == DispatchType::SaveProject)
-    {
-        auto editingDir = this->setting->langscoreProjectDirectory + "/editing";
-
-    }
-}
-
 void ScriptCSVTable::TableUndo::setValue(ValueType value) {
     this->parent->setScriptTableItemCheck(this->target, value ? Qt::Checked : Qt::Unchecked);
 }

@@ -10,17 +10,27 @@
 class ComponentBase
 {
 public:
+    struct RuntimeData {
+        std::unordered_map<QString, std::vector<ValidationErrorInfo>> errors;
+        std::unordered_map<QString, bool> updateList;
+    };
 
     enum DispatchType {
         StatusMessage,  //文字列, 秒数
         SaveProject,    //無し
         EnableBlur,
         DisableBlur,
-        ChangeColor     //Theme
+        ChangeColor,    //Theme
+        ValidateCSV,
+        NotifyFinishValidateCSV,
     };
 
-    ComponentBase():setting(std::make_shared<settings>()), history(new QUndoStack), dispatchComponentList(std::make_shared<std::vector<ComponentBase*>>()){}
-    ComponentBase(ComponentBase* t):setting(t->setting), history(t->history), dispatchComponentList(t->dispatchComponentList){}
+    ComponentBase()
+        : setting(std::make_shared<settings>()), runtimeData(std::make_shared<RuntimeData>())
+        , history(new QUndoStack), dispatchComponentList(std::make_shared<std::vector<ComponentBase*>>()){}
+    ComponentBase(ComponentBase* t)
+        : setting(t->setting), runtimeData(t->runtimeData), history(t->history)
+        , dispatchComponentList(t->dispatchComponentList){}
 
     ComponentBase(const ComponentBase&) = delete;
     ComponentBase(ComponentBase&&) = delete;
@@ -39,7 +49,9 @@ public:
 
 protected:
 
+
     std::shared_ptr<settings> setting;
+    std::shared_ptr<RuntimeData> runtimeData;
     QUndoStack* history;
     std::shared_ptr<std::vector<ComponentBase*>> dispatchComponentList;
 

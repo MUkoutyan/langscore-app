@@ -97,6 +97,7 @@ public:
     struct ValidationProps
     {
         QStringList controlCharList;
+        QStringList csvNameList;
     };
 
 

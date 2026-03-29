@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include "FastCSVContainer.h"
+#include "../ComponentBase.h"
 #include "service/ValidationErrorInfo.h"
 #include "../../settings.h"
 
@@ -42,6 +43,7 @@ public:
     const std::vector<std::vector<QString>>& dataRaw() const;
 
     void setSettings(std::shared_ptr<settings> setting);
+    void setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting);
 
     void setUseLanguageFont(bool use) {
         this->useLanguageFont = use;
@@ -54,10 +56,15 @@ public:
     }
 
 
+    void appendErrors(std::vector<ValidationErrorInfo> infos);
+
+
 private:
     langscore::FastCSVContainer csvContainer;
+    QString currentShowFileName;
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;
+    std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
 };
 
 } // namespace langscore

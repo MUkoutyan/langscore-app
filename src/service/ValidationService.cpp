@@ -37,9 +37,20 @@ ValidationService::ValidationService(ComponentBase* t)
 
 void ValidationService::receive(DispatchType type, const QVariantList& args)
 {
-    if(type == DispatchType::ValidateCSV) {
+    if(type == DispatchType::ValidateCSV) 
+    {
+        this->runtimeData->errors.clear();
+        this->runtimeData->updateList.clear();
         this->_finishInvoke = false;
+
+        QStringList checkFileList;
+        for(const auto& var : args) {
+            checkFileList.append(var.toString());
+        }
+        this->setting->validateObj.csvNameList = checkFileList;
+        this->setting->saveForProject();
         _invoker->validate();
+        this->setting->validateObj.csvNameList.clear();
     }
 }
 

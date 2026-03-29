@@ -52,6 +52,8 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
         return false;
     }
 
+    currentShowFileName = QString::fromStdString(file.filesystemFileName().stem().string());
+
     beginResetModel();
 
     // コンテナをクリア
@@ -124,6 +126,49 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
     {
         QSize size(370, -1);
         return size;
+    }
+    else if(role == Qt::BackgroundRole)
+    {
+        const auto& errors = this->_runtimeData->errors;
+        if(errors.empty()) {
+            return QVariant();
+        }
+
+        if(errors.find(currentShowFileName) == errors.end()) {
+            return QVariant();
+        }
+        const auto& errorList = errors.at(currentShowFileName);
+
+        auto find_result = std::ranges::find_if(errorList, [this, row, h = csvContainer.headers()[col]](const auto& x) {
+            return x.row - 1 == row && h == x.language;
+        });
+        if(find_result != errorList.end()) {
+            if(find_result->type == ValidationErrorInfo::Error) {
+                return QColor(236, 11, 0, 51);
+            }
+            else if(find_result->type == ValidationErrorInfo::Warning) {
+                return QColor(240, 227, 0, 51);
+            }
+        }
+    }
+    else if(role == Qt::UserRole)
+    {
+        const auto& errors = this->_runtimeData->errors;
+        if(errors.empty()) {
+            return QVariant();
+        }
+
+        if(errors.find(currentShowFileName) == errors.end()) {
+            return QVariant();
+        }
+        const auto& errorList = errors.at(currentShowFileName);
+
+        auto find_result = std::ranges::find_if(errorList, [this, row, h = csvContainer.headers()[col]](const auto& x) {
+            return x.row - 1 == row && h == x.language;
+            });
+        if(find_result != errorList.end()) {
+            return find_result->id;
+        }
     }
 
     if(role != Qt::DisplayRole && role != Qt::EditRole) {
@@ -250,6 +295,20 @@ const std::vector<std::vector<QString>>& CSVEditorTableModel::dataRaw() const {
 void CSVEditorTableModel::setSettings(std::shared_ptr<settings> setting)
 {
     this->_settings = std::move(setting);
+}
+
+void CSVEditorTableModel::setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting)
+{
+    this->_runtimeData = std::move(setting);
+}
+
+void CSVEditorTableModel::appendErrors(std::vector<ValidationErrorInfo> infos)
+{
+    beginResetModel();
+    //for(auto&& info : infos) {
+    //    this->_runtimeData->errors.emplace_back(std::move(info));
+    //}
+    endResetModel();
 }
 
 } // namespace langscore

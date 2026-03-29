@@ -12,6 +12,8 @@
 class QLineEdit;
 class QToolButton;
 class QHBoxLayout;
+class QTimer;
+class invoker;
 class FileTree : public QWidget, public ComponentBase
 {
     Q_OBJECT
@@ -21,7 +23,7 @@ public:
         Basic,
         Map,
         Script,
-        Pictures
+        Pictures,
     };
 
     enum TreeColIndex {
@@ -82,6 +84,8 @@ public:
     void updateTreeTextColor();
     void updateTreeVisibility();
 
+    void clearErrors();
+
 signals:
     // Scriptタブでスクリプトファイル名に該当する行をスクロール・選択する
     void scriptTableScrollToRow(const QString& scriptFileName);
@@ -116,6 +120,10 @@ private:
     void expandItemsWithChildren(QTreeWidgetItem* item);
     void resetItemVisibility(QTreeWidgetItem* item);
 
+    void receive(DispatchType type, const QVariantList& args) override;
+
+    invoker* _invoker;
+
     QLineEdit* searchLineEdit = nullptr;
     QHBoxLayout* searchLayout = nullptr;
     bool isFiltering = false;
@@ -133,9 +141,30 @@ private:
     QThread* graphicsLoaderThread = nullptr;
     QMap<QString, QTreeWidgetItem*> graphicsItemMap; // filePath -> item
 
+
+    std::unordered_map<QString, QTreeWidgetItem*> treeTopItemList;
+    size_t errorInfoIndex;
+
+    std::mutex errorMutex;
+    QIcon attentionIcon;
+    QIcon warningIcon;
+
+
+    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input);
+    QTreeWidgetItem* findTreeItemByFileName(const QString& fileName);
+    QTreeWidgetItem* findTreeItemRecursive(QTreeWidgetItem* parent, const QString& fileName);
+    void clearErrorItemsRecursive(QTreeWidgetItem* parent);
+
+    //キーはファイルパス
+    ValidationErrorInfo convertErrorInfo(std::vector<QString> csvText);
+
 private slots:
     void onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image);
     void showContextMenu(const QPoint& position);
     void toggleItemVisibility(QTreeWidgetItem* targetItem); // hideSelectedItem をこちらに変更します
     void toggleShowHiddenFiles(bool isChecked);
+    
+    //検証で使用するメソッド
+    void addErrorText(QString text);
+    void updateErrorTree();
 };

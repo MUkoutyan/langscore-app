@@ -36,34 +36,6 @@ class PackingMode;
 //    void detectModeIndexChanged(const QModelIndex& index, int value) const;
 //};
 
-struct ValidationErrorInfo
-{
-    enum ErrorType { Error, Warning, Invalid };
-    enum ErrorSummary {
-        None = -1,          //エラーなし
-        EmptyCol = 0,       //翻訳文が空
-        NotFoundEsc,        //原文にある制御文字が翻訳文に含まれていない
-        UnclosedEsc,        //[]で閉じる必要のある制御文字が閉じられていない
-        IncludeCR,          //翻訳文にCR改行が含まれている。(マップのみ検出)
-        NotEQLang,          //設定した言語とCSVを内の言語列に差異がある
-        PartiallyClipped,   //テキストの最後の文字が少し見切れる
-        FullyClipped,       //完全に見えない文字がある
-        OverTextCount,      //テキストの文字数が多すぎる
-        InvalidCSV,         //CSVファイルが不正
-
-        Max
-    };
-
-    QString filePath;
-    ErrorType type = Invalid;
-    ErrorSummary summary = None;
-    size_t row = 0;
-    int width = 0;
-    QString language;
-    QString detail;
-    size_t id = 0;
-    bool shown = false;
-};
 
 class PackingCSVTableViewModel : public QAbstractTableModel {
     Q_OBJECT
@@ -120,25 +92,18 @@ signals:
 
 private:
     Ui::PackingMode *ui;
+
     invoker* _invoker;
 
-
-    std::unordered_map<QString, std::vector<ValidationErrorInfo>> errors;
-    std::unordered_map<QString, bool> updateList;
-    std::unordered_map<QString, QTreeWidgetItem*> treeTopItemList;
-    std::mutex _mutex;
     PackingCSVTableViewModel* csvTableViewModel;
     ClipDetectSettingTree* clipDetectSettingTree;
-    QTimer* updateTimer;
-    bool _finishInvoke;
-    size_t errorInfoIndex;
     QString currentShowCSVName;
     bool isValidate;
     bool showLog;
     bool suspendResizeToContents;
+    bool _finishInvoke;
 
-    QIcon attentionIcon;
-    QIcon warningIcon;
+    std::mutex _mutex;
 
     QMenu* treeMenu;
     QString lastSelectedInvalidCSVPath;
@@ -147,8 +112,7 @@ private:
     QString getCurrentSelectedItemFilePath();
     void setupCsvTable(QString filePath);
     void setupCsvTree();
-    void highlightError(QTreeWidgetItem* item);
-    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input);
+    //void highlightError(QTreeWidgetItem* item);
 
     void showEvent(QShowEvent *event) override;
 
@@ -159,16 +123,10 @@ private slots:
     void validate();
     void packing();
 
-    void addErrorText(QString text);
-    void updateTree();
 
 
     void setPackingSourceDir(QString path);
     void resizeCsvTable();
 
-private:
-
-    //キーはファイルパス
-    ValidationErrorInfo convertErrorInfo(std::vector<QString> csvText);
 };
 
