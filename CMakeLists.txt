@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.5)
+﻿cmake_minimum_required(VERSION 3.28)
 
 project(langscore-app VERSION 0.8.12 LANGUAGES CXX)
 
