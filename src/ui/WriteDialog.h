@@ -19,6 +19,8 @@ public:
     QString outputPath() const ;
 
     bool writeByLanguagePatch() const;
+    bool fillDefaultLanguage() const;
+    bool addNewTextToEnd() const;
     int writeMode() const;
     bool backup() const;
 

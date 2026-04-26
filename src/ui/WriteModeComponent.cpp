@@ -795,6 +795,8 @@ void WriteModeComponent::exportTranslateFiles()
     auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
     this->setting->writeObj.exportDirectory = relativePath;
     this->setting->writeObj.enableLanguagePatch = dialog.writeByLanguagePatch();
+    this->setting->writeObj.enableFillDefaultLanguage = dialog.fillDefaultLanguage();
+    this->setting->writeObj.enableAddNewTextToEnd = dialog.addNewTextToEnd();
     this->setting->writeObj.writeMode = dialog.writeMode();
     this->setting->setPackingDirectory(relativePath);
 

@@ -430,6 +430,8 @@ QByteArray settings::createJson()
     write[key(JsonKey::OverwriteLangscore)]         = writeObj.overwriteLangscore;
     write[key(JsonKey::OverwriteLangscoreCustom)]   = writeObj.overwriteLangscoreCustom;
     write[key(JsonKey::EnableLanguagePatch)]        = writeObj.enableLanguagePatch;
+    write[key(JsonKey::FillDefaultLanguageColumn)]  = writeObj.enableFillDefaultLanguage;
+    write[key(JsonKey::AddNewContentToEnd)]         = writeObj.enableAddNewTextToEnd;
     write[key(JsonKey::EnableTranslationDefLang)]   = writeObj.enableTranslateDefLang;
     write[key(JsonKey::WriteType)]                  = writeObj.writeMode;
 
@@ -611,10 +613,12 @@ void settings::load(QString path)
 
     auto write = root[key(JsonKey::Write)].toObject();
 
-    writeObj.exportDirectory        = write[key(JsonKey::ExportDirectory)].toString("");
-    writeObj.exportByLanguage       = write[key(JsonKey::ExportByLang)].toBool(false);
-    writeObj.enableLanguagePatch    = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
-    writeObj.enableTranslateDefLang = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
+    writeObj.exportDirectory            = write[key(JsonKey::ExportDirectory)].toString("");
+    writeObj.exportByLanguage           = write[key(JsonKey::ExportByLang)].toBool(false);
+    writeObj.enableLanguagePatch        = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
+    writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(false);
+    writeObj.enableAddNewTextToEnd      = write[key(JsonKey::AddNewContentToEnd)].toBool(false);
+    writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
     //保存したいようなフラグではないため、設定値を読み込まない
 //    writeObj.isWriteCSV               = write[key(JsonKey::IsWriteCsv)].toBool(false);
 //    writeObj.overwriteLangscore       = write[key(JsonKey::OverwriteLangscore)].toBool(false);
@@ -752,9 +756,10 @@ void settings::updateLangscoreProjectPath()
 {
     //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
     //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
-    auto folderName = this->gameProjectPath.sliced(this->gameProjectPath.lastIndexOf("/")+1);
-    auto gameProjPath = std::filesystem::path(this->gameProjectPath.toLocal8Bit().toStdString());
-    auto langscoreProj = gameProjPath / ".." / (folderName.toLocal8Bit().toStdString() + "_langscore");
+    auto folderName = this->gameProjectPath.sliced(this->gameProjectPath.lastIndexOf("/")+1).toStdString();
+    auto _path = this->gameProjectPath.toStdString();
+    auto gameProjPath = std::filesystem::path(_path);
+    auto langscoreProj = gameProjPath / ".." / (folderName + "_langscore");
     auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
     this->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});;
     this->langscoreProjectDirectory.replace("\\", "/");

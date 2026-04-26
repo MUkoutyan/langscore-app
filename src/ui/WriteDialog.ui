@@ -66,23 +66,6 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="exportByLangCheck">
-     <property name="text">
-      <string extracomment="言語パッチモードを有効にする">Enable Language Patch Mode</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="backupCheck">
-     <property name="text">
-      <string extracomment="上書きされるファイルをバックアップ">Backup files to be overwritten</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QWidget" name="baseWidget" native="true">
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <property name="spacing">
@@ -219,6 +202,44 @@
        </layout>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="backupCheck">
+     <property name="text">
+      <string extracomment="上書きされるファイルをバックアップ">Backup files to be overwritten</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="exportByLangCheck">
+     <property name="text">
+      <string extracomment="言語パッチモードを有効にする">Enable Language Patch Mode</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="fillDefaultColumn">
+     <property name="toolTip">
+      <string extracomment="チェックを付けた場合、オリジナル列と同じ内容がデフォルト言語にも反映されます。">If you check this box, the same content as the original column will be reflected in the default language as well.</string>
+     </property>
+     <property name="text">
+      <string>Fill in the column for the default language.</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="addNewTextToEnd">
+     <property name="toolTip">
+      <string extracomment="チェックを付けた場合、新しく追加された文章は末尾に追加されます。 チェックを付けない場合、イベント順に依存します。">If checked, newly added text will be appended to the end.
+If unchecked, the order will depend on the event sequence.</string>
+     </property>
+     <property name="text">
+      <string>Add new text to the end</string>
+     </property>
     </widget>
    </item>
    <item>
