@@ -133,7 +133,7 @@ public:
         bool overwriteLangscoreCustom = false;
         bool enableTranslateDefLang = true;
         bool enableLanguagePatch = false;
-        bool enableFillDefaultLanguage = false;
+        bool enableFillDefaultLanguage = true;
         bool enableAddNewTextToEnd = false;
         std::vector<ScriptInfo> scriptInfo;
         std::vector<BasicData> basicDataInfo;

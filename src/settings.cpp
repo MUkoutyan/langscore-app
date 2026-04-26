@@ -616,7 +616,7 @@ void settings::load(QString path)
     writeObj.exportDirectory            = write[key(JsonKey::ExportDirectory)].toString("");
     writeObj.exportByLanguage           = write[key(JsonKey::ExportByLang)].toBool(false);
     writeObj.enableLanguagePatch        = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
-    writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(false);
+    writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(true);
     writeObj.enableAddNewTextToEnd      = write[key(JsonKey::AddNewContentToEnd)].toBool(false);
     writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
     //保存したいようなフラグではないため、設定値を読み込まない
