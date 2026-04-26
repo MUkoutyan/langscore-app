@@ -16,7 +16,7 @@
     <message>
         <location filename="../src/ui/AnalyzeDialog.ui" line="144"/>
         <source>or select recent project</source>
-        <translation>または最近使ったプロジェクトを洗濯</translation>
+        <translation type="unfinished">または最近使ったプロジェクトを選択</translation>
     </message>
     <message>
         <source>Analyze game projects and create translation files.</source>
