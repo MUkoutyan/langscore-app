@@ -20,7 +20,7 @@ const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
 }
 
 settings::settings()
-    : projectType(settings::VXAce)
+    : projectType(settings::None)
     , gameProjectPath("")
     , languages()
     , defaultLanguage("ja")

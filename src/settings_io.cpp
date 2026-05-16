@@ -147,6 +147,8 @@ void settings::load(QString path)
         if(this->projectType == ProjectType::None) { return; }
     }
 
+    writeObj = WriteProps{};
+
     QJsonDocument doc = QJsonDocument::fromJson(QByteArray(file.readAll()));
     QJsonObject root = doc.object();
 

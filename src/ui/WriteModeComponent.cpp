@@ -197,6 +197,7 @@ void WriteModeComponent::show()
         }
     }
 
+    this->clear();
     this->setup();
 }
 
