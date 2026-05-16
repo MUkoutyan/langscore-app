@@ -31,10 +31,14 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     , settingPane(new QWidget(this))
     , currentModel(nullptr)
     , csvEditor(new CSVEditor(this->loadFileManager, this, this))
+    , cellErrorLog(new QTextEdit(this))
     , _invoker(new invoker(this))
     , updateTimer(nullptr)
     , _finishInvoke(false)
 {
+
+    cellErrorLog->setReadOnly(true);
+
     //設定ダイアログ
     {
         settingPane->setWindowFlags(Qt::Popup);
@@ -103,18 +107,21 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     hLayout->addWidget(this->validateButton);
     hLayout->addWidget(this->mainFileWordCount);
 
-    this->settingButton->setText("Settings");
+    this->settingButton->setIcon(QIcon(":/images/resources/image/settings.png"));
     hLayout->addWidget(this->settingButton);
 
     vLayout->addLayout(hLayout);
     vLayout->addWidget(this->csvEditor, 1);
+    vLayout->addWidget(this->cellErrorLog, 0);
+    this->cellErrorLog->setVisible(false);
     this->setLayout(vLayout);
 
     this->setupTable();
 
     connect(validateButton, &QPushButton::clicked, this, [this]()
     {
-        this->dispatch(DispatchType::ValidateCSV, {this->mainFileName->text()});
+        this->currentModel->saveToFile(this->currentFileName);
+        this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
     });
 }
 
@@ -189,6 +196,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         return;
     }
 
+
     this->csvEditor->horizontalHeader()->blockSignals(true);
 
     if(QFile::exists(editedData) == false) 
@@ -201,6 +209,8 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     else {
         mainModel->loadFromFile(editedData);
     }
+
+    this->currentFileName = editedData;
     
     // テーブルビューにモデルを設定
     this->csvEditor->setModel(mainModel);
@@ -234,6 +244,59 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         }
         this->csvEditor->setUpdatesEnabled(true);
         this->csvEditor->update();
+    });
+
+
+    auto selectionModel = this->csvEditor->selectionModel();
+    connect(selectionModel, &QItemSelectionModel::selectionChanged, this, [this](const QItemSelection& selected, const QItemSelection& deselected)
+    {
+        Q_UNUSED(deselected);
+        if(selected.indexes().isEmpty()) {
+            this->cellErrorLog->setVisible(false);
+            return;
+        }
+        auto index = selected.indexes().first();
+
+        auto currentShowFileName = currentModel->getCurrentShowFileName();
+        const auto& errors = this->runtimeData->errors;
+        if(errors.find(currentShowFileName) == errors.end()) { return; }
+
+        const auto& errorList = errors.at(currentShowFileName);
+
+        auto header = currentModel->headerData(index.column(), Qt::Orientation::Horizontal, Qt::UserRole).toString();
+
+        QString message;
+        for(auto& error : errorList) 
+        {
+            const bool isFileError = error.row == 0 && error.language.isEmpty();
+            const bool isCellError = error.row - 1 == index.row() && error.language.contains(header);
+            if(isFileError || isCellError) 
+            {
+                if(isFileError) {
+                    message += tr("file : ");
+                }
+                else if(isCellError) {
+                    message += tr("row : %1, col : %2").arg(index.row()).arg(header);
+                }
+
+                if(error.type == ValidationErrorInfo::Error) {
+                    message += tr("[Error] ");
+                }
+                else if(error.type == ValidationErrorInfo::Warning) {
+                    message += tr("[Warning] ");
+                }
+
+                message += error.getErrorText() + "\n";
+            }
+        }
+
+        if(message.isEmpty()) {
+            this->cellErrorLog->setVisible(false);
+            return;
+        }
+        this->cellErrorLog->setText(message);
+        this->cellErrorLog->setVisible(true);
+
     });
 
     this->csvEditor->horizontalHeader()->blockSignals(false);

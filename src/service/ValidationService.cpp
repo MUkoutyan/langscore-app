@@ -1,4 +1,4 @@
-#include "ValidationService.h"
+﻿#include "ValidationService.h"
 #include "invoker.h"
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -104,8 +104,9 @@ std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QStr
     {
         // JSON オブジェクトは '{' で始まると仮定
         int start = input.indexOf('{', pos);
-        if(start == -1)
+        if(start == -1) {
             break;  // '{' が見つからなければ終了
+        }
 
         // '{' から対応する '}' を探す
         int depth = 0;
@@ -124,10 +125,12 @@ std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QStr
                 }
                 else
                 {
-                    if(ch == '\\')
+                    if(ch == '\\') {
                         escape = true;
-                    else if(ch == '"')
+                    }
+                    else if(ch == '"') {
                         inString = false;
+                    }
                 }
             }
             else
@@ -242,4 +245,6 @@ void ValidationService::addErrorText(QString text)
         this->runtimeData->updateList[fileName] = true;
         _mutex.unlock();
     }
+
+    this->dispatch(DispatchType::SendLog, {text});
 }

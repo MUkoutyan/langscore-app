@@ -25,6 +25,9 @@ bool CSVEditorTableModel::loadFromFile(const QString& path) {
     beginResetModel();
     bool success = csvContainer.loadFromFile(path);
     endResetModel();
+    if(success) {
+        currentShowFileName = QString::fromStdString(std::filesystem::path{path.toStdString()}.filename().stem().string());
+    }
     return success;
 }
 
@@ -61,7 +64,7 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
 
     // ヘッダーを設定
     std::vector<std::vector<QString>> csvData;
-    csvData.push_back({tr("Original"), tr("Type")}); // ヘッダー行
+    csvData.push_back({"original", "type"}); // ヘッダー行
 
     // データ行を処理
     int wordCount_ = 0;
@@ -137,10 +140,13 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
         if(errors.find(currentShowFileName) == errors.end()) {
             return QVariant();
         }
+        const auto& headerText = csvContainer.headers()[col];
+        if(headerText == "type" || headerText == "original") { return QVariant(); }
+
         const auto& errorList = errors.at(currentShowFileName);
 
-        auto find_result = std::ranges::find_if(errorList, [this, row, h = csvContainer.headers()[col]](const auto& x) {
-            return x.row - 1 == row && h == x.language;
+        auto find_result = std::ranges::find_if(errorList, [this, row, headerText](const auto& x) {
+            return x.row - 1 == row && x.language.contains(headerText);
         });
         if(find_result != errorList.end()) {
             if(find_result->type == ValidationErrorInfo::Error) {
@@ -161,11 +167,14 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
         if(errors.find(currentShowFileName) == errors.end()) {
             return QVariant();
         }
+        const auto& headerText = csvContainer.headers()[col];
+        if(headerText == "type" || headerText == "original") { return QVariant(); }
+
         const auto& errorList = errors.at(currentShowFileName);
 
-        auto find_result = std::ranges::find_if(errorList, [this, row, h = csvContainer.headers()[col]](const auto& x) {
-            return x.row - 1 == row && h == x.language;
-            });
+        auto find_result = std::ranges::find_if(errorList, [this, row, headerText](const auto& x) {
+            return x.row - 1 == row && x.language.contains(headerText);
+        });
         if(find_result != errorList.end()) {
             return find_result->id;
         }
@@ -176,8 +185,44 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
     }
 
     QString value;
-    if(csvContainer.getValue(static_cast<size_t>(row), static_cast<size_t>(col), value)) {
-        return value;
+    if(csvContainer.getValue(static_cast<size_t>(row), static_cast<size_t>(col), value)) 
+    {
+        FastCSVContainer::CellData headerData;
+        if(col >= 0 && col < static_cast<int>(csvContainer.columnCount())) {
+            headerData = csvContainer.headerAt(static_cast<size_t>(col));
+        }
+        
+        if(headerData == "type") 
+        {
+            if(value == "name"){
+                return tr("name");
+            }
+            else if(value == "description"){
+                return tr("description");
+            }
+            else if(value == "messageWithIcon"){
+                return tr("messageWithIcon");
+            }
+            else if(value == "battleName"){
+                return tr("battleName");
+            }
+            else if(value == "battleMessage"){
+                return tr("battleMessage");
+            }
+            else if(value == "message"){
+                return tr("message");
+            }
+            else if(value == "note"){
+                return tr("note");
+            }
+            else if(value == "other") {
+                return tr("other");
+            }
+        }
+        else 
+        {
+            return value;
+        }
     }
 
     return QVariant();
@@ -208,8 +253,12 @@ Qt::ItemFlags CSVEditorTableModel::flags(const QModelIndex& index) const
     
     // ヘッダーの内容を参照して、originalとtype以外の列は編集可能にする
     int col = index.column();
-    auto headerText = headerData(col, Qt::Horizontal, Qt::DisplayRole);
-    if(headerText == tr("Original") || headerText == tr("Type")) {
+    
+    FastCSVContainer::CellData headerData;
+    if(col >= 0 && col < static_cast<int>(csvContainer.columnCount())) {
+        headerData = csvContainer.headerAt(static_cast<size_t>(col));
+    }
+    if(headerData == "original" || headerData == "type") {
         return Qt::ItemIsSelectable | Qt::ItemIsEnabled; // 編集不可
     }
     

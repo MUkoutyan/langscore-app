@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <QFile>
+#include <QFileInfo>
+#include <QDir>
 #include <QTextStream>
 
 namespace langscore {
@@ -51,7 +53,16 @@ bool FastCSVContainer::saveToFile(const CellData& filePath) const
 
     // ファイルを開く
     QFile file(filePath);
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    //ディレクトリがなければ作成
+    if(file.exists() == false) {
+        QFileInfo fileInfo(file);
+        QDir dir = fileInfo.absoluteDir();
+        if(dir.exists() == false) {
+            dir.mkpath(".");
+        }
+    }
+
+    if(file.open(QIODevice::WriteOnly | QIODevice::Text) == false) {
         return false;
     }
 

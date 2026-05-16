@@ -23,6 +23,7 @@ public:
         ChangeColor,    //Theme
         ValidateCSV,
         NotifyFinishValidateCSV,
+        SendLog,
     };
 
     ComponentBase()

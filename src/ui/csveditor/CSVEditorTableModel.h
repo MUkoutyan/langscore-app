@@ -49,6 +49,10 @@ public:
         this->useLanguageFont = use;
     }
 
+    QString getCurrentShowFileName() const {
+        return currentShowFileName;
+    }
+
     void clearAll() {
         beginResetModel();
         csvContainer.clear();

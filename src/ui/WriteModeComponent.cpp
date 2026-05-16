@@ -501,6 +501,12 @@ void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
     else if(type == ComponentBase::DisableBlur) {
         this->setGraphicsEffect(nullptr);
     }
+    else if(type == ComponentBase::SendLog) 
+    {
+        if(args.empty()) { return; }
+        auto text = args[0].toString();
+        this->ui->logText->writeText(text);
+    }
 }
 
 void WriteModeComponent::dropEvent(QDropEvent *event)

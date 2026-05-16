@@ -7,6 +7,7 @@
         <file>resources/image/filter.svg</file>
         <file>resources/image/warning.svg</file>
         <file>resources/image/attention.svg</file>
+        <file>resources/image/settings.png</file>
     </qresource>
     <qresource prefix="/fonts">
         <file alias="1m_reg">resources/fonts/mplus-1m-regular.ttf</file>

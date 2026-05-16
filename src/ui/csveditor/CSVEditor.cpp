@@ -359,7 +359,7 @@ QStringList CSVEditor::getRecognizedLanguageCodesInColumns() const
     
 
     QStringList systemColumnName = {
-        tr("original"), tr("type")
+        "original", "type"
     };
     
     // Check each column header

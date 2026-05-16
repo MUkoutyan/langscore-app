@@ -3,8 +3,10 @@
 #include <QTableWidget>
 #include <QLabel>
 #include <QToolButton>
-#include <vector>
 #include <QString>
+
+#include <QTextEdit>
+#include <vector>
 
 #include "ComponentBase.h"
 #include "CSVEditDataManager.h"
@@ -75,7 +77,9 @@ private:
     QWidget* settingPane;
     MainCSVTableModel* currentModel;
     CSVEditor* csvEditor;
+    QTextEdit* cellErrorLog;
     invoker* _invoker;
     QTimer* updateTimer;
+    QString currentFileName;
     bool _finishInvoke;
 };

@@ -118,7 +118,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     {
         attachTheme(ComponentBase::getColorTheme().getCurrentTheme());
+
+        auto&& settings = this->getAppSettings();
+        // geometryにはウィンドウの位置とサイズが保存されています
+        if(settings.contains("geometry") == true) {
+            this->restoreGeometry(settings.value("geometry").toByteArray());
+        }
+
+        // windowStateにはウィンドウの最大化などの状態が保存されています
+        if(settings.contains("windowState") == true) {
+            this->restoreState(settings.value("windowState").toByteArray());
+        }
+
+        auto rect = this->rect();
+        auto analyzeRect = this->analyzeDialog->rect();
+        analyzeRect.moveCenter(rect.center());
+        this->analyzeDialog->move(analyzeRect.topLeft());
     }
+
 }
 
 MainWindow::~MainWindow()
@@ -192,6 +209,11 @@ void MainWindow::closeEvent(QCloseEvent* e)
         this->dispatch(SaveProject, {});
         e->accept();
     }
+
+    auto&& settings = this->getAppSettings();
+    settings.setValue("geometry", this->saveGeometry());
+    settings.setValue("windowState", this->saveState());
+
     QMainWindow::closeEvent(e);
 }
 

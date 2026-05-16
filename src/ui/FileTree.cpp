@@ -868,8 +868,8 @@ void FileTree::setupSearchBar()
     popupLayout->addWidget(showHiddenCheckBox);
 
     // 設定ボタンのセットアップ
-    settingButton = new QToolButton(this);
-    settingButton->setText(tr("Settings"));
+    this->settingButton = new QToolButton(this);
+    this->settingButton->setIcon(QIcon(":/images/resources/image/settings.png"));
     connect(settingButton, &QToolButton::clicked, this, [this](bool) {
         this->settingPane->setVisible(true);
         this->settingPane->move(QCursor::pos());
@@ -1402,45 +1402,7 @@ void FileTree::updateErrorTree()
                 child->setForeground(TreeColIndex::Name, QColor(236, 11, 0));
             }
 
-            switch(info.summary)
-            {
-            case ValidationErrorInfo::EmptyCol:
-                text += tr(" Empty Column") + "[" + info.language + "]";
-                break;
-            case ValidationErrorInfo::NotFoundEsc:
-                text += tr(" Not Found Esc") + "[" + info.language + "] (" + info.detail + ")";
-                break;
-            case ValidationErrorInfo::UnclosedEsc:
-                text += tr(" Unclosed Esc") + "[" + info.language + "] (" + info.detail + ")";
-                break;
-            case ValidationErrorInfo::IncludeCR:
-                text += tr(" Include \"\r\n\"");
-                break;
-            case ValidationErrorInfo::NotEQLang:
-                text += tr(" The specified language does not match the language in the CSV");
-                break;
-            case ValidationErrorInfo::PartiallyClipped:
-                text += tr(" Part of this text is cut off.");
-                break;
-            case ValidationErrorInfo::FullyClipped:
-                text += tr(" This text is completely cut off.");
-                break;
-            case ValidationErrorInfo::OverTextCount:
-                text += tr(" The specified number of characters has been exceeded. (num %1)").arg(info.width);
-                break;
-            case ValidationErrorInfo::InvalidCSV:
-                if(info.detail.isEmpty() == true)
-                {
-                    text += tr(" Invalid CSV, This may be due to the description around the %1 line.").arg(info.row);
-                }
-                else
-                {
-                    text += tr(" Invalid CSV. The description around %2 in the %1 row may be cause.").arg(info.row).arg(info.detail);
-                }
-                break;
-            default:
-                break;
-            }
+            text = info.getErrorText();
 
             child->setText(TreeColIndex::Name, tr("Line") + QString::number(info.row) + " : " + text);
             child->setData(TreeColIndex::Name, Qt::UserRole, info.id);
