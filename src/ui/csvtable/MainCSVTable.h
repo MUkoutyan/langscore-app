@@ -23,24 +23,7 @@ public:
     
     void clear();
 
-    void setupTable();
-
-    void setTableItemTextColor(int row, QBrush color);
-
-    QModelIndex scriptTableItem(int row, int col);
-
-    QString getScriptFileNameFromTable(int row);
-
-
-    void scriptTableItemChanged(QModelIndex item);
-
-
     void showMainFileText(QString treeItemName, QString fileName);
-
-    void setScriptFileName(QString fileName);
-
-public slots:
-    void changeScriptTableItemCheck(QString scriptName, Qt::CheckState);
 
 private:
 
@@ -65,18 +48,22 @@ private:
         void setValue(ValueType value);
     };
 
-
-    std::vector<int> fetchTableSameFileRows(QString mainFileName);
     void receive(DispatchType type, const QVariantList& args) override;
+    void restoreColumnWidths();
 
     std::weak_ptr<CSVEditDataManager> loadFileManager;
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
+    QPushButton* hideLanguageColumnsAction;
     QPushButton* validateButton;
+    QPushButton* validateResultListButton;
+    QDialog* validateResultDialog;
+    QTableWidget* validateResultTable;
     QToolButton* settingButton;
     QWidget* settingPane;
     MainCSVTableModel* currentModel;
     CSVEditor* csvEditor;
+    langscore::CSVEditorSortFilterProxyModel* _proxyModel = nullptr;
     QTextEdit* cellErrorLog;
     invoker* _invoker;
     QTimer* updateTimer;

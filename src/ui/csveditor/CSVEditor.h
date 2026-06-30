@@ -8,6 +8,7 @@
 #include "ComponentBase.h"
 #include "CSVEditDataManager.h"
 #include "CSVEditCommand.h"
+#include "CSVEditorSortFilterProxyModel.h"
 #include "../dialog/TranslationProgressDialog.h"
 #include "../../translation/TranslationManager.h"
 
@@ -22,10 +23,10 @@ class CSVEditor : public QTableView, public ComponentBase, public CSVEditCommand
 public:
     explicit CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
 
-    bool openCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel);
+    void setModel(QAbstractItemModel* model) override;
+
     bool saveCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
     bool saveAsCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
-    void newCSV(langscore::CSVEditorTableModel* csvModel);
 
     void setText(QModelIndex index, QString newText);
 
@@ -49,6 +50,9 @@ public:
     bool isModified() const { return _isModified; }
 
     void selectAndEditNextCell();
+    void hideLanguageColumns();
+    bool isLanguageColumnHidden(const QString& language) const;
+    void loadColumnFilterSettings();
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
@@ -62,8 +66,8 @@ private slots:
     void onBatchTranslationCompleted(int batchId, const QList<TranslationManager::BatchTranslationResult>& results);
     void onBatchTranslationError(int batchId, const QString& errorMessage);
     void onTranslationProgress(int batchId, int completed, int total);
-    void hideLanguageColumns();
     void showAllColumns();
+    void sortStateChanged(int col, langscore::CSVEditorSortFilterProxyModel::SortOrder order);
 
 private:
     void setupActions();
@@ -82,9 +86,8 @@ private:
     
     // Column visibility helper methods
     QStringList getRecognizedLanguageCodesInColumns() const;
-    //void hideColumnsWithLanguageCodes(const std::vector<std::pair<QString, bool>>& languageCodes);
     void changeColumnsVisibleWithLanguageCodes(const std::vector<std::pair<QString, bool>>& languageCodes);
-    
+
     // Private helper methods
     void executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits, const QString& description);
     QModelIndexList getSelectedIndexes() const;
@@ -112,10 +115,16 @@ private:
     QMenu* contextMenu;
     QMenu* translationMenu;
     QMenu* columnVisibilityMenu;
+    QAction* filterSettingsAction;
     
     // Translation
     std::unique_ptr<TranslationManager> translationManager;
     TranslationProgressDialog* progressDialog;
     
     QString currentFilePath;
+
+    // Sorting state: 0 = none, 1 = ascending, -1 = descending
+    int currentSortedColumn = -1;
+    int currentSortOrder = 0;
+    void onHeaderSectionClicked(int logicalIndex);
 };

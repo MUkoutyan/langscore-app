@@ -18,12 +18,10 @@ public:
     CSVEditorTableModel(QObject* parent = nullptr);
     explicit CSVEditorTableModel(const QString& path, QObject* parent = nullptr);
 
-    // CSV file operations
     bool loadFromFile(const QString& path);
     bool loadFromJsonFile(const QString& filePath);
     bool saveToFile(const QString& path) const;
 
-    // QAbstractTableModel overrides
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
@@ -31,7 +29,6 @@ public:
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    // Convenience methods
     size_t rowCountRaw() const;
     size_t colCountRaw() const;
     std::optional<QString> getCell(size_t row, size_t col) const;
@@ -45,9 +42,12 @@ public:
     void setSettings(std::shared_ptr<settings> setting);
     void setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting);
 
-    void setUseLanguageFont(bool use) {
-        this->useLanguageFont = use;
-    }
+    // Custom sorting: order = 1 (asc), -1 (desc), 0 (none = restore original)
+    void applySort(int column, int order);
+
+    bool isLanguageColumnHidden(const QString& language) const;
+
+    void setUseLanguageFont(bool use);
 
     QString getCurrentShowFileName() const {
         return currentShowFileName;
@@ -60,15 +60,16 @@ public:
     }
 
 
-    void appendErrors(std::vector<ValidationErrorInfo> infos);
-
-
 private:
     langscore::FastCSVContainer csvContainer;
     QString currentShowFileName;
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;
     std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
+    // Keep original data for restoring when sort is cleared
+    std::vector<std::vector<QString>> _originalData;
+    int _sortedColumn = -1;
+    int _sortOrder = 0;
 };
 
 } // namespace langscore

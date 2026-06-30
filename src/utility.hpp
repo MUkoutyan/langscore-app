@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QString>
+#include <QFileInfo>
 
 namespace langscore
 {
@@ -13,6 +14,12 @@ static int wordCountUTF8(QString text)
     return words;
 }
 
+static QString getFileNameWithoutExtension(QString filePath) 
+{
+    QFileInfo fileInfo{filePath};
+    return QString::fromStdWString(fileInfo.filesystemAbsoluteFilePath().filename().stem().wstring());
+}
+
 static QString getExtension(QString fileName)
 {
     int index = fileName.lastIndexOf('.');
@@ -20,7 +27,6 @@ static QString getExtension(QString fileName)
     fileName.remove(0, index+1);
     return fileName;
 }
-
 
 static QString withoutExtension(QString fileName)
 {

@@ -18,15 +18,25 @@
 #include "../invoker.h"
 #include "CSVEditDataManager.h"
 #include "MainCSVTableModel.h"
+#include "service/LanguageNames.h"
 
 using namespace langscore;
 
+enum TableItemType {
+    CSVRow = Qt::UserRole + 1,
+    LanguageIndex
+};
 
 MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
     : ComponentBase(component), QWidget(parent)
     , loadFileManager(loadFileManager)
-    , mainFileName(new QLabel(this)), mainFileWordCount(new QLabel(this))
+    , mainFileName(new QLabel(this))
+    , mainFileWordCount(new QLabel(this))
+    , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns")))
     , validateButton(new QPushButton(tr("Validate")))
+    , validateResultListButton(new QPushButton(tr("Show validate result")))
+    , validateResultDialog(new QDialog(this))
+    , validateResultTable(new QTableWidget(this))
     , settingButton(new QToolButton(this))
     , settingPane(new QWidget(this))
     , currentModel(nullptr)
@@ -36,8 +46,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     , updateTimer(nullptr)
     , _finishInvoke(false)
 {
-
-    cellErrorLog->setReadOnly(true);
+    this->cellErrorLog->setReadOnly(true);
+    this->cellErrorLog->setMaximumHeight(60);
 
     //設定ダイアログ
     {
@@ -46,12 +56,19 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
 
         auto layout = new QVBoxLayout(this);
         settingPane->setLayout(layout);
+        layout->addWidget(hideLanguageColumnsAction);
+
         auto check = new QCheckBox("apply language font", this);
         layout->addWidget(check);
 
-        connect(check, &QCheckBox::clicked, this, [this](bool checked) {
-            if(this->currentModel) {
+        connect(check, &QCheckBox::clicked, this, [this](bool checked) 
+        {
+            if(this->currentModel) 
+            {
                 this->currentModel->setUseLanguageFont(checked);
+                auto top = currentModel->index(0, 0);
+                auto bottom = currentModel->index(currentModel->rowCount() - 1, currentModel->columnCount() - 1);
+                emit currentModel->dataChanged(top, bottom, QVector<int>{Qt::FontRole});
             }
             this->csvEditor->update();
         });
@@ -94,7 +111,16 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
         });
     }
 
+    {
+        auto layout = new QVBoxLayout();
+        layout->addWidget(this->validateResultTable);
+        validateResultDialog->setLayout(layout);
+    }
+
     this->validateButton->setEnabled(false);
+    this->validateResultListButton->setEnabled(false);
+
+    this->validateResultTable->setSelectionBehavior(QTableWidget::SelectionBehavior::SelectRows);
 
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
@@ -105,23 +131,62 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     hLayout->addWidget(this->mainFileName);
     hLayout->addStretch(1);
     hLayout->addWidget(this->validateButton);
+    hLayout->addWidget(this->validateResultListButton);
     hLayout->addWidget(this->mainFileWordCount);
 
     this->settingButton->setIcon(QIcon(":/images/resources/image/settings.png"));
     hLayout->addWidget(this->settingButton);
 
     vLayout->addLayout(hLayout);
-    vLayout->addWidget(this->csvEditor, 1);
+    vLayout->addWidget(this->csvEditor, 2);
     vLayout->addWidget(this->cellErrorLog, 0);
     this->cellErrorLog->setVisible(false);
     this->setLayout(vLayout);
 
-    this->setupTable();
+    
+    connect(hideLanguageColumnsAction, &QPushButton::clicked, this, [this]()
+    {
+        this->csvEditor->hideLanguageColumns();
+    });
 
     connect(validateButton, &QPushButton::clicked, this, [this]()
     {
         this->currentModel->saveToFile(this->currentFileName);
         this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
+    });
+
+    connect(validateResultListButton, &QPushButton::clicked, this, [this]()
+    {
+        this->validateResultDialog->show();
+        this->validateResultDialog->raise();
+    });
+
+    connect(this->validateResultTable, &QTableWidget::itemSelectionChanged, this, [this]() 
+    {
+        auto selectItems = this->validateResultTable->selectedItems();
+        if(selectItems.empty()) { return; }
+
+        auto item = selectItems[0];
+        
+        bool isOk = false;
+        auto csvRow = item->data(TableItemType::CSVRow).toInt(&isOk) - 1;
+        if(isOk == false || csvRow < 0) {
+            return;
+        }
+
+        isOk = false;
+        auto csvCol = item->data(TableItemType::LanguageIndex).toInt(&isOk);
+        if(isOk == false || (csvCol < 0 || this->currentModel->columnCount() <= csvCol)) {
+            return;
+        }
+
+        auto sourceIdx = this->currentModel->index(csvRow, csvCol);
+        QModelIndex selectIdx = _proxyModel ? _proxyModel->mapFromSource(sourceIdx) : QModelIndex(sourceIdx);
+        if(selectIdx.isValid()) {
+            this->csvEditor->selectionModel()->select(selectIdx, QItemSelectionModel::ClearAndSelect);
+            this->csvEditor->scrollTo(selectIdx, QTableWidget::ScrollHint::PositionAtCenter);
+        }
+
     });
 }
 
@@ -130,54 +195,14 @@ void MainCSVTable::clear()
     this->csvEditor->blockSignals(true);
     
     // 現在のモデルをクリア
-    if (auto* mainModel = qobject_cast<MainCSVTableModel*>(this->csvEditor->model())) {
-        mainModel->clearAll();
+    if(currentModel) {
+        currentModel->clearAll();
     }
     
     this->csvEditor->blockSignals(false);
 
     this->mainFileName->setText("");
     this->mainFileWordCount->setText("");
-}
-
-void MainCSVTable::setupTable() 
-{
-    this->csvEditor->blockSignals(true);
-    
-    // 現在のモデルをクリア
-    if (auto* mainModel = qobject_cast<MainCSVTableModel*>(this->csvEditor->model())) {
-        mainModel->clearAll();
-        mainModel->setSettings(this->setting);
-        mainModel->setRuntimeData(this->runtimeData);
-    }
-    
-    this->csvEditor->blockSignals(false);
-}
-
-void MainCSVTable::setTableItemTextColor(int row, QBrush color)
-{
-    // CSVEditDataManagerを使用する場合、モデル側で色情報を管理することを推奨
-    // 必要に応じて実装
-}
-
-// --- slot実装 ---
-
-QModelIndex MainCSVTable::scriptTableItem(int row, int col) {
-    auto* currentModel = this->csvEditor->model();
-    if(!currentModel || currentModel->rowCount() <= row) { 
-        return QModelIndex(); 
-    }
-    return currentModel->index(row, col);
-}
-
-void MainCSVTable::scriptTableItemChanged(QModelIndex item)
-{
-    // 必要に応じて実装
-    // CSVEditDataManagerでdirtyフラグを管理
-    if (auto manager = loadFileManager.lock()) {
-        // 現在編集中のファイルパスを取得してdirtyフラグを設定
-        // ここでは簡略化のため省略
-    }
 }
 
 void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
@@ -211,9 +236,23 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     }
 
     this->currentFileName = editedData;
+    const auto& errors = this->runtimeData->errors;
+    if(errors.empty() || errors.find(this->currentFileName) == errors.end()) {
+        this->validateResultListButton->setEnabled(false);
+    }
+    else {
+        this->validateResultListButton->setEnabled(true);
+    }
     
-    // テーブルビューにモデルを設定
-    this->csvEditor->setModel(mainModel);
+    // プロキシモデルを初期化し、テーブルビューに設定
+    if(_proxyModel == nullptr) {
+        _proxyModel = new CSVEditorSortFilterProxyModel(this);
+        connect(_proxyModel, &CSVEditorSortFilterProxyModel::columnVisibilityChanged,
+                this, &MainCSVTable::restoreColumnWidths);
+    }
+    _proxyModel->setSortState(0, CSVEditorSortFilterProxyModel::SortOrder::None);
+    _proxyModel->setSourceModel(mainModel);
+    this->csvEditor->setModel(_proxyModel);
     mainModel->setSettings(this->setting);
     mainModel->setRuntimeData(this->runtimeData);
     
@@ -224,6 +263,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         mainModel->insertColumn(index, lang.languageName);
         index++;
     }
+    _proxyModel->loadColumnFilterFromSettings();
 
 
     // ファイル名とワードカウントを更新
@@ -233,15 +273,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     QTimer::singleShot(0, this, [this]() {
         this->csvEditor->setUpdatesEnabled(false);
         this->csvEditor->resizeRowsToContents();
-
-        size_t index = 0;
-        this->csvEditor->setColumnWidth(index, this->setting->originColumnWidth);
-        index++;
-        for(auto langs = this->setting->languages; auto& lang : langs) {
-            if(lang.enable == false) { continue; }
-            this->csvEditor->setColumnWidth(index, lang.columnSize);
-            index++;
-        }
+        this->restoreColumnWidths();
         this->csvEditor->setUpdatesEnabled(true);
         this->csvEditor->update();
     });
@@ -255,7 +287,8 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
             this->cellErrorLog->setVisible(false);
             return;
         }
-        auto index = selected.indexes().first();
+        auto proxyIndex = selected.indexes().first();
+        auto sourceIndex = _proxyModel ? _proxyModel->mapToSource(proxyIndex) : proxyIndex;
 
         auto currentShowFileName = currentModel->getCurrentShowFileName();
         const auto& errors = this->runtimeData->errors;
@@ -263,22 +296,18 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
 
         const auto& errorList = errors.at(currentShowFileName);
 
-        auto header = currentModel->headerData(index.column(), Qt::Orientation::Horizontal, Qt::UserRole).toString();
+        auto header = currentModel->headerData(sourceIndex.column(), Qt::Orientation::Horizontal, Qt::UserRole).toString();
 
         QString message;
-        for(auto& error : errorList) 
+        for(const auto& error : errorList) 
         {
+            if(error.summary == ValidationErrorInfo::IncludeCR) {
+                continue;
+            }
             const bool isFileError = error.row == 0 && error.language.isEmpty();
-            const bool isCellError = error.row - 1 == index.row() && error.language.contains(header);
+            const bool isCellError = error.row - 1 == sourceIndex.row() && error.language.contains(header);
             if(isFileError || isCellError) 
             {
-                if(isFileError) {
-                    message += tr("file : ");
-                }
-                else if(isCellError) {
-                    message += tr("row : %1, col : %2").arg(index.row()).arg(header);
-                }
-
                 if(error.type == ValidationErrorInfo::Error) {
                     message += tr("[Error] ");
                 }
@@ -302,16 +331,23 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     this->csvEditor->horizontalHeader()->blockSignals(false);
 }
 
-void MainCSVTable::TableUndo::setValue(ValueType value) 
+void MainCSVTable::restoreColumnWidths()
 {
-    if (!this->target.isValid()) {
-        return;
-    }
-    
-    // 現在のモデルを取得してsetDataメソッドを使用
-    auto* currentModel = this->parent->csvEditor->model();
-    if (currentModel) {
-        currentModel->setData(this->target, value, Qt::EditRole);
+    if(!_proxyModel || !this->setting) { return; }
+
+    const int proxyColCount = _proxyModel->columnCount();
+    for(int proxyCol = 0; proxyCol < proxyColCount; ++proxyCol) {
+        const QString header = _proxyModel->headerData(proxyCol, Qt::Horizontal, Qt::UserRole).toString();
+        if(header == "original") {
+            this->csvEditor->setColumnWidth(proxyCol, this->setting->originColumnWidth);
+            continue;
+        }
+        for(const auto& lang : this->setting->languages) {
+            if(lang.languageName == header) {
+                this->csvEditor->setColumnWidth(proxyCol, lang.columnSize);
+                break;
+            }
+        }
     }
 }
 
@@ -323,10 +359,140 @@ void MainCSVTable::receive(DispatchType type, const QVariantList& args)
     }
     else if(type == DispatchType::NotifyFinishValidateCSV)
     {
-        this->update();
+        const auto& errors = this->runtimeData->errors;
+        if(errors.empty()) {
+            this->validateResultListButton->setEnabled(false);
+            return;
+        }
+
+        auto currentShowFileName = langscore::getFileNameWithoutExtension(this->currentFileName);
+        if(errors.find(currentShowFileName) == errors.end()) {
+            this->validateResultListButton->setEnabled(false);
+            return;
+        }
+        this->validateResultListButton->setEnabled(true);
+
+        const auto& errorList = errors.at(currentShowFileName);
+        this->validateResultTable->clearContents();
+        this->validateResultTable->setRowCount(errorList.size());
+        this->validateResultTable->setColumnCount(4);
+        this->validateResultTable->setHorizontalHeaderLabels(QStringList() << tr("Row") << tr("Type") << tr("Language") << tr("Description"));
+
+        std::unordered_map<QString, int> header_col;
+        auto numHeader = this->currentModel->columnCount();
+        for(int i = 0; i < numHeader; ++i) {
+            auto headerName = this->currentModel->headerData(i, Qt::Horizontal, Qt::UserRole).toString();
+            header_col[headerName] = i;
+        }
+        
+        int row = 0;
+        for(const auto& info : errorList)
+        {
+            if(info.summary == ValidationErrorInfo::IncludeCR) {
+                continue;
+            }
+            int col = 0;
+
+            QString infoTypeText;
+            QColor color;
+            switch(info.type) {
+            case ValidationErrorInfo::Error:
+                infoTypeText = "Error";
+                color = QColor(236, 11, 0, 51);
+                break;
+            case ValidationErrorInfo::Warning:
+                infoTypeText = "Warning";
+                color = QColor(240, 227, 0, 51);
+                break;
+            case ValidationErrorInfo::Invalid:
+                infoTypeText = "Invalid";
+                break;
+            }
+            
+            const auto createItem = [&](QString text) {
+                auto item = new QTableWidgetItem(text);
+                item->setBackground(color);
+                item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+                item->setData(TableItemType::CSVRow, info.row);
+
+                if(info.language.isEmpty()) {
+                    return item;
+                }
+
+                auto langs = info.language.split(" ");
+                if(langs.isEmpty()) {
+                    return item;
+                }
+                auto find_result = header_col.find(langs[0]);
+                if(find_result != header_col.end()) {
+                    auto lang_index = find_result->second;
+                    item->setData(TableItemType::LanguageIndex, lang_index);
+                }
+                return item;
+            };
+            {
+                //info内のrowはCSVファイルの行数が格納される。
+                //CSVにはヘッダーが含まれるため、実質1インデックスとなる。
+                //エディターで表示する際はヘッダーはセルには存在しないため、0インデックスとなる。
+                auto item = createItem((1 <= info.row) ? QString::number(info.row - 1) : tr("File"));
+                this->validateResultTable->setItem(row, col++, item);
+            }
+            {
+                auto item = createItem(infoTypeText);
+                this->validateResultTable->setItem(row, col++, item);
+            }
+            {
+                auto langs = info.language.split(" ");
+                if(langs.isEmpty() == false) 
+                {
+                    std::ranges::transform(langs, langs.begin(), [](const auto& l) {
+                        return langscore::languageDisplayName(l);
+                    });
+
+                    auto item = createItem(langs.join(", "));
+                    this->validateResultTable->setItem(row, col++, item);
+                }
+                else {
+                    auto item = createItem(info.language);
+                    this->validateResultTable->setItem(row, col++, item);
+                }
+            }
+            {
+                auto item = createItem(info.getErrorText());
+                this->validateResultTable->setItem(row, col++, item);
+            }
+            row++;
+        }
+
+        QTimer::singleShot(1, [this]() {
+            this->validateResultTable->resizeColumnsToContents();
+            this->csvEditor->update();
+            // モデルの背景色やユーザーロールが更新されているため、ビューへ反映させる
+            if(currentModel && currentModel->rowCount() > 0 && currentModel->columnCount() > 0) {
+                auto top = currentModel->index(0, 0);
+                auto bottom = currentModel->index(currentModel->rowCount() - 1, currentModel->columnCount() - 1);
+                emit currentModel->dataChanged(top, bottom, QVector<int>{Qt::BackgroundRole, Qt::UserRole});
+            }
+            this->update();
+            this->csvEditor->viewport()->update();
+        });
+
     }
 }
 
+
+void MainCSVTable::TableUndo::setValue(ValueType value)
+{
+    if(!this->target.isValid()) {
+        return;
+    }
+
+    // 現在のモデルを取得してsetDataメソッドを使用
+    auto* currentModel = this->parent->csvEditor->model();
+    if(currentModel) {
+        currentModel->setData(this->target, value, Qt::EditRole);
+    }
+}
 
 void MainCSVTable::TableUndo::undo() {
     this->setValue(oldValue);
@@ -364,9 +530,4 @@ void MainCSVTable::TableUndo::redo() {
     } else {
         this->setText(tr("Change Table State"));
     }
-}
-
-void MainCSVTable::changeScriptTableItemCheck(QString scriptName, Qt::CheckState check)
-{
-    // 必要に応じて実装
 }

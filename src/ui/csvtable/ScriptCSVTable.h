@@ -1,13 +1,18 @@
 ﻿#pragma once
 
-#include <QTableWidget>
+#include <QTableView>
 #include <QLabel>
 #include <QToolButton>
+#include <QPushButton>
+#include <QLineEdit>
 #include <vector>
 #include <QString>
+#include <QPersistentModelIndex>
 
 #include "ComponentBase.h"
 #include "CSVEditDataManager.h"
+#include "csveditor/CSVEditorSortFilterProxyModel.h"
+#include "ScriptTableViewModel.h"
 
 
 struct ScriptTextData; // 前方宣言
@@ -16,7 +21,7 @@ class ScriptCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
     ScriptCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent = nullptr);
-    
+
     void clear();
 
     void setupScriptTable();
@@ -24,26 +29,16 @@ public:
 
     void updateScriptIgnoreState(QString scriptName, Qt::CheckState check);
 
-    void setScriptTableItemCheck(QTableWidgetItem* item, Qt::CheckState check);
-
     void unckeckSignOnlyText();
     void uncheckNotContainHiragana();
 
-    void setTableItemTextColor(int row, QBrush color);
-
     void updateTableTextColor();
 
-    QTableWidgetItem* scriptTableItem(int row, int col);
-
-    QString getScriptFileNameFromTable(int row);
+    QString getScriptFileNameFromTable(int sourceRow);
 
     std::vector<int> fetchScriptTableSameFileRows(QString scriptName);
 
-    void scriptTableItemChanged(QTableWidgetItem* item);
-
     Qt::CheckState getTreeCheckStateBasedOnTable(QString scriptName);
-
-    void showNormalJsonText(QString treeItemName, QString fileName);
 
     void setScriptFileName(QString fileName);
 
@@ -58,15 +53,16 @@ private slots:
     void onScriptTableScrollToRow(const QString& scriptFileName);
     void onScriptTableSelectRow(const QString& scriptFileName);
     void onScriptTableSelected();
+    void onContextMenuRequested(const QPoint& pos);
 
 private:
 
     struct TableUndo : QUndoCommand
     {
-        using ValueType = bool;
-        TableUndo(ScriptCSVTable* parent, QTableWidgetItem* target, ValueType newValue, ValueType oldValue)
-            : parent(parent), target(target), newValue(std::move(newValue)), oldValue(std::move(oldValue)){
-        }
+        using ValueType = Qt::CheckState;
+        TableUndo(ScriptTableViewModel* model, const QPersistentModelIndex& target,
+                  ValueType newValue, ValueType oldValue)
+            : model(model), target(target), newValue(newValue), oldValue(oldValue) {}
         ~TableUndo() {}
 
         int id() const override { return 2; }
@@ -74,29 +70,30 @@ private:
         void redo() override;
 
     private:
-        ScriptCSVTable* parent;
-        QTableWidgetItem* target;
+        ScriptTableViewModel* model;
+        QPersistentModelIndex target;
         ValueType newValue;
         ValueType oldValue;
 
         void setValue(ValueType value);
     };
 
-
-    void writeToIgnoreScriptLine(int row, bool ignore);
-    void updateScriptWordCount(QString text, Qt::CheckState state);
-
+    void receive(DispatchType type, const QVariantList& args) override;
+    void restoreColumnWidths();
+    void showLanguageColumnMenu();
 
     bool showAllScriptContents;
-    int currentScriptWordCount;
-    QLabel* scriptFileName;
-    QLabel* scriptFileWordCount;
+    QLabel*    scriptFileName;
+    QLabel*    scriptFileWordCount;
     QToolButton* autoCheckButton;
     QToolButton* scriptFilterButton;
-    QTableWidget* tableWidget;
+    QToolButton* settingButton;
+    QWidget*     settingPane;
+    QPushButton* hideLanguageColumnsAction;
+    QLineEdit*   filterEdit;
+    QTableView*  tableView;
+    ScriptTableViewModel*                      currentModel;
+    langscore::CSVEditorSortFilterProxyModel*  _proxyModel;
     std::weak_ptr<CSVEditDataManager> loadFileManager;
-
-    //fetchScriptTableSameFileRowsの高速化のためのキャッシュ
-    std::unordered_map<QString, std::vector<int>> scriptNameToTableIndexMap;
 
 };

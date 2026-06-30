@@ -2,6 +2,8 @@
 #include "CSVEditorTableModel.h"
 #include "../csvtable/MultiLineEditDelegate.h"
 #include "../dialog/TranslationApiSettingsDialog.h"
+#include "FastCSVContainer.h"
+#include "service/LanguageNames.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFile>
@@ -25,25 +27,24 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QLabel>
-#include "FastCSVContainer.h"
 
 using namespace langscore;
 
-// Custom dialog class for language column selection
-class LanguageColumnSelectionDialog : public QDialog {
+class LanguageColumnSelectionDialog : public QDialog 
+{
     Q_OBJECT
 
 public:
     LanguageColumnSelectionDialog(const QStringList& languages, CSVEditor* csvEditor, QWidget* parent = nullptr)
-        : QDialog(parent), selectedLanguages(), csvEditor(csvEditor)
+        : QDialog(parent), selectedLanguages()
     {
         setWindowTitle(tr("Hide Language Columns"));
         setModal(true);
         resize(300, 400);
         
-        setupUI(languages);
+        setupUI(languages, csvEditor);
     }
-    
+
     std::vector<std::pair<QString, bool>> getLanguagesVisibleState() const {
         std::vector<std::pair<QString, bool>> result;
         for (const auto& [lang, checkBox] : checkBoxes.asKeyValueRange()) {
@@ -66,7 +67,7 @@ private slots:
     }
 
 private:
-    void setupUI(const QStringList& languages) {
+    void setupUI(const QStringList& languages, CSVEditor* csvEditor) {
         auto* mainLayout = new QVBoxLayout(this);
         
         // Title label
@@ -75,16 +76,17 @@ private:
         mainLayout->addWidget(titleLabel);
         
         // Checkbox area with scroll if needed
-        auto* scrollArea = new QScrollArea(this);
+        auto* scrollArea   = new QScrollArea(this);
         auto* scrollWidget = new QWidget();
         auto* scrollLayout = new QVBoxLayout(scrollWidget);
         
         // Create checkboxes for each language
-        for (const QString& language : languages) {
-            auto* checkBox = new QCheckBox(language, scrollWidget);
+        for (const QString& language : languages) 
+        {
+            auto* checkBox = new QCheckBox(languageDisplayName(language), scrollWidget);
             
             // Set initial state based on current column visibility
-            bool isCurrentlyVisible = isLanguageColumnHidden(language);
+            bool isCurrentlyVisible = (false == csvEditor->isLanguageColumnHidden(language));
             checkBox->setChecked(isCurrentlyVisible);
             
             checkBoxes[language] = checkBox;
@@ -123,23 +125,10 @@ private:
         buttonLayout->addWidget(cancelButton);
         mainLayout->addLayout(buttonLayout);
     }
-    
-    bool isLanguageColumnHidden(const QString& language) const {
-        if(!csvEditor || !csvEditor->model()) { return false; }
-        
-        for (int col = 0; col < csvEditor->model()->columnCount(); ++col) {
-            QString headerText = csvEditor->model()->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
-            
-            if (headerText == language.toLower()) {
-                return csvEditor->isColumnHidden(col) == false;
-            }
-        }
-        return false;
-    }
+
     
     QMap<QString, QCheckBox*> checkBoxes;
     QStringList selectedLanguages;
-    CSVEditor* csvEditor;
 };
 
 
@@ -157,6 +146,8 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
 {
     this->setSelectionBehavior(QAbstractItemView::SelectItems);
     this->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    // We'll implement custom sorting (asc/desc/none) via header clicks
+    this->setSortingEnabled(false);
     this->setContextMenuPolicy(Qt::CustomContextMenu);
 
     this->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -169,8 +160,7 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
     setupActions();
     setupContextMenu();
     
-    connect(this, &QWidget::customContextMenuRequested, 
-            this, &CSVEditor::onCustomContextMenuRequested);
+    connect(this, &QWidget::customContextMenuRequested, this, &CSVEditor::onCustomContextMenuRequested);
             
     // Translation manager connections
     connect(translationManager.get(), &TranslationManager::batchTranslationCompleted,
@@ -184,6 +174,13 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
     connect(hHeader, &QHeaderView::sectionResized, this, [this](int, int, int) {
         this->viewport()->update();
     });
+    connect(hHeader, &QHeaderView::sectionClicked, this, &CSVEditor::onHeaderSectionClicked);
+}
+
+void CSVEditor::setModel(QAbstractItemModel* model)
+{
+    QTableView::setModel(model);
+    connectModelSignals();
 }
 
 void CSVEditor::setupActions()
@@ -219,6 +216,9 @@ void CSVEditor::setupActions()
     hideLanguageColumnsAction = new QAction(tr("Hide Language Columns..."), this);
     connect(hideLanguageColumnsAction, &QAction::triggered, this, &CSVEditor::hideLanguageColumns);
     
+    filterSettingsAction = new QAction(tr("Filter Settings..."), this);
+    connect(filterSettingsAction, &QAction::triggered, this, &CSVEditor::hideLanguageColumns);
+
     showAllColumnsAction = new QAction(tr("Show All Columns"), this);
     connect(showAllColumnsAction, &QAction::triggered, this, &CSVEditor::showAllColumns);
     
@@ -231,6 +231,7 @@ void CSVEditor::setupActions()
     addAction(translationSettingsAction);
     addAction(translateAction);
     addAction(hideLanguageColumnsAction);
+    addAction(filterSettingsAction);
     addAction(showAllColumnsAction);
 }
 
@@ -261,6 +262,7 @@ void CSVEditor::setupContextMenu()
     contextMenu->addSeparator();
     columnVisibilityMenu = contextMenu->addMenu(tr("Column Visibility"));
     columnVisibilityMenu->addAction(hideLanguageColumnsAction);
+    columnVisibilityMenu->addAction(filterSettingsAction);
     columnVisibilityMenu->addAction(showAllColumnsAction);
     
     // Update menus
@@ -343,67 +345,55 @@ void CSVEditor::hideLanguageColumns()
 
 void CSVEditor::showAllColumns()
 {
-    if (!model()) return;
-    
-    // Show all columns
-    for (int i = 0; i < model()->columnCount(); ++i) {
-        setColumnHidden(i, false);
-    }
-    
+    auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model());
+    if(!proxy) { return; }
+    proxy->clearAllHiddenLanguages();
+
+    QSettings settings(qApp->applicationDirPath() + "/settings.ini", QSettings::IniFormat);
+    settings.remove("filters");
+    settings.sync();
+
     updateColumnVisibilityMenu();
 }
 
 QStringList CSVEditor::getRecognizedLanguageCodesInColumns() const
 {
-    if(!model()) { return QStringList(); }
-    
+    auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model());
+    QAbstractItemModel* m = proxy ? proxy->sourceModel() : model();
+    if(!m) { return QStringList(); }
 
-    QStringList systemColumnName = {
-        "original", "type"
-    };
-    
-    // Check each column header
+    const QStringList systemColumnName = {"original", "type"};
+
     QStringList recognizedLanguages;
-    for (int col = 0; col < model()->columnCount(); ++col) {
-        QString headerText = model()->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
-        
-        if (systemColumnName.contains(headerText) == false) {
+    for(int col = 0; col < m->columnCount(); ++col) {
+        QString headerText = m->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
+        if(!systemColumnName.contains(headerText)) {
             recognizedLanguages.append(headerText);
         }
     }
-    
+
     recognizedLanguages.removeDuplicates();
     return recognizedLanguages;
 }
 
-//void CSVEditor::hideColumnsWithLanguageCodes(const std::vector<std::pair<QString, bool>>& languageCodes)
-//{
-//    if(!model()) { return; }
-//    
-//    // Hide columns that match the specified language codes
-//    for (int col = 0; col < model()->columnCount(); ++col) {
-//        QString headerText = model()->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
-//        
-//        if(std::ranges::find_if(languageCodes, [&headerText](const auto& p) { return p.first == headerText; }) != languageCodes.end()) {
-//            setColumnHidden(col, true);
-//        }
-//    }
-//}
-
 void CSVEditor::changeColumnsVisibleWithLanguageCodes(const std::vector<std::pair<QString, bool>>& languageCodes)
 {
-    if(!model()) { return; }
-    
-    // Show columns that match the specified language codes
-    for (int col = 0; col < model()->columnCount(); ++col) 
-    {
-        QString headerText = model()->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
+    auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model());
+    if(!proxy) { return; }
 
-        auto find_result = std::ranges::find_if(languageCodes, [&headerText](const auto& p) { return p.first == headerText; });
-        if(find_result != languageCodes.end()) {
-            setColumnHidden(col, find_result->second == false);
-        }
+    for(const auto& [lang, visible] : languageCodes) {
+        proxy->setLanguageColumnHidden(lang, !visible);
     }
+    proxy->saveColumnFilterToSettings(languageCodes);
+}
+
+bool CSVEditor::isLanguageColumnHidden(const QString& language) const
+{
+    auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model());
+    if(proxy) {
+        return proxy->isLanguageColumnHidden(language);
+    }
+    return false;
 }
 
 bool CSVEditor::hasConfiguredTranslationService() const
@@ -746,9 +736,26 @@ void CSVEditor::onTranslationProgress(int batchId, int completed, int total)
 
 void CSVEditor::connectModelSignals()
 {
-    if (model()) {
-        connect(model(), &QAbstractItemModel::dataChanged, 
-                this, &CSVEditor::onModelDataChanged);
+    if(!model()) { return; }
+    connect(model(), &QAbstractItemModel::dataChanged,
+            this, &CSVEditor::onModelDataChanged, Qt::UniqueConnection);
+
+    if(auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model())) {
+        connect(proxy, &CSVEditorSortFilterProxyModel::sortStateChanged,
+                this,  &CSVEditor::sortStateChanged, Qt::UniqueConnection);
+    }
+}
+
+void CSVEditor::sortStateChanged(int col, CSVEditorSortFilterProxyModel::SortOrder order)
+{
+    auto* h = horizontalHeader();
+    if(order == CSVEditorSortFilterProxyModel::SortOrder::None) {
+        h->setSortIndicatorShown(false);
+    }
+    else {
+        h->setSortIndicatorShown(true);
+        h->setSortIndicator(col, order == CSVEditorSortFilterProxyModel::SortOrder::Ascending
+            ? Qt::AscendingOrder : Qt::DescendingOrder);
     }
 }
 
@@ -770,6 +777,8 @@ void CSVEditor::selectAndEditNextCell()
     if(this->model()->rowCount() <= index.row()) {
         return;
     }
+
+    this->selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectionFlag::Deselect);
 
     auto newSelectIndex = this->model()->index(index.row() + 1, index.column(), index.parent());
     this->selectionModel()->setCurrentIndex(newSelectIndex, QItemSelectionModel::SelectionFlag::Select);
@@ -867,27 +876,6 @@ void CSVEditor::showContextMenu(const QPoint& globalPos)
     }
 }
 
-// CSV file operations
-bool CSVEditor::openCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel)
-{
-    if (csvModel->rowCount() == 0 && csvModel->columnCount() == 0) {
-        delete csvModel;
-        return false;
-    }
-    
-    setModel(csvModel);
-    connectModelSignals();
-    currentFilePath = filePath;
-    _isModified = false;
-    
-    // Use ComponentBase history
-    if (history) {
-        history->clear();
-    }
-    
-    return true;
-}
-
 bool CSVEditor::saveCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel)
 {
     if (!csvModel) {
@@ -922,27 +910,6 @@ bool CSVEditor::saveAsCSV(const QString& filePath, langscore::CSVEditorTableMode
     return saveCSV(saveFilePath, csvModel);
 }
 
-void CSVEditor::newCSV(langscore::CSVEditorTableModel* csvModel)
-{
-    // 翻訳CSVの基本構造: 原文、翻訳文の列を作成
-    csvModel->insertRows(0, 1);  // ヘッダー行
-    csvModel->insertColumns(0, 2);  // 原文、翻訳文の列
-    
-    // ヘッダーを設定
-    csvModel->setData(csvModel->index(0, 0), tr("Original"), Qt::EditRole);
-    csvModel->setData(csvModel->index(0, 1), tr("Translation"), Qt::EditRole);
-    
-    setModel(csvModel);
-    connectModelSignals();
-    currentFilePath.clear();
-    _isModified = false;
-    
-    // Use ComponentBase history
-    if (history) {
-        history->clear();
-    }
-}
-
 void CSVEditor::setText(QModelIndex index, QString newText)
 {
     CSVEditCommand::CellEdit edit;
@@ -952,6 +919,9 @@ void CSVEditor::setText(QModelIndex index, QString newText)
     if(edit.oldValue == edit.newValue) { return; }
 
     executeEditCommand({edit}, QString{});
+    QTimer::singleShot(1, [this, row = index.row()]() {
+        this->resizeRowToContents(row);
+    });
 }
 
 // Edit operations
@@ -1238,6 +1208,21 @@ QString CSVEditor::getSelectedCellsAsText() const
 void CSVEditor::setData(QModelIndex index, QVariant value, int role)
 {
     this->model()->setData(index, value, role);
+}
+
+void CSVEditor::loadColumnFilterSettings()
+{
+    auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model());
+    if(proxy) {
+        proxy->loadColumnFilterFromSettings();
+    }
+}
+
+void CSVEditor::onHeaderSectionClicked(int logicalIndex)
+{
+    if(auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model())) {
+        proxy->cycleColumnSort(logicalIndex);
+    }
 }
 
 // Include the MOC file for the LanguageColumnSelectionDialog class

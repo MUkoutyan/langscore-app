@@ -15,6 +15,7 @@
 #include <QPalette>
 #include <QFontDatabase>
 #include <QMessageBox>
+#include <QTimer>   
 
 using namespace langscore;
 
@@ -130,10 +131,17 @@ MainWindow::MainWindow(QWidget *parent)
             this->restoreState(settings.value("windowState").toByteArray());
         }
 
-        auto rect = this->rect();
-        auto analyzeRect = this->analyzeDialog->rect();
-        analyzeRect.moveCenter(rect.center());
-        this->analyzeDialog->move(analyzeRect.topLeft());
+        this->update();
+
+        QTimer::singleShot(0, this, [this]() {
+            auto parentRect = this->rect();
+            auto analyzeRect = this->analyzeDialog->rect();
+            qDebug() << "Parent Rect:" << parentRect;
+            analyzeRect.moveCenter(parentRect.center());
+            qDebug() << "Analyze Dialog Rect (parent coords):" << analyzeRect;
+            // AnalyzeDialog はウィンドウ（トップレベル）なので、親のローカル座標をグローバルへ変換して移動する
+            this->analyzeDialog->move(this->mapToGlobal(analyzeRect.topLeft()));
+        });
     }
 
 }
@@ -326,6 +334,7 @@ QTreeView::item:hover { background-color: #2202abd1;}
         analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #999999;}");
     }
 }
+
 
 void MainWindow::createUndoView()
 {

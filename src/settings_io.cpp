@@ -160,10 +160,12 @@ void settings::load(QString path)
     this->defaultLanguage = root[key(JsonKey::DefaultLanguage)].toString("ja");
 
     auto write = root[key(JsonKey::Write)].toObject();
-    writeObj.exportDirectory = write[key(JsonKey::ExportDirectory)].toString("");
-    writeObj.exportByLanguage = write[key(JsonKey::ExportByLang)].toBool(false);
-    writeObj.enableLanguagePatch = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
-    writeObj.enableTranslateDefLang = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
+    writeObj.exportDirectory            = write[key(JsonKey::ExportDirectory)].toString("");
+    writeObj.exportByLanguage           = write[key(JsonKey::ExportByLang)].toBool(false);
+    writeObj.enableLanguagePatch        = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
+    writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
+    writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(true);
+    writeObj.enableAddNewTextToEnd      = write[key(JsonKey::AddNewContentToEnd)].toBool(true);
     this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
 
     this->isShowHiddenFilesOnTree = write["IsShowHiddenFilesOnTree"].toBool();
@@ -224,18 +226,20 @@ QJsonObject serializeAnalyze(const settings* s) {
 
 QJsonObject serializeWrite(const settings* s) {
     QJsonObject write;
-    write[key(JsonKey::UsCustomFuncComment)] = "Scripts/{0}#{1},{2}";
-    write[key(JsonKey::ExportDirectory)] = QDir(s->langscoreProjectDirectory).relativeFilePath(s->writeObj.exportDirectory);
-    write[key(JsonKey::ExportByLang)] = s->writeObj.exportByLanguage;
-    write[key(JsonKey::OverwriteLangscore)] = s->writeObj.overwriteLangscore;
-    write[key(JsonKey::OverwriteLangscoreCustom)] = s->writeObj.overwriteLangscoreCustom;
-    write[key(JsonKey::EnableLanguagePatch)] = s->writeObj.enableLanguagePatch;
-    write[key(JsonKey::EnableTranslationDefLang)] = s->writeObj.enableTranslateDefLang;
-    write[key(JsonKey::WriteType)] = s->writeObj.writeMode;
-    write[key(JsonKey::RPGMakerBasicData)] = serializeBasicDataList(s->writeObj);
-    write[key(JsonKey::IsFirstExported)] = s->isFirstExported;
-    write[key(JsonKey::RPGMakerScripts)] = serializeScripts(s->writeObj);
-    write[key(JsonKey::IgnorePictures)] = serializeIgnorePictures(s->writeObj);
+    write[key(JsonKey::UsCustomFuncComment)]        = "Scripts/{0}#{1},{2}";
+    write[key(JsonKey::ExportDirectory)]            = QDir(s->langscoreProjectDirectory).relativeFilePath(s->writeObj.exportDirectory);
+    write[key(JsonKey::ExportByLang)]               = s->writeObj.exportByLanguage;
+    write[key(JsonKey::OverwriteLangscore)]         = s->writeObj.overwriteLangscore;
+    write[key(JsonKey::OverwriteLangscoreCustom)]   = s->writeObj.overwriteLangscoreCustom;
+    write[key(JsonKey::EnableLanguagePatch)]        = s->writeObj.enableLanguagePatch;
+    write[key(JsonKey::EnableTranslationDefLang)]   = s->writeObj.enableTranslateDefLang;
+    write[key(JsonKey::FillDefaultLanguageColumn)]  = s->writeObj.enableFillDefaultLanguage;
+    write[key(JsonKey::AddNewContentToEnd)]         = s->writeObj.enableAddNewTextToEnd;
+    write[key(JsonKey::WriteType)]                  = s->writeObj.writeMode;
+    write[key(JsonKey::RPGMakerBasicData)]          = serializeBasicDataList(s->writeObj);
+    write[key(JsonKey::IsFirstExported)]            = s->isFirstExported;
+    write[key(JsonKey::RPGMakerScripts)]            = serializeScripts(s->writeObj);
+    write[key(JsonKey::IgnorePictures)]             = serializeIgnorePictures(s->writeObj);
 
     write["Pictures"] = serializePicturesInfo(s->writeObj);
     write["IsShowHiddenFilesOnTree"] = s->isShowHiddenFilesOnTree;

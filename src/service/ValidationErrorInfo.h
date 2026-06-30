@@ -24,7 +24,7 @@ struct ValidationErrorInfo
     QString filePath;
     ErrorType type = Invalid;
     ErrorSummary summary = None;
-    size_t row = 0;
+    std::int64_t row = 0;
     int width = 0;
     QString language;
     QString detail;

@@ -86,7 +86,7 @@ ValidationErrorInfo ValidationService::convertErrorInfo(std::vector<QString> csv
 
     info.language = csvText[ErrorTextCol::Language];
     info.detail = csvText[ErrorTextCol::Details];
-    info.row = csvText[ErrorTextCol::Row].toULongLong();
+    info.row = csvText[ErrorTextCol::Row].toLongLong();
     info.id = (++errorInfoIndex);   //1開始にする
 
     return info;
@@ -205,7 +205,7 @@ std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QStr
                 info.filePath = obj.value("File").toString();
             }
             if(obj.contains("Row")) {
-                info.row = static_cast<size_t>(obj.value("Row").toInteger());
+                info.row = static_cast<int64_t>(obj.value("Row").toInteger());
             }
             if(obj.contains("Width")) {
                 info.width = obj.value("Width").toInt();

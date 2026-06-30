@@ -81,10 +81,6 @@ private:
     void setup();
     void setupTree();
 
-    void setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
-
-    void writeToIgnoreScriptLine(int row, bool ignore);
-
     void backup();
 
     void setFontList(std::vector<QString> fontPaths);

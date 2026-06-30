@@ -52,7 +52,8 @@ public:
         this->setFocusProxy(textEdit);
 
 
-        connect(textEdit, &MultiLineEditDelegate::MultiLineTextEdit::editingFinished, [delegate, this](bool shouldMoveDown) {
+        connect(textEdit, &MultiLineEditDelegate::MultiLineTextEdit::editingFinished, [delegate, this](bool shouldMoveDown) 
+        {
             emit delegate->commitData(this);
             emit delegate->closeEditor(this);
 
@@ -91,6 +92,12 @@ void MultiLineEditDelegate::setEditorData(QWidget* _editor, const QModelIndex& i
     if (editor) {
         auto textEdit = editor->getTextEdit();
         QString text = index.model()->data(index, Qt::EditRole).toString();
+        auto font_var = index.model()->data(index, Qt::FontRole);
+        if(font_var.isValid()) {
+            auto font = font_var.value<QFont>();
+            textEdit->setFont(font);
+        }
+        
         textEdit->setPlainText(text);
     }
 }

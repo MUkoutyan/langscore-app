@@ -119,6 +119,7 @@ private:
     bool filterTreeItem(QTreeWidgetItem* item, const QString& searchText, bool parentMatched = false);
     void expandItemsWithChildren(QTreeWidgetItem* item);
     void resetItemVisibility(QTreeWidgetItem* item);
+    void updateTreeItemText();
 
     void receive(DispatchType type, const QVariantList& args) override;
 

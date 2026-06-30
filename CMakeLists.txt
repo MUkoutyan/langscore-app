@@ -15,7 +15,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_PREFIX_PATH ${QT_DIR})
+if(DEFINED Qt6_DIR)
+    list(APPEND CMAKE_PREFIX_PATH "${Qt6_DIR}")
+endif()
+if(DEFINED QT_DIR)
+    list(APPEND CMAKE_PREFIX_PATH "${QT_DIR}")
+endif()
+
 
 #mutex.lockでのクラッシュへの対応
 #https://stackoverflow.com/questions/78598141/first-stdmutexlock-crashes-in-application-built-with-latest-visual-studio
@@ -68,6 +74,8 @@ set(PROJECT_SOURCES
     src/ui/dialog/TranslationProgressDialog.ui
     src/ui/csvtable/ScriptCSVTable.h
     src/ui/csvtable/ScriptCSVTable.cpp
+    src/ui/csvtable/ScriptTableViewModel.h
+    src/ui/csvtable/ScriptTableViewModel.cpp
     src/ui/csvtable/MainCSVTable.h
     src/ui/csvtable/MainCSVTable.cpp
     src/ui/csvtable/MainCSVTableModel.cpp
@@ -84,6 +92,8 @@ set(PROJECT_SOURCES
     src/ui/csveditor/CSVEditor.cpp
     src/ui/csveditor/CSVEditorTableModel.h
     src/ui/csveditor/CSVEditorTableModel.cpp
+    src/ui/csveditor/CSVEditorSortFilterProxyModel.h
+    src/ui/csveditor/CSVEditorSortFilterProxyModel.cpp
     src/ui/csveditor/CSVEditCommand.h
     src/ui/csveditor/CSVEditCommand.cpp
     src/ui/ComponentBase.h
@@ -123,6 +133,8 @@ set(PROJECT_SOURCES
     src/service/ValidationService.h
     src/service/ValidationService.cpp
     src/service/ValidationErrorInfo.h
+    src/service/LanguageNames.h
+    src/service/LanguageNames.cpp
 )
 
 include_directories(
@@ -187,6 +199,9 @@ endif()
 
 # add_subdirectory(test)
 
+if(MSVC)
+    target_compile_options(langscore-app PRIVATE "/MP")
+endif()
 
 target_link_libraries(langscore-app PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network icu.lib)
 
@@ -198,25 +213,12 @@ set_target_properties(langscore-app PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-set(deploy_script "${CMAKE_CURRENT_BINARY_DIR}/deploy_langscore.cmake")
-file(GENERATE OUTPUT ${deploy_script} CONTENT "
-# Including the file pointed to by QT_DEPLOY_SUPPORT ensures the generated
-# deployment script has access to qt_deploy_runtime_dependencies()
-include(\"${QT_DEPLOY_SUPPORT}\")
-qt_deploy_runtime_dependencies(
-    EXECUTABLE \"${executable_path}\"
-    ADDITIONAL_EXECUTABLES \"${helper_app_path}\"
-    GENERATE_QT_CONF
-    VERBOSE
-)")
-
 add_dependencies(langscore-app update_translations)
 
 install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
                                    #                           and ./binHelperApp.exe
         BUNDLE  DESTINATION .      # Install to CMAKE_INSTALL_PREFIX/MyApp.app/Contents/MacOS/MyApp
 )
-install(SCRIPT ${deploy_script})    # Add its runtime dependencies
 
 if(WIN32)
    find_package(Qt6 REQUIRED COMPONENTS Widgets)  # Qt6 の場合
@@ -230,8 +232,8 @@ if(WIN32)
    # windeployqtのパス
    set(WINDEPLOYQT_EXECUTABLE "${QT_BIN_DIR}/windeployqt6.exe")
 
-   # 出力ディレクトリを指定（CMAKE_RUNTIME_OUTPUT_DIRECTORYが未指定ならデフォルトのビルドディレクトリを使う）
-   set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")  # MyApp は実行ファイルターゲット名
+   set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")
+   message("")
 
    # windeployqtを実行するカスタムコマンド
    add_custom_command(TARGET langscore-app POST_BUILD
@@ -242,18 +244,24 @@ if(WIN32)
 
    get_filename_component(langscore_divisi_path "${PROJECT_SOURCE_DIR}/${DIVISI_PATH}" ABSOLUTE)
    
-   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
-   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/resource)
-   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/resources/fonts)
+   add_custom_command(
+    TARGET langscore-app POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/bin"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/bin/resource"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/resources/fonts"
+)
+   #file(MAKE_DIRECTORY $<TARGET_FILE_DIR:langscore-app>/bin)
+   #file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/resource)
+   #file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/resources/fonts)
 
    # ビルド時に毎回コピーするように変更
    add_custom_target(copy_files ALL
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe ${PROJECT_BINARY_DIR}/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe ${PROJECT_BINARY_DIR}/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll ${PROJECT_BINARY_DIR}/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll ${PROJECT_BINARY_DIR}/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource ${PROJECT_BINARY_DIR}/bin/resource
-       COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts ${PROJECT_BINARY_DIR}/resources/fonts
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe $<TARGET_FILE_DIR:langscore-app>/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe $<TARGET_FILE_DIR:langscore-app>/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll $<TARGET_FILE_DIR:langscore-app>/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll $<TARGET_FILE_DIR:langscore-app>/bin/
+       COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource $<TARGET_FILE_DIR:langscore-app>/bin/resource
+       COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts $<TARGET_FILE_DIR:langscore-app>/resources/fonts
        COMMENT "Copying necessary files after build"
    )
 

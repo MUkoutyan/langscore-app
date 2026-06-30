@@ -8,12 +8,14 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <fstream>
+#include "service/LanguageNames.h"
 
 namespace langscore {
 
 CSVEditorTableModel::CSVEditorTableModel(QObject* parent)
     : QAbstractTableModel(parent)
-{}
+{
+}
 
 CSVEditorTableModel::CSVEditorTableModel(const QString& path, QObject* parent)
     : QAbstractTableModel(parent)
@@ -27,6 +29,7 @@ bool CSVEditorTableModel::loadFromFile(const QString& path) {
     endResetModel();
     if(success) {
         currentShowFileName = QString::fromStdString(std::filesystem::path{path.toStdString()}.filename().stem().string());
+        _originalData = csvContainer.dataRaw();
     }
     return success;
 }
@@ -55,7 +58,7 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
         return false;
     }
 
-    currentShowFileName = QString::fromStdString(file.filesystemFileName().stem().string());
+    currentShowFileName = getFileNameWithoutExtension(filePath);
 
     beginResetModel();
 
@@ -114,7 +117,7 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
 
     if(role == Qt::FontRole) {
         if(_settings && this->useLanguageFont) {
-            QString header = headerData(col, Qt::Horizontal, Qt::DisplayRole).toString();
+            QString header = headerData(col, Qt::Horizontal, Qt::UserRole).toString();
             for(const auto& lang : _settings->languages) {
                 if(lang.languageName == header) {
                     auto font = lang.font.fontData;
@@ -132,6 +135,9 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
     }
     else if(role == Qt::BackgroundRole)
     {
+        if(this->_runtimeData == nullptr) {
+            return QVariant();
+        }
         const auto& errors = this->_runtimeData->errors;
         if(errors.empty()) {
             return QVariant();
@@ -159,6 +165,9 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
     }
     else if(role == Qt::UserRole)
     {
+        if(this->_runtimeData == nullptr) {
+            return QVariant();
+        }
         const auto& errors = this->_runtimeData->errors;
         if(errors.empty()) {
             return QVariant();
@@ -277,13 +286,18 @@ QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientatio
                 else if(name == "type") {
                     return tr("Type");
                 }
-                else {
-                    return name; // 他の列名はそのまま返す
+                else 
+                {
+                    QString localeName = name;
+                    QString display = langscore::languageDisplayName(localeName);
+                    if(display.isEmpty() == false) {
+                        return display + "(" + name + ")";
+                    }
+
+                    QLocale locale(localeName);
+                    return locale.nativeLanguageName() + "(" + name + ")"; // 他の列名はそのまま返す
                 }
             }
-        }
-        else if(role == Qt::SizeHintRole) {
-            
         }
         else if(role == Qt::UserRole) {
             return csvContainer.headerAt(static_cast<size_t>(section));
@@ -292,7 +306,6 @@ QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientatio
     return QVariant();
 }
 
-// Convenience methods
 size_t CSVEditorTableModel::rowCountRaw() const {
     return csvContainer.rowCount();
 }
@@ -341,6 +354,81 @@ const std::vector<std::vector<QString>>& CSVEditorTableModel::dataRaw() const {
     return csvContainer.dataRaw();
 }
 
+void CSVEditorTableModel::applySort(int column, int order)
+{
+    if(column < 0 || column >= static_cast<int>(csvContainer.columnCount())) {
+        return;
+    }
+
+    if(order == 0) {
+        // ソート解除
+        if(!_originalData.empty()) {
+            beginResetModel();
+            csvContainer.loadFromCsvData(_originalData);
+            endResetModel();
+        }
+        _sortedColumn = -1;
+        _sortOrder = 0;
+        return;
+    }
+
+    // Build vector of row indices
+    std::vector<int> indices(static_cast<size_t>(csvContainer.rowCount()));
+    std::ranges::iota(indices, 0);
+
+    // Sort indices based on column value
+    std::ranges::stable_sort(indices, [this, column, order](int a, int b) 
+    {
+        QString va, vb;
+        csvContainer.getValue(static_cast<size_t>(a), static_cast<size_t>(column), va);
+        csvContainer.getValue(static_cast<size_t>(b), static_cast<size_t>(column), vb);
+        if(order == 1) {
+            return va < vb;
+        }
+        return va > vb;
+    });
+
+    // Rebuild data in new order
+    std::vector<std::vector<QString>> newData;
+    newData.reserve(indices.size());
+    for(int idx : indices) {
+        newData.push_back(csvContainer.dataRaw()[static_cast<size_t>(idx)]);
+    }
+
+    beginResetModel();
+    csvContainer.loadFromCsvData(newData);
+    endResetModel();
+
+    _sortedColumn = column;
+    _sortOrder = order;
+}
+
+bool CSVEditorTableModel::isLanguageColumnHidden(const QString& language) const
+{
+    QSettings settings(qApp->applicationDirPath() + "/settings.ini", QSettings::IniFormat);
+    settings.beginGroup("filters");
+    QVariant v = settings.value(language.toLower(), QVariant());
+    settings.endGroup();
+    
+    //設定値に保存されていればそれを返す
+    if(v.isValid()) {
+        return v.toBool();
+    }
+
+    //表示されていたらtrueを返す
+    for(int col = 0; col < this->columnCount(); ++col) {
+        QString headerText = this->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
+        if(headerText == language.toLower()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void CSVEditorTableModel::setUseLanguageFont(bool use) {
+    this->useLanguageFont = use;
+}
+
 void CSVEditorTableModel::setSettings(std::shared_ptr<settings> setting)
 {
     this->_settings = std::move(setting);
@@ -349,15 +437,6 @@ void CSVEditorTableModel::setSettings(std::shared_ptr<settings> setting)
 void CSVEditorTableModel::setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting)
 {
     this->_runtimeData = std::move(setting);
-}
-
-void CSVEditorTableModel::appendErrors(std::vector<ValidationErrorInfo> infos)
-{
-    beginResetModel();
-    //for(auto&& info : infos) {
-    //    this->_runtimeData->errors.emplace_back(std::move(info));
-    //}
-    endResetModel();
 }
 
 } // namespace langscore
