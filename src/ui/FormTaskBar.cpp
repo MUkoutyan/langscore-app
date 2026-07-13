@@ -115,9 +115,17 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     editMenu->addSeparator();
     auto undoView = editMenu->addAction(tr("Show Undo View..."));
 
+    auto validationAction = new QAction(tr("Validation all file..."), this);
+    validationAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_V);
+    editMenu->addAction(validationAction);
+
     connect(undoAction, &QAction::triggered, this, &FormTaskBar::undo);
     connect(redoAction, &QAction::triggered, this, &FormTaskBar::redo);
     connect(undoView,   &QAction::triggered, this, &FormTaskBar::showUndoView);
+
+    connect(validationAction, &QAction::triggered, this, [this]() {
+        emit this->validationAll();
+    });
 
     //System Menu
     auto systemMenu = AddMenu(tr("System"));

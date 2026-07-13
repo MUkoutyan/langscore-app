@@ -72,30 +72,33 @@ set(PROJECT_SOURCES
     src/ui/dialog/TranslationProgressDialog.h
     src/ui/dialog/TranslationProgressDialog.cpp
     src/ui/dialog/TranslationProgressDialog.ui
+    src/ui/dialog/LanguageColumnSelectionDialog.h
+    src/ui/dialog/LanguageColumnSelectionDialog.cpp
     src/ui/csvtable/ScriptCSVTable.h
     src/ui/csvtable/ScriptCSVTable.cpp
-    src/ui/csvtable/ScriptTableViewModel.h
-    src/ui/csvtable/ScriptTableViewModel.cpp
     src/ui/csvtable/MainCSVTable.h
     src/ui/csvtable/MainCSVTable.cpp
     src/ui/csvtable/MainCSVTableModel.cpp
     src/ui/csvtable/MainCSVTableModel.h
-    src/ui/csvtable/ScriptCSVTableModel.h
-    src/ui/csvtable/ScriptCSVTableModel.cpp
-    src/ui/csvtable/MultiLineEditDelegate.h
-    src/ui/csvtable/MultiLineEditDelegate.cpp
-    src/ui/csveditor/FastCSVContainer.h
-    src/ui/csveditor/FastCSVContainer.cpp
-    src/ui/csveditor/CSVEditDataManager.h
-    src/ui/csveditor/CSVEditDataManager.cpp
-    src/ui/csveditor/CSVEditor.h
-    src/ui/csveditor/CSVEditor.cpp
-    src/ui/csveditor/CSVEditorTableModel.h
-    src/ui/csveditor/CSVEditorTableModel.cpp
-    src/ui/csveditor/CSVEditorSortFilterProxyModel.h
-    src/ui/csveditor/CSVEditorSortFilterProxyModel.cpp
-    src/ui/csveditor/CSVEditCommand.h
-    src/ui/csveditor/CSVEditCommand.cpp
+    src/ui/editor/FastCSVContainer.h
+    src/ui/editor/FastCSVContainer.cpp
+    src/ui/editor/EditDataManager.h
+    src/ui/editor/EditDataManager.cpp
+    src/ui/editor/CSVEditor.h
+    src/ui/editor/CSVEditor.cpp
+    src/ui/editor/CSVEditorTableModel.h
+    src/ui/editor/CSVEditorTableModel.cpp
+    src/ui/editor/CSVEditorSortFilterProxyModel.h
+    src/ui/editor/CSVEditorSortFilterProxyModel.cpp
+    src/ui/editor/CSVEditCommand.h
+    src/ui/editor/CSVEditCommand.cpp
+    src/ui/editor/ScriptCSVTableModel.h
+    src/ui/editor/ScriptCSVTableModel.cpp
+    src/ui/editor/ScriptEditorSortFilterProxyModel.h
+    src/ui/editor/ScriptEditorSortFilterProxyModel.cpp
+    src/ui/editor/MultiLineEditDelegate.h
+    src/ui/editor/MultiLineEditDelegate.cpp
+    src/ui/editor/EditorTableDefines.h
     src/ui/ComponentBase.h
     src/ui/FormTaskBar.h
     src/ui/FormTaskBar.cpp
@@ -141,7 +144,7 @@ include_directories(
     "${DIVISI_PATH}/include"
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/ui
-    ${CMAKE_SOURCE_DIR}/src/ui/csveditor
+    ${CMAKE_SOURCE_DIR}/src/ui/editor
     ${CMAKE_SOURCE_DIR}/src/ui/csvtable
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -188,17 +191,6 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-# # Enable testing
-# enable_testing()
-
-# # Find the Qt6Test module
-# find_package(Qt6 REQUIRED COMPONENTS Test)
-
-# # Include directories for QtTest
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${Qt6Test_INCLUDE_DIRS})
-
-# add_subdirectory(test)
-
 if(MSVC)
     target_compile_options(langscore-app PRIVATE "/MP")
 endif()
@@ -221,65 +213,46 @@ install(TARGETS langscore-app    # Install to CMAKE_INSTALL_PREFIX/bin/MyApp.exe
 )
 
 if(WIN32)
-   find_package(Qt6 REQUIRED COMPONENTS Widgets)  # Qt6 の場合
-   # find_package(Qt5 REQUIRED COMPONENTS Widgets)  # Qt5 の場合
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)  # Qt6 の場合
+    # find_package(Qt5 REQUIRED COMPONENTS Widgets)  # Qt5 の場合
 
-   # Qtのbinディレクトリを取得
-   get_target_property(QT_BIN_DIR Qt6::qmake IMPORTED_LOCATION) # Qt6
-   # get_target_property(QT_BIN_DIR Qt5::qmake IMPORTED_LOCATION) # Qt5
-   get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
+    # Qtのbinディレクトリを取得
+    get_target_property(QT_BIN_DIR Qt6::qmake IMPORTED_LOCATION) # Qt6
+    # get_target_property(QT_BIN_DIR Qt5::qmake IMPORTED_LOCATION) # Qt5
+    get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
    
-   # windeployqtのパス
-   set(WINDEPLOYQT_EXECUTABLE "${QT_BIN_DIR}/windeployqt6.exe")
+    # windeployqtのパス
+    set(WINDEPLOYQT_EXECUTABLE "${QT_BIN_DIR}/windeployqt6.exe")
 
-   set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")
-   message("")
+    set(TARGET_PATH "$<TARGET_FILE_DIR:langscore-app>")
+    message("")
 
-   # windeployqtを実行するカスタムコマンド
-   add_custom_command(TARGET langscore-app POST_BUILD
-       COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release "$<TARGET_FILE:langscore-app>"
-       COMMAND "${WINDEPLOYQT_EXECUTABLE}" --debug "$<TARGET_FILE:langscore-app>"
-       COMMENT "Running windeployqt on langscore-app"
-   )
+    # windeployqtを実行するカスタムコマンド
+    add_custom_command(TARGET langscore-app POST_BUILD
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release "$<TARGET_FILE:langscore-app>"
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --debug "$<TARGET_FILE:langscore-app>"
+        COMMENT "Running windeployqt on langscore-app"
+    )
 
-   get_filename_component(langscore_divisi_path "${PROJECT_SOURCE_DIR}/${DIVISI_PATH}" ABSOLUTE)
-   
-   add_custom_command(
-    TARGET langscore-app POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/bin"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/bin/resource"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/resources/fonts"
-)
-   #file(MAKE_DIRECTORY $<TARGET_FILE_DIR:langscore-app>/bin)
-   #file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/bin/resource)
-   #file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/resources/fonts)
+    get_filename_component(langscore_divisi_path "${PROJECT_SOURCE_DIR}/${DIVISI_PATH}" ABSOLUTE)
+  
+    # ビルド時に毎回コピーするように変更
+    add_custom_target(copy_files ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/bin/resource"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:langscore-app>/resources/fonts/"
 
-   # ビルド時に毎回コピーするように変更
-   add_custom_target(copy_files ALL
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe $<TARGET_FILE_DIR:langscore-app>/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe $<TARGET_FILE_DIR:langscore-app>/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll $<TARGET_FILE_DIR:langscore-app>/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll $<TARGET_FILE_DIR:langscore-app>/bin/
-       COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource $<TARGET_FILE_DIR:langscore-app>/bin/resource
-       COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts $<TARGET_FILE_DIR:langscore-app>/resources/fonts
-       COMMENT "Copying necessary files after build"
-   )
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/rvcnv.exe $<TARGET_FILE_DIR:langscore-app>/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/bin/divisi.exe $<TARGET_FILE_DIR:langscore-app>/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icudt76.dll $<TARGET_FILE_DIR:langscore-app>/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${langscore_divisi_path}/3rdparty/icu/bin/icuuc76.dll $<TARGET_FILE_DIR:langscore-app>/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${langscore_divisi_path}/resource $<TARGET_FILE_DIR:langscore-app>/bin/resource
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/resources/fonts $<TARGET_FILE_DIR:langscore-app>/resources/fonts
+        COMMENT "Copying necessary files after build"
+    )
 
-   # langscore-app のビルド時に copy_files を実行
-   add_dependencies(langscore-app copy_files)
+    # langscore-app のビルド時に copy_files を実行
+    add_dependencies(langscore-app copy_files)
 endif()
-
-#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/rvcnv.exe
-#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/bin/divisi.exe
-#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icudt76.dll
-#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/3rdparty/icu/bin/icuuc76.dll
-#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-#file(COPY ${PROJECT_SOURCE_DIR}/${DIVISI_PATH}/resource
-#            DESTINATION ${PROJECT_BINARY_DIR}/bin)
-#file(COPY ${PROJECT_SOURCE_DIR}/resources/fonts DESTINATION ${PROJECT_BINARY_DIR}/resources)
 
 
 if(QT_VERSION_MAJOR EQUAL 6)

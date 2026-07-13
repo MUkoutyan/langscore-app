@@ -15,10 +15,11 @@ class CSVEditorTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
+
     CSVEditorTableModel(QObject* parent = nullptr);
     explicit CSVEditorTableModel(const QString& path, QObject* parent = nullptr);
 
-    bool loadFromFile(const QString& path);
+    bool loadFromEditCSVFile(const QString& path);
     bool loadFromJsonFile(const QString& filePath);
     bool saveToFile(const QString& path) const;
 
@@ -66,7 +67,6 @@ private:
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;
     std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
-    // Keep original data for restoring when sort is cleared
     std::vector<std::vector<QString>> _originalData;
     int _sortedColumn = -1;
     int _sortOrder = 0;

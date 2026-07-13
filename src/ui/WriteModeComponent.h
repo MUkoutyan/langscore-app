@@ -9,7 +9,7 @@
 #include <QResizeEvent>
 
 #include "ComponentBase.h"
-#include "CSVEditDataManager.h"
+#include "EditDataManager.h"
 #include "FileTree.h"
 #include "MainCSVTable.h"
 #include "ScriptCSVTable.h"
@@ -39,7 +39,7 @@ signals:
 public slots:
     void treeItemSelected();
     void treeItemChanged(QTreeWidgetItem *_item, int column);
-    void scriptTableSelected(QString scriptName, QString scriptFilePath, size_t textRow, size_t textCol, int textLen);
+    void scriptTableSelected(QString scriptName, QString scriptFilePath, QString textPoint, int textLen);
     //void scriptTableItemChanged(QTableWidgetItem *item);
 
     void exportPlugin();
@@ -99,7 +99,7 @@ private:
 
     void changeUIColor();
 
-    std::shared_ptr<CSVEditDataManager> csvEditDataManager;
+    std::shared_ptr<EditDataManager> csvEditDataManager;
     FileTree* fileTree;
     MainCSVTable* mainTable;
     ScriptCSVTable* scriptTable;

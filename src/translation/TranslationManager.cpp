@@ -35,7 +35,7 @@ void TranslationManager::translateBatch(const QList<BatchTranslationRequest>& re
     
     TranslationService* service = getPreferredService(preferredService);
     if (!service) {
-        emit batchTranslationError(currentBatchId, tr("No configured translation service available"));
+        emit batchTranslationError(currentBatchId, tr("No configured translation service available. (no use api)"));
         return;
     }
     

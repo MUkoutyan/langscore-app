@@ -4,12 +4,11 @@
 
 namespace langscore
 {
-struct TextPosition
+struct ScriptTextPosition
 {
     struct RowCol {
-        size_t row;
-        size_t col;
-        RowCol() :row(0), col(0) {}
+        size_t row = 0;
+        size_t col = 0;
         bool operator==(const RowCol& other) const {
             return row == other.row && col == other.col;
         }
@@ -19,7 +18,6 @@ struct TextPosition
     };
     struct ScriptArg {
         QString valueName;
-        ScriptArg() :valueName("") {}
         bool operator==(const ScriptArg& other) const {
             return valueName == other.valueName;
         }
@@ -29,15 +27,15 @@ struct TextPosition
         Argument
     };
 
-    Type type;
+    Type type = Type::RowCol;
     bool ignore = false;
-    QString value;
+    QString originalText;
     std::variant<RowCol, ScriptArg> d;
 
-    bool operator==(const TextPosition& other) const {
+    bool operator==(const ScriptTextPosition& other) const {
         return type == other.type
             && ignore == other.ignore
-            && value == other.value
+            && originalText == other.originalText
             && d == other.d;
     }
 

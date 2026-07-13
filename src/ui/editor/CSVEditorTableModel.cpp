@@ -1,4 +1,5 @@
 ﻿#include "CSVEditorTableModel.h"
+#include "EditorTableDefines.h"
 #include "../../csv.hpp"
 #include "../../settings.h"
 #include "../../utility.hpp"
@@ -7,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QColor>
 #include <fstream>
 #include "service/LanguageNames.h"
 
@@ -20,15 +22,16 @@ CSVEditorTableModel::CSVEditorTableModel(QObject* parent)
 CSVEditorTableModel::CSVEditorTableModel(const QString& path, QObject* parent)
     : QAbstractTableModel(parent)
 {
-    loadFromFile(path);
+    loadFromEditCSVFile(path);
 }
 
-bool CSVEditorTableModel::loadFromFile(const QString& path) {
+bool CSVEditorTableModel::loadFromEditCSVFile(const QString& csv_path) 
+{
     beginResetModel();
-    bool success = csvContainer.loadFromFile(path);
+    bool success = csvContainer.loadFromFile(csv_path);
     endResetModel();
     if(success) {
-        currentShowFileName = QString::fromStdString(std::filesystem::path{path.toStdString()}.filename().stem().string());
+        currentShowFileName = langscore::getFileNameWithoutExtension(csv_path);
         _originalData = csvContainer.dataRaw();
     }
     return success;
@@ -127,11 +130,6 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
             }
         }
         return QVariant();
-    }
-    else if(role == Qt::SizeHintRole) 
-    {
-        QSize size(370, -1);
-        return size;
     }
     else if(role == Qt::BackgroundRole)
     {
@@ -276,33 +274,44 @@ Qt::ItemFlags CSVEditorTableModel::flags(const QModelIndex& index) const
 
 QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientation, int role) const 
 {
-    if(orientation == Qt::Horizontal) {
-        if(role == Qt::DisplayRole) {
-            if(section >= 0 && section < static_cast<int>(csvContainer.columnCount())) {
-                auto name = csvContainer.headerAt(static_cast<size_t>(section));
-                if(name == "original") {
-                    return tr("Original");
-                }
-                else if(name == "type") {
-                    return tr("Type");
-                }
-                else 
-                {
-                    QString localeName = name;
-                    QString display = langscore::languageDisplayName(localeName);
-                    if(display.isEmpty() == false) {
-                        return display + "(" + name + ")";
-                    }
+    if(orientation != Qt::Horizontal) {
+        return QVariant();
+    }
 
-                    QLocale locale(localeName);
-                    return locale.nativeLanguageName() + "(" + name + ")"; // 他の列名はそのまま返す
+    if(role == Qt::DisplayRole) 
+    {
+        if(section >= 0 && section < static_cast<int>(csvContainer.columnCount())) {
+            auto name = csvContainer.headerAt(static_cast<size_t>(section));
+            if(name == "original") {
+                return tr("Original");
+            }
+            else if(name == "type") {
+                return tr("Type");
+            }
+            else 
+            {
+                QString localeName = name;
+                QString display = langscore::languageDisplayName(localeName);
+                if(display.isEmpty() == false) {
+                    return display + "(" + name + ")";
                 }
+
+                QLocale locale(localeName);
+                return locale.nativeLanguageName() + "(" + name + ")"; // 他の列名はそのまま返す
             }
         }
-        else if(role == Qt::UserRole) {
-            return csvContainer.headerAt(static_cast<size_t>(section));
-        }
     }
+    else if(role == DataType::FilterText) {
+        return csvContainer.headerAt(static_cast<size_t>(section));
+    }
+    else if(role == DataType::IsLanguageColumn) {
+        auto name = csvContainer.headerAt(static_cast<size_t>(section));
+        if(std::ranges::find(_settings->languages, name, &settings::Language::languageName) != _settings->languages.cend()) {
+            return true;
+        }
+        return false;
+    }
+
     return QVariant();
 }
 

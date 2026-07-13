@@ -8,11 +8,11 @@ class MainCSVTableModel;
 class ScriptCSVTableModel;
 
 // CSVファイルごとの編集データ管理クラス
-class CSVEditDataManager : public QObject
+class EditDataManager : public QObject
 {
     Q_OBJECT
 public:
-    enum class ModelType {
+    enum class ModelType : char{
         MainCSV,
         ScriptCSV
     };
@@ -25,8 +25,8 @@ public:
         QDateTime lastModified;
     };
 
-    explicit CSVEditDataManager(QObject* parent = nullptr);
-    ~CSVEditDataManager();
+    explicit EditDataManager(QObject* parent = nullptr);
+    ~EditDataManager();
 
     // History management
     void setUndoStack(QUndoStack* undoStack);

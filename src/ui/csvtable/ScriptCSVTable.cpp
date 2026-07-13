@@ -42,12 +42,11 @@ namespace
 }
 
 ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
-                               std::weak_ptr<CSVEditDataManager> loadFileManager,
+                               std::weak_ptr<EditDataManager> loadFileManager,
                                QWidget* parent)
     : ComponentBase(component)
     , QWidget(parent)
-    , loadFileManager(std::move(loadFileManager))
-    , showAllScriptContents(true)
+    , loadFileManager(loadFileManager)
     , scriptFileName(new QLabel(this))
     , scriptFileWordCount(new QLabel(this))
     , autoCheckButton(new QToolButton(this))
@@ -56,19 +55,26 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
     , settingPane(new QWidget(this))
     , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns"), this))
     , filterEdit(new QLineEdit(this))
-    , tableView(new QTableView(this))
+    , csvEditor(new CSVEditor(this->loadFileManager, this, this))
     , currentModel(nullptr)
     , _proxyModel(nullptr)
+    , showAllAction(nullptr)
+    , hideIgnoreAction(nullptr)
+    , uncheckSignOnlyAction(nullptr)
+    , uncheckNoHiraganaAction(nullptr)
 {
-    tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    tableView->setAlternatingRowColors(true);
-    tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    tableView->verticalHeader()->setMinimumSectionSize(28);
-    tableView->verticalHeader()->hide();
-    tableView->setContextMenuPolicy(Qt::CustomContextMenu);
-    tableView->setSortingEnabled(false);
+    csvEditor->setSelectionBehavior(QAbstractItemView::SelectItems);
+    csvEditor->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    csvEditor->setAlternatingRowColors(true);
+    csvEditor->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+    csvEditor->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    csvEditor->verticalHeader()->setMinimumSectionSize(28);
+    csvEditor->verticalHeader()->hide();
+    csvEditor->setContextMenuPolicy(Qt::CustomContextMenu);
+    csvEditor->setSortingEnabled(false);
+
+    autoCheckButton->setText(tr("Automatic check"));
+    scriptFilterButton->setText(tr("Display settings"));
 
     {
         settingPane->setWindowFlags(Qt::Popup);
@@ -96,7 +102,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
 
         connect(fwCheck, &QCheckBox::toggled, this, [this, fwSpinBox](bool checked) {
             fwSpinBox->setEnabled(checked);
-            auto* hdr = tableView->horizontalHeader();
+            auto* hdr = csvEditor->horizontalHeader();
             if(checked) {
                 hdr->setSectionResizeMode(QHeaderView::Fixed);
                 hdr->setDefaultSectionSize(fwSpinBox->value());
@@ -106,7 +112,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
         });
         connect(fwSpinBox, &QSpinBox::valueChanged, this, [this, fwCheck](int v) {
             if(fwCheck->isChecked()) {
-                tableView->horizontalHeader()->setDefaultSectionSize(v);
+                csvEditor->horizontalHeader()->setDefaultSectionSize(v);
             }
         });
 
@@ -126,12 +132,17 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
         graphics::ReverceHSVValue(image);
         scriptFilterButton->setIcon(QIcon(QPixmap::fromImage(image)));
 
-        auto* showAllAction  = new QAction(tr("Show All Contents"), this);
+        showAllAction = new QAction(tr("Show All Contents"), this);
         showAllAction->setCheckable(true);
-        showAllAction->setChecked(true);
-        auto* hideIgnoreAction = new QAction(tr("Hide Ignore Contents"), this);
+        hideIgnoreAction = new QAction(tr("Hide Ignore Contents"), this);
         hideIgnoreAction->setCheckable(true);
-        hideIgnoreAction->setChecked(false);
+
+        {
+            auto appSettings = ComponentBase::getAppSettings();
+            showAllScriptContents = appSettings.value("ScriptCSVTable/showAllContents", true).toBool();
+        }
+        showAllAction->setChecked(showAllScriptContents);
+        hideIgnoreAction->setChecked(!showAllScriptContents);
 
         auto* ag = new QActionGroup(this);
         ag->setExclusive(true);
@@ -140,24 +151,53 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
         scriptFilterButton->addAction(showAllAction);
         scriptFilterButton->addAction(hideIgnoreAction);
 
-        connect(showAllAction, &QAction::triggered, this, [this]() {
-            showAllScriptContents = true;  setupScriptTable();
+        connect(showAllAction, &QAction::triggered, this, [this]()
+        {
+            showAllScriptContents = true;
+            auto settings = ComponentBase::getAppSettings();
+            settings.setValue("ScriptCSVTable/showAllContents", true);
+            if(this->_proxyModel) {
+                this->_proxyModel->setHideUncheckRow(false);
+            }
         });
-        connect(hideIgnoreAction, &QAction::triggered, this, [this]() {
-            showAllScriptContents = false; setupScriptTable();
+        connect(hideIgnoreAction, &QAction::triggered, this, [this]()
+        {
+            showAllScriptContents = false;
+            auto settings = ComponentBase::getAppSettings();
+            settings.setValue("ScriptCSVTable/showAllContents", false);
+            if(this->_proxyModel) {
+                this->_proxyModel->setHideUncheckRow(true);
+            }
         });
         connect(scriptFilterButton, &QToolButton::clicked,
                 scriptFilterButton, &QToolButton::showMenu);
     }
 
     {
-        auto* uncheckSignOnly = new QAction(tr("Uncheck Sign Only Text"), this);
-        autoCheckButton->addAction(uncheckSignOnly);
-        connect(uncheckSignOnly, &QAction::triggered, this, &ScriptCSVTable::unckeckSignOnlyText);
+        uncheckSignOnlyAction = new QAction(tr("Uncheck Sign Only Text"), this);
+        uncheckSignOnlyAction->setCheckable(true);
+        autoCheckButton->addAction(uncheckSignOnlyAction);
 
-        auto* uncheckNoHiragana = new QAction(tr("Uncheck text that does not contain hiragana"), this);
-        autoCheckButton->addAction(uncheckNoHiragana);
-        connect(uncheckNoHiragana, &QAction::triggered, this, &ScriptCSVTable::uncheckNotContainHiragana);
+        uncheckNoHiraganaAction = new QAction(tr("Uncheck text that does not contain hiragana"), this);
+        uncheckNoHiraganaAction->setCheckable(true);
+        autoCheckButton->addAction(uncheckNoHiraganaAction);
+
+        {
+            auto appSettings = ComponentBase::getAppSettings();
+            uncheckSignOnlyAction->setChecked(appSettings.value("ScriptCSVTable/uncheckSignOnly", false).toBool());
+            uncheckNoHiraganaAction->setChecked(appSettings.value("ScriptCSVTable/uncheckNoHiragana", false).toBool());
+        }
+
+        connect(uncheckSignOnlyAction, &QAction::triggered, this, [this](bool checked) {
+            auto settings = ComponentBase::getAppSettings();
+            settings.setValue("ScriptCSVTable/uncheckSignOnly", checked);
+            if(checked) { unckeckSignOnlyText(); }
+        });
+        connect(uncheckNoHiraganaAction, &QAction::triggered, this, [this](bool checked) {
+            auto settings = ComponentBase::getAppSettings();
+            settings.setValue("ScriptCSVTable/uncheckNoHiragana", checked);
+            if(checked) { uncheckNotContainHiragana(); }
+        });
 
         connect(autoCheckButton, &QToolButton::clicked,
                 autoCheckButton, &QToolButton::showMenu);
@@ -165,9 +205,6 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
 
     connect(hideLanguageColumnsAction, &QPushButton::clicked,
             this, &ScriptCSVTable::showLanguageColumnMenu);
-
-    connect(tableView, &QTableView::customContextMenuRequested,
-            this, &ScriptCSVTable::onContextMenuRequested);
 
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
@@ -184,7 +221,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
         vLayout->addLayout(hLayout);
     }
     vLayout->addWidget(filterEdit);
-    vLayout->addWidget(tableView, 1);
+    vLayout->addWidget(csvEditor, 1);
     setLayout(vLayout);
 }
 
@@ -198,7 +235,7 @@ void ScriptCSVTable::clear()
         _proxyModel->deleteLater();   
         _proxyModel  = nullptr; 
     }
-    tableView->setModel(nullptr);
+    csvEditor->setModel(nullptr);
     filterEdit->clear();
     scriptFileName->setText("");
     scriptFileWordCount->setText("");
@@ -208,41 +245,55 @@ void ScriptCSVTable::setupScriptTable()
 {
     if(setting == nullptr) { return; }
 
-    if(currentModel == nullptr) {
-        currentModel = new ScriptTableViewModel(this);
-        connect(currentModel, &ScriptTableViewModel::checkStateChanged,
+    if(currentModel == nullptr) 
+    {
+
+        const auto editFolder = this->setting->langscoreProjectDirectory + "/editing";
+        const auto editedData = editFolder + "/" + "Scripts.lsjson";
+        auto* mainModel = loadFileManager.lock()->getScriptCSVModel(editedData);
+
+        currentModel = mainModel;
+        connect(currentModel, &ScriptCSVTableModel::checkStateChanged,
                 this, [this](const QString& scriptFile, Qt::CheckState state) {
                     emit notifyScriptTableChangeItemCheck(withoutExtension(scriptFile), state);
                 });
     }
     if(_proxyModel == nullptr) {
-        _proxyModel = new CSVEditorSortFilterProxyModel(this);
-        connect(filterEdit, &QLineEdit::textChanged, _proxyModel, &CSVEditorSortFilterProxyModel::setFilterText);
-        connect(_proxyModel, &CSVEditorSortFilterProxyModel::columnVisibilityChanged, this, &ScriptCSVTable::restoreColumnWidths);
+        _proxyModel = new ScriptEditorSortFilterProxyModel(this);
+        connect(filterEdit, &QLineEdit::textChanged, _proxyModel, &ScriptEditorSortFilterProxyModel::setFilterText);
+        connect(_proxyModel, &ScriptEditorSortFilterProxyModel::columnVisibilityChanged, this, &ScriptCSVTable::restoreColumnWidths);
     }
 
     const auto editFolder = setting->langscoreProjectDirectory + "/editing";
     currentModel->setSettings(setting);
-    currentModel->loadFromSettings(editFolder, showAllScriptContents);
+    currentModel->loadFromEditJSONWithSettings(editFolder);
 
-    _proxyModel->setSortState(0, CSVEditorSortFilterProxyModel::SortOrder::None);
+    if(uncheckSignOnlyAction->isChecked())   { 
+        unckeckSignOnlyText(); 
+    }
+    if(uncheckNoHiraganaAction->isChecked()) { 
+        uncheckNotContainHiragana(); 
+    }
+
+    _proxyModel->setSortState(0, SortOrder::None);
     _proxyModel->setSourceModel(currentModel);
+    csvEditor->setModel(_proxyModel);
 
-    tableView->blockSignals(true);
-    tableView->setModel(_proxyModel);
-    tableView->blockSignals(false);
-
+    _proxyModel->setHideUncheckRow(showAllScriptContents == false);
     _proxyModel->loadColumnFilterFromSettings();
 
+    currentModel->setSettings(this->setting);
+    currentModel->setRuntimeData(this->runtimeData);
+
     QTimer::singleShot(0, this, [this]() {
-        tableView->setUpdatesEnabled(false);
+        csvEditor->setUpdatesEnabled(false);
         restoreColumnWidths();
-        tableView->setUpdatesEnabled(true);
-        tableView->update();
+        csvEditor->setUpdatesEnabled(true);
+        csvEditor->update();
     });
 
-    if(tableView->selectionModel()) {
-        connect(tableView->selectionModel(), &QItemSelectionModel::selectionChanged,
+    if(csvEditor->selectionModel()) {
+        connect(csvEditor->selectionModel(), &QItemSelectionModel::selectionChanged,
                 this, &ScriptCSVTable::onScriptTableSelected, Qt::UniqueConnection);
     }
 }
@@ -257,7 +308,7 @@ void ScriptCSVTable::restoreColumnWidths()
         const QString hdr = _proxyModel->headerData(c, Qt::Horizontal, Qt::UserRole).toString();
         for(const auto& lang : setting->languages) {
             if(lang.languageName == hdr) {
-                tableView->setColumnWidth(c, lang.columnSize);
+                csvEditor->setColumnWidth(c, lang.columnSize);
                 break;
             }
         }
@@ -323,7 +374,7 @@ Qt::CheckState ScriptCSVTable::getTreeCheckStateBasedOnTable(QString scriptName)
 void ScriptCSVTable::unckeckSignOnlyText()
 {
     if(currentModel == nullptr) { return; }
-    const QSignalBlocker blocker(tableView);
+    const QSignalBlocker blocker(csvEditor);
     const int rows = currentModel->rowCount();
     for(int r = 0; r < rows; ++r) {
         const auto text = currentModel->getOriginalText(r);
@@ -335,7 +386,7 @@ void ScriptCSVTable::unckeckSignOnlyText()
             else                  { hasAlpha = true; }
         }
         if(!hasAlpha) {
-            auto si = currentModel->index(r, ScriptTableViewModel::COL_INCLUDE);
+            auto si = currentModel->index(r, Columns::Include);
             currentModel->setData(si, static_cast<int>(Qt::Unchecked), Qt::CheckStateRole);
         }
     }
@@ -344,14 +395,14 @@ void ScriptCSVTable::unckeckSignOnlyText()
 void ScriptCSVTable::uncheckNotContainHiragana()
 {
     if(currentModel == nullptr) { return; }
-    const QSignalBlocker blocker(tableView);
+    const QSignalBlocker blocker(csvEditor);
     const int rows = currentModel->rowCount();
     for(int r = 0; r < rows; ++r) {
         const auto text = currentModel->getOriginalText(r);
         bool hasJp = false;
         for(QChar qc : text) { if(isJapaneseLanguage(qc)) { hasJp = true; break; } }
         if(!hasJp) {
-            auto si = currentModel->index(r, ScriptTableViewModel::COL_INCLUDE);
+            auto si = currentModel->index(r, Columns::Include);
             currentModel->setData(si, static_cast<int>(Qt::Unchecked), Qt::CheckStateRole);
         }
     }
@@ -363,9 +414,9 @@ void ScriptCSVTable::onScriptTableScrollToRow(const QString& scriptFileName)
     const int rows = currentModel->rowCount();
     for(int r = 0; r < rows; ++r) {
         if(withoutExtension(currentModel->getScriptFileName(r)).contains(scriptFileName)) {
-            auto src  = currentModel->index(r, ScriptTableViewModel::COL_SCRIPT_NAME);
+            auto src  = currentModel->index(r, Columns::ScriptName);
             auto prox = _proxyModel->mapFromSource(src);
-            if(prox.isValid()) { tableView->scrollTo(prox, QAbstractItemView::PositionAtCenter); }
+            if(prox.isValid()) { csvEditor->scrollTo(prox, QAbstractItemView::PositionAtCenter); }
             break;
         }
     }
@@ -377,10 +428,10 @@ void ScriptCSVTable::onScriptTableSelectRow(const QString& scriptFileName)
     const int rows = currentModel->rowCount();
     for(int r = 0; r < rows; ++r) {
         if(withoutExtension(currentModel->getScriptFileName(r)).contains(scriptFileName)) {
-            auto src  = currentModel->index(r, ScriptTableViewModel::COL_SCRIPT_NAME);
+            auto src  = currentModel->index(r, Columns::ScriptName);
             auto prox = _proxyModel->mapFromSource(src);
             if(prox.isValid()) {
-                tableView->selectionModel()->select(
+                csvEditor->selectionModel()->select(
                     prox,
                     QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
             }
@@ -392,7 +443,7 @@ void ScriptCSVTable::onScriptTableSelectRow(const QString& scriptFileName)
 void ScriptCSVTable::onScriptTableSelected()
 {
     if(currentModel == nullptr || _proxyModel == nullptr) { return; }
-    const auto selected = tableView->selectionModel()->selectedRows();
+    const auto selected = csvEditor->selectionModel()->selectedIndexes();
     if(selected.isEmpty()) { return; }
 
     const auto proxyIdx  = selected.first();
@@ -400,108 +451,28 @@ void ScriptCSVTable::onScriptTableSelected()
     if(!sourceIdx.isValid()) { return; }
 
     const int row = sourceIdx.row();
-    const auto textPoint = currentModel->data(
-        currentModel->index(row, ScriptTableViewModel::COL_TEXT_POINT), Qt::DisplayRole
+    auto textPoint = currentModel->data(
+        currentModel->index(row, Columns::TextPoint), Qt::DisplayRole
     ).toString();
+
+    constexpr size_t invalid = std::numeric_limits<size_t>::max();
     auto [textRow, textCol] = parseScriptWithRowCol(textPoint);
+
+    if(textRow == invalid && textCol == invalid) {
+        textPoint = currentModel->data(
+            currentModel->index(row, Columns::OriginalText), Qt::DisplayRole
+        ).toString();
+    }
 
     const auto origText  = currentModel->getOriginalText(row);
     const auto scriptExt = currentModel->getScriptFileName(row);
     const auto scriptNoExt = withoutExtension(scriptExt);
     const auto displayName = currentModel->data(
-        currentModel->index(row, ScriptTableViewModel::COL_SCRIPT_NAME), Qt::DisplayRole
+        currentModel->index(row, Columns::ScriptName), Qt::DisplayRole
     ).toString();
 
     scriptFileName->setText(displayName + "(" + scriptNoExt + ")");
-    emit scriptTableSelected(displayName, scriptNoExt,
-                             textRow, textCol, static_cast<int>(origText.length()));
-}
-
-void ScriptCSVTable::onContextMenuRequested(const QPoint& pos)
-{
-    if(currentModel == nullptr || _proxyModel == nullptr) { return; }
-    const auto proxyIdx = tableView->indexAt(pos);
-    if(!proxyIdx.isValid()) { return; }
-
-    const auto sourceIdx = _proxyModel->mapToSource(proxyIdx);
-    const bool isLangCol = (sourceIdx.column() >= ScriptTableViewModel::FIXED_COLS);
-
-    QMenu menu(this);
-
-    auto* copyAction = menu.addAction(tr("Copy"));
-    connect(copyAction, &QAction::triggered, this, [this]() 
-    {
-        const auto indexes = tableView->selectionModel()->selectedIndexes();
-        if(indexes.isEmpty()) { return; }
-
-        QMap<int, QMap<int, QString>> cells;
-        for(const auto& i : indexes) {
-            cells[i.row()][i.column()] = i.data(Qt::DisplayRole).toString();
-        }
-        QStringList rows;
-        for(auto& row : cells) {
-            QStringList cols;
-            for(auto& col : row) { 
-                cols << col; 
-            }
-            rows << cols.join('\t');
-        }
-        QApplication::clipboard()->setText(rows.join('\n'));
-    });
-
-    if(isLangCol) {
-        auto* pasteAction = menu.addAction(tr("Paste"));
-        connect(pasteAction, &QAction::triggered, this, [this]() {
-            const auto text  = QApplication::clipboard()->text();
-            const auto lines = text.split('\n');
-            const auto selRows = tableView->selectionModel()->selectedRows();
-            if(selRows.isEmpty()) { return; }
-            const auto srcTop = _proxyModel->mapToSource(selRows.first());
-            int baseCol = std::max(srcTop.column(), ScriptTableViewModel::FIXED_COLS);
-            for(int li = 0; li < lines.size(); ++li) {
-                const int srcRow = srcTop.row() + li;
-                if(srcRow >= currentModel->rowCount()) { break; }
-                const auto cols = lines[li].split('\t');
-                for(int ci = 0; ci < cols.size(); ++ci) {
-                    const int srcCol = baseCol + ci;
-                    if(srcCol >= currentModel->columnCount()) { break; }
-                    currentModel->setData(currentModel->index(srcRow, srcCol), cols[ci], Qt::EditRole);
-                }
-            }
-        });
-
-        menu.addSeparator();
-        auto* clearAction = menu.addAction(tr("Clear Selection"));
-        connect(clearAction, &QAction::triggered, this, [this]() {
-            for(const auto& i : tableView->selectionModel()->selectedIndexes()) {
-                auto src = _proxyModel->mapToSource(i);
-                if(src.column() >= ScriptTableViewModel::FIXED_COLS) {
-                    currentModel->setData(src, QString(), Qt::EditRole);
-                }
-            }
-        });
-    }
-
-    menu.addSeparator();
-
-    auto* checkAction   = menu.addAction(tr("Check rows"));
-    auto* uncheckAction = menu.addAction(tr("Uncheck rows"));
-    connect(checkAction, &QAction::triggered, this, [this]() {
-        for(const auto& i : tableView->selectionModel()->selectedRows()) {
-            auto src = _proxyModel->mapToSource(i);
-            currentModel->setData(currentModel->index(src.row(), ScriptTableViewModel::COL_INCLUDE),
-                                  static_cast<int>(Qt::Checked), Qt::CheckStateRole);
-        }
-    });
-    connect(uncheckAction, &QAction::triggered, this, [this]() {
-        for(const auto& i : tableView->selectionModel()->selectedRows()) {
-            auto src = _proxyModel->mapToSource(i);
-            currentModel->setData(currentModel->index(src.row(), ScriptTableViewModel::COL_INCLUDE),
-                                  static_cast<int>(Qt::Unchecked), Qt::CheckStateRole);
-        }
-    });
-
-    menu.exec(tableView->viewport()->mapToGlobal(pos));
+    emit scriptTableSelected(displayName, scriptNoExt, textPoint, static_cast<int>(origText.length()));
 }
 
 void ScriptCSVTable::changeScriptTableItemCheck(QString scriptName, Qt::CheckState check)
@@ -538,7 +509,7 @@ void ScriptCSVTable::TableUndo::undo()
 {
     setValue(oldValue);
     auto displayName = model->data(
-        model->index(target.row(), ScriptTableViewModel::COL_SCRIPT_NAME),
+        model->index(target.row(), Columns::ScriptName),
         Qt::DisplayRole).toString();
     setText(displayName.isEmpty()
         ? QObject::tr("Change Table State")
@@ -549,7 +520,7 @@ void ScriptCSVTable::TableUndo::redo()
 {
     setValue(newValue);
     auto displayName = model->data(
-        model->index(target.row(), ScriptTableViewModel::COL_SCRIPT_NAME),
+        model->index(target.row(), Columns::ScriptName),
         Qt::DisplayRole).toString();
     setText(displayName.isEmpty()
         ? QObject::tr("Change Table State")

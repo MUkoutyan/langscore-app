@@ -107,7 +107,7 @@ static std::vector<std::vector<QString>> readCsv(QString path)
     return csv;
 }
 
-static TextPosition parseScriptNameWithRowCol(QString script)
+static ScriptTextPosition parseScriptNameWithRowCol(QString script)
 {
     auto colStart = script.lastIndexOf(":");
     auto colStr = script.mid(colStart+1, script.size()-colStart);
@@ -119,21 +119,21 @@ static TextPosition parseScriptNameWithRowCol(QString script)
     bool rowOk = false;
     auto row = rowStr.toUInt(&rowOk);
 
-    TextPosition result;
+    ScriptTextPosition result;
     if(rowOk && colOk){
         //fileName:row:colの形式でパースできた場合の処理
         //result.scriptFileName = script.remove(rowStart, script.size()-rowStart);
-        result.type = TextPosition::Type::RowCol;
-        auto cell = TextPosition::RowCol{};
+        result.type = ScriptTextPosition::Type::RowCol;
+        auto cell = ScriptTextPosition::RowCol{};
         cell.col = col; cell.row = row;
         result.d = cell;
     }
     else{
         //それ以外はfileName:変数名として認識する。
         //既に文字列を分割しているので、該当する変数を代入。
-        result.type = TextPosition::Type::Argument;
+        result.type = ScriptTextPosition::Type::Argument;
         //result.scriptFileName = rowStr;
-        auto cell = TextPosition::ScriptArg{};
+        auto cell = ScriptTextPosition::ScriptArg{};
         cell.valueName = colStr;
         result.d = cell;
     }
@@ -146,7 +146,19 @@ static std::tuple<size_t, size_t> parseScriptWithRowCol(QString script)
     auto list = script.split(":");
     constexpr size_t invalid = std::numeric_limits<size_t>::max();
     if(list.size() < 2){ return std::forward_as_tuple(invalid, invalid); }
-    return std::forward_as_tuple(list[0].toUInt(), list[1].toUInt());
+
+    bool isOk = false;
+    auto row = list[0].toLongLong(&isOk);
+    if(isOk == false) {
+        return std::forward_as_tuple(invalid, invalid);
+    }
+
+    auto col = list[1].toLongLong(&isOk);
+    if(isOk == false) {
+        return std::forward_as_tuple(invalid, invalid);
+    }
+
+    return std::forward_as_tuple(row, col);
 }
 
 }

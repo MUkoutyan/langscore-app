@@ -1,5 +1,5 @@
 #pragma once
-
+#include "EditorTableDefines.h"
 #include <QSortFilterProxyModel>
 #include <QSet>
 #include <QString>
@@ -12,7 +12,6 @@ class CSVEditorSortFilterProxyModel : public QSortFilterProxyModel
 {
     Q_OBJECT
 public:
-    enum class SortOrder { None, Ascending, Descending };
 
     explicit CSVEditorSortFilterProxyModel(QObject* parent = nullptr);
 
@@ -21,6 +20,10 @@ public:
 
     // フィルタ対象列（-1 で全列を検索）
     void setFilterTargetColumn(int column);
+
+    void setFilterMode(FilterModes mode);
+
+    void setFilterNoTranslateColumn(bool isFillter);
 
     QString filterText() const { return _filterText; }
     int filterTargetColumn() const { return _filterColumn; }
@@ -47,12 +50,13 @@ protected:
     bool filterAcceptsColumn(int sourceColumn, const QModelIndex& sourceParent) const override;
     bool lessThan(const QModelIndex& left, const QModelIndex& right) const override;
 
-private:
     QString _filterText;
-    int _filterColumn = -1;
     QSet<QString> _hiddenLanguages;
+    int _filterColumn = -1;
     int _sortColumn = -1;
     SortOrder _sortOrder = SortOrder::None;
+    FilterModes _filterMode = FilterMode::NoFilter;
+    bool _filterNoTranslateColumn = false;
 };
 
 } // namespace langscore

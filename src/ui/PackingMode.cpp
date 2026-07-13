@@ -42,6 +42,13 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     this->ui->treeWidget->setStyleSheet("QTreeView::item { height: 28px; }");
     this->ui->splitter->setStretchFactor(1, 1);
 
+    {
+        auto appSettings = ComponentBase::getAppSettings();
+        if(appSettings.contains("PackingMode/splitter")) {
+            this->ui->splitter->restoreState(appSettings.value("PackingMode/splitter").toByteArray());
+        }
+    }
+
     this->ui->logText->SetSettings(this->setting);
 
     this->ui->validateButton->setEnabled(false);
@@ -158,6 +165,11 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     this->ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     this->ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     this->ui->tableView->setAlternatingRowColors(true);
+
+    connect(this->ui->splitter, &QSplitter::splitterMoved, this, [this](int, int) {
+        auto settings = ComponentBase::getAppSettings();
+        settings.setValue("PackingMode/splitter", this->ui->splitter->saveState());
+    });
 
 }
 

@@ -52,6 +52,14 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
         _invoker->validate();
         this->setting->validateObj.csvNameList.clear();
     }
+    else if(type == DispatchType::ValidateAll)
+    {
+        this->runtimeData->errors.clear();
+        this->runtimeData->updateList.clear();
+        this->_finishInvoke = false;
+        this->setting->saveForProject();
+        _invoker->validate();
+    }
 }
 
 ValidationErrorInfo ValidationService::convertErrorInfo(std::vector<QString> csvText)

@@ -36,6 +36,8 @@ signals:
     void redo();
     void showUndoView();
 
+    void validationAll();
+
     void changeTheme(ColorTheme::Theme);
 
     void dragging(QMouseEvent* event, QPoint delta);

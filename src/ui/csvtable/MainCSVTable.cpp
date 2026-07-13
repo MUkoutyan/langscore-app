@@ -11,12 +11,13 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTimer>
+#include <QCheckBox>
 #include <icu.h>
 #include "../utility.hpp"
 #include "../csv.hpp"
 #include "../graphics.hpp"
 #include "../invoker.h"
-#include "CSVEditDataManager.h"
+#include "EditDataManager.h"
 #include "MainCSVTableModel.h"
 #include "service/LanguageNames.h"
 
@@ -27,11 +28,12 @@ enum TableItemType {
     LanguageIndex
 };
 
-MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
+MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManager> loadFileManager, QWidget* parent)
     : ComponentBase(component), QWidget(parent)
     , loadFileManager(loadFileManager)
     , mainFileName(new QLabel(this))
     , mainFileWordCount(new QLabel(this))
+    , filterMenuButton(new QToolButton(this))
     , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns")))
     , validateButton(new QPushButton(tr("Validate")))
     , validateResultListButton(new QPushButton(tr("Show validate result")))
@@ -45,6 +47,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     , _invoker(new invoker(this))
     , updateTimer(nullptr)
     , _finishInvoke(false)
+    , _showAllScriptContents(false)
 {
     this->cellErrorLog->setReadOnly(true);
     this->cellErrorLog->setMaximumHeight(60);
@@ -122,6 +125,50 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
 
     this->validateResultTable->setSelectionBehavior(QTableWidget::SelectionBehavior::SelectRows);
 
+    {
+        filterMenuButton->setText(tr("Display settings"));
+
+        showAllAction = new QAction(tr("Show All Contents"), this);
+        showAllAction->setCheckable(true);
+        hideTranslatedAction = new QAction(tr("Hide Translated Rows"), this);
+        hideTranslatedAction->setCheckable(true);
+
+        {
+            auto appSettings = ComponentBase::getAppSettings();
+            _showAllScriptContents = appSettings.value("ScriptCSVTable/showAllContents", true).toBool();
+        }
+        showAllAction->setChecked(_showAllScriptContents);
+        hideTranslatedAction->setChecked(!_showAllScriptContents);
+
+        auto* ag = new QActionGroup(this);
+        ag->setExclusive(true);
+        ag->addAction(showAllAction);
+        ag->addAction(hideTranslatedAction);
+        filterMenuButton->addAction(showAllAction);
+        filterMenuButton->addAction(hideTranslatedAction);
+
+        connect(showAllAction, &QAction::triggered, this, [this]()
+        {
+            _showAllScriptContents = true;
+            auto settings = ComponentBase::getAppSettings();
+            settings.setValue("MainCSVTable/showAllContents", true);
+            if(this->_proxyModel) {
+                this->_proxyModel->setFilterNoTranslateColumn(_showAllScriptContents);
+            }
+        });
+        connect(hideTranslatedAction, &QAction::triggered, this, [this]()
+        {
+            _showAllScriptContents = false;
+            auto settings = ComponentBase::getAppSettings();
+            settings.setValue("MainCSVTable/showAllContents", false);
+            if(this->_proxyModel) {
+                this->_proxyModel->setFilterNoTranslateColumn(_showAllScriptContents);
+            }
+        });
+        connect(filterMenuButton, &QToolButton::clicked,
+                filterMenuButton, &QToolButton::showMenu);
+    }
+
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
     vLayout->setSpacing(0);
@@ -130,6 +177,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataMa
     hLayout->setContentsMargins(0, 0, 0, 0);
     hLayout->addWidget(this->mainFileName);
     hLayout->addStretch(1);
+    hLayout->addWidget(this->filterMenuButton);
+    hLayout->addSpacing(20);
     hLayout->addWidget(this->validateButton);
     hLayout->addWidget(this->validateResultListButton);
     hLayout->addWidget(this->mainFileWordCount);
@@ -232,7 +281,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         mainModel->loadFromJsonFile(filePath);
     }
     else {
-        mainModel->loadFromFile(editedData);
+        mainModel->loadFromEditCSVFile(editedData);
     }
 
     this->currentFileName = editedData;
@@ -250,7 +299,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
         connect(_proxyModel, &CSVEditorSortFilterProxyModel::columnVisibilityChanged,
                 this, &MainCSVTable::restoreColumnWidths);
     }
-    _proxyModel->setSortState(0, CSVEditorSortFilterProxyModel::SortOrder::None);
+    _proxyModel->setSortState(0, SortOrder::None);
     _proxyModel->setSourceModel(mainModel);
     this->csvEditor->setModel(_proxyModel);
     mainModel->setSettings(this->setting);

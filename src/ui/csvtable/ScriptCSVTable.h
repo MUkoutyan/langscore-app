@@ -10,9 +10,10 @@
 #include <QPersistentModelIndex>
 
 #include "ComponentBase.h"
-#include "CSVEditDataManager.h"
-#include "csveditor/CSVEditorSortFilterProxyModel.h"
-#include "ScriptTableViewModel.h"
+#include "editor/CSVEditor.h"
+#include "EditDataManager.h"
+#include "ScriptEditorSortFilterProxyModel.h"
+#include "ScriptCSVTableModel.h"
 
 
 struct ScriptTextData; // 前方宣言
@@ -20,7 +21,7 @@ struct ScriptTextData; // 前方宣言
 class ScriptCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
-    ScriptCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent = nullptr);
+    ScriptCSVTable(ComponentBase* component, std::weak_ptr<EditDataManager> loadFileManager, QWidget* parent = nullptr);
 
     void clear();
 
@@ -43,7 +44,7 @@ public:
     void setScriptFileName(QString fileName);
 
 signals:
-    void scriptTableSelected(QString scriptName, QString scriptFilePath, size_t textRow, size_t textCol, int textLen);
+    void scriptTableSelected(QString scriptName, QString scriptFilePath, QString textPoint, int textLen);
     void notifyScriptTableChangeItemCheck(QString fileName, Qt::CheckState);
 
 public slots:
@@ -53,14 +54,13 @@ private slots:
     void onScriptTableScrollToRow(const QString& scriptFileName);
     void onScriptTableSelectRow(const QString& scriptFileName);
     void onScriptTableSelected();
-    void onContextMenuRequested(const QPoint& pos);
 
 private:
 
     struct TableUndo : QUndoCommand
     {
         using ValueType = Qt::CheckState;
-        TableUndo(ScriptTableViewModel* model, const QPersistentModelIndex& target,
+        TableUndo(ScriptCSVTableModel* model, const QPersistentModelIndex& target,
                   ValueType newValue, ValueType oldValue)
             : model(model), target(target), newValue(newValue), oldValue(oldValue) {}
         ~TableUndo() {}
@@ -70,7 +70,7 @@ private:
         void redo() override;
 
     private:
-        ScriptTableViewModel* model;
+        ScriptCSVTableModel* model;
         QPersistentModelIndex target;
         ValueType newValue;
         ValueType oldValue;
@@ -82,7 +82,7 @@ private:
     void restoreColumnWidths();
     void showLanguageColumnMenu();
 
-    bool showAllScriptContents;
+    std::weak_ptr<EditDataManager> loadFileManager;
     QLabel*    scriptFileName;
     QLabel*    scriptFileWordCount;
     QToolButton* autoCheckButton;
@@ -91,9 +91,13 @@ private:
     QWidget*     settingPane;
     QPushButton* hideLanguageColumnsAction;
     QLineEdit*   filterEdit;
-    QTableView*  tableView;
-    ScriptTableViewModel*                      currentModel;
-    langscore::CSVEditorSortFilterProxyModel*  _proxyModel;
-    std::weak_ptr<CSVEditDataManager> loadFileManager;
+    CSVEditor*   csvEditor;
+    ScriptCSVTableModel* currentModel;
+    langscore::ScriptEditorSortFilterProxyModel*  _proxyModel;
+    bool showAllScriptContents;
+    QAction* showAllAction;
+    QAction* hideIgnoreAction;
+    QAction* uncheckSignOnlyAction;
+    QAction* uncheckNoHiraganaAction;
 
 };

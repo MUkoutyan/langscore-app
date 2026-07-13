@@ -1,6 +1,7 @@
-#pragma once
+﻿#pragma once
 
 #include <QAbstractTableModel>
+#include "ComponentBase.h"
 #include <QVector>
 #include <QSet>
 #include <memory>
@@ -9,23 +10,20 @@
 
 class settings;
 
-class ScriptTableViewModel : public QAbstractTableModel
+class ScriptCSVTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
-    static constexpr int COL_INCLUDE     = 0;
-    static constexpr int COL_SCRIPT_NAME = 1;
-    static constexpr int COL_TEXT_POINT  = 2;
-    static constexpr int FIXED_COLS      = 3;
 
-    explicit ScriptTableViewModel(QObject* parent = nullptr);
+    explicit ScriptCSVTableModel(QObject* parent = nullptr);
 
     void setSettings(std::shared_ptr<settings> setting);
+    void setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting);
 
-    // settings + editing CSV からデータを読み込む
-    void loadFromSettings(const QString& editingDir, bool showAllContents = true);
+    void loadFromEditJSONWithSettings(const QString& editingDir);
+    bool saveToFile(const QString& editingDir) const;
+    bool saveToEditJsonFile(const QString& editingDir) const;
 
-    // 変更のあった editing CSV を保存する
     void saveAllModifiedFiles(const QString& editingDir);
 
     void setUseLanguageFont(bool use);
@@ -48,6 +46,7 @@ public:
     // ツリー表示用のチェック状態を計算して返す
     Qt::CheckState computeTreeCheckState(const QString& scriptFileName) const;
 
+
     // QAbstractTableModel 実装
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -60,20 +59,21 @@ signals:
     void checkStateChanged(const QString& scriptFileName, Qt::CheckState treeCheckState);
 
 private:
-    struct RowData {
-        bool include        = true;
-        bool scriptIgnored  = false; // 親スクリプトがスクリプトレベルで無視されているか
+    struct ScriptRowData {
+        bool include = true;
+        bool scriptIgnored = false;  // 親スクリプトがスクリプトレベルで無視されているか 
         QString scriptDisplayName;   // 表示用スクリプト名（拡張子付き）
         QString scriptFileName;      // ファイル名（拡張子付き、settings 検索用）
         QString textPoint;           // "10:5" または引数名
-        langscore::TextPosition position;
+        langscore::ScriptTextPosition position;
         QString originalText;
         QVector<QString> translations; // _languages と同順
     };
 
-    QVector<RowData>          _rows;
+    QVector<ScriptRowData>    _rows;
     QVector<QString>          _languages;  // 言語コード一覧
     std::shared_ptr<settings> _settings;
+    std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
     bool                      _useLanguageFont = false;
     QSet<QString>             _dirtyFiles;
 

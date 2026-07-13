@@ -1,4 +1,5 @@
 #include "CSVEditorSortFilterProxyModel.h"
+#include "CSVEditorTableModel.h"
 #include <QAbstractItemModel>
 #include <QSettings>
 #include <QApplication>
@@ -27,6 +28,29 @@ void CSVEditorSortFilterProxyModel::setFilterTargetColumn(int column)
     }
     _filterColumn = column;
     invalidateFilter();
+}
+
+void CSVEditorSortFilterProxyModel::setFilterMode(FilterModes mode)
+{
+    if(this->_filterMode == mode) { return; }
+
+    this->_filterMode = mode;
+    invalidateFilter();
+}
+
+void CSVEditorSortFilterProxyModel::setFilterNoTranslateColumn(bool isFilter)
+{
+    auto flagTest = this->_filterMode;
+    if(isFilter) {
+        flagTest |= FilterMode::HideTranslatedRow;
+    }
+    else {
+        flagTest &= ~FilterMode::HideTranslatedRow;
+    }
+    if(this->_filterMode != flagTest) {
+        this->_filterMode = flagTest;
+        this->invalidateFilter();
+    }
 }
 
 void CSVEditorSortFilterProxyModel::setLanguageColumnHidden(const QString& langCode, bool hidden)
@@ -91,10 +115,16 @@ void CSVEditorSortFilterProxyModel::cycleColumnSort(int proxyColumn)
     SortOrder newOrder;
     if(_sortColumn != proxyColumn) {
         newOrder = SortOrder::Ascending;
-    } else {
-        if(_sortOrder == SortOrder::None)           { newOrder = SortOrder::Ascending; }
-        else if(_sortOrder == SortOrder::Ascending) { newOrder = SortOrder::Descending; }
-        else                                        { newOrder = SortOrder::None; }
+    } 
+    else 
+    {
+        if(_sortOrder == SortOrder::None) { 
+            newOrder = SortOrder::Ascending; 
+        } else if(_sortOrder == SortOrder::Ascending) { 
+            newOrder = SortOrder::Descending; 
+        } else { 
+            newOrder = SortOrder::None; 
+        }
     }
     setSortState(proxyColumn, newOrder);
 }
@@ -117,31 +147,43 @@ void CSVEditorSortFilterProxyModel::setSortState(int proxyColumn, SortOrder orde
 
 bool CSVEditorSortFilterProxyModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const
 {
-    if(_filterText.isEmpty()) {
-        return true;
-    }
-
     QAbstractItemModel* srcModel = sourceModel();
-    if(!srcModel) {
-        return true;
-    }
+    if(srcModel == nullptr) { return true; }
 
-    const int colCount = srcModel->columnCount(sourceParent);
+    if(_filterText.isEmpty() == false) 
+    {
+        const int colCount = srcModel->columnCount(sourceParent);
+        // 特定列のみ検索
+        if(_filterColumn >= 0 && _filterColumn < colCount) {
+            const QModelIndex idx = srcModel->index(sourceRow, _filterColumn, sourceParent);
+            return srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive);
+        }
 
-    // 特定列のみ検索
-    if(_filterColumn >= 0 && _filterColumn < colCount) {
-        const QModelIndex idx = srcModel->index(sourceRow, _filterColumn, sourceParent);
-        return srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive);
-    }
-
-    // 全列を検索
-    for(int col = 0; col < colCount; ++col) {
-        const QModelIndex idx = srcModel->index(sourceRow, col, sourceParent);
-        if(srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive)) {
-            return true;
+        // 全列を検索
+        for(int col = 0; col < colCount; ++col) {
+            const QModelIndex idx = srcModel->index(sourceRow, col, sourceParent);
+            if(srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive)) {
+                return true;
+            }
         }
     }
-    return false;
+
+    if(this->_filterMode.testFlag(FilterMode::HideTranslatedRow))
+    {
+        const int colCount = srcModel->columnCount(sourceParent);
+        for(int col = 0; col < colCount; ++col) 
+        {
+            const auto isLangHeader = srcModel->headerData(col, Qt::Horizontal, DataType::IsLanguageColumn).toBool();
+            if(isLangHeader == false) { continue; }
+
+            const QModelIndex idx = srcModel->index(sourceRow, col, sourceParent);
+            if(srcModel->data(idx, Qt::DisplayRole).toString().isEmpty() == false) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 bool CSVEditorSortFilterProxyModel::filterAcceptsColumn(int sourceColumn, const QModelIndex&) const
@@ -151,19 +193,17 @@ bool CSVEditorSortFilterProxyModel::filterAcceptsColumn(int sourceColumn, const 
     }
 
     QAbstractItemModel* srcModel = sourceModel();
-    if(!srcModel) {
+    if(srcModel == nullptr) {
         return true;
     }
 
-    const QString header = srcModel->headerData(sourceColumn, Qt::Horizontal, Qt::UserRole)
-                               .toString().toLower();
-
-    // original・type 列は常に表示
-    if(header == "original" || header == "type") {
+    const auto isLangHeader = srcModel->headerData(sourceColumn, Qt::Horizontal, DataType::IsLanguageColumn).toBool();
+    if(isLangHeader == false) {
         return true;
     }
 
-    return !_hiddenLanguages.contains(header);
+    const QString header = srcModel->headerData(sourceColumn, Qt::Horizontal, Qt::UserRole).toString().toLower();
+    return _hiddenLanguages.contains(header) == false;
 }
 
 bool CSVEditorSortFilterProxyModel::lessThan(const QModelIndex& left, const QModelIndex& right) const

@@ -44,41 +44,35 @@ namespace {
         return item->text(FileTree::TreeColIndex::Name);
     }
 
-    bool checkFilePathIsContainedInDirectoryPath(const QString& targetFilePath, const QString& baseDirectoryPath)
+    QString getNormalizedBaseDirectory(QString baseDirectoryPath)
+    {
+        QString normalizedBaseDirectoryPath = baseDirectoryPath;
+        normalizedBaseDirectoryPath.replace('\\', '/');
+
+        // 基準となるディレクトリパスの末尾に '/' がある場合は削除して統一します
+        if(normalizedBaseDirectoryPath.endsWith('/') == false)
+        {
+            normalizedBaseDirectoryPath += '/';
+        }
+        return normalizedBaseDirectoryPath;
+    }
+
+    bool checkFilePathIsContainedInDirectoryPath(const QString& targetFilePath, const QString& normalizedBaseDirectoryPath)
     {
         if(targetFilePath.isEmpty() == true)
         {
             return false;
         }
-        if(baseDirectoryPath.isEmpty() == true)
-        {
-            return false;
-        }
 
-        // パスの区切り文字を '/' に統一して正規化します
         QString normalizedTargetFilePath = targetFilePath;
         normalizedTargetFilePath.replace('\\', '/');
 
-        QString normalizedBaseDirectoryPath = baseDirectoryPath;
-        normalizedBaseDirectoryPath.replace('\\', '/');
-
-        // 基準となるディレクトリパスの末尾に '/' がある場合は削除して統一します
-        if(normalizedBaseDirectoryPath.endsWith('/') == true)
-        {
-            normalizedBaseDirectoryPath.chop(1);
-        }
-
-        // パスが完全に一致するかどうかを確認します（Windowsのため大文字小文字を区別しません）
         if(normalizedTargetFilePath.compare(normalizedBaseDirectoryPath, Qt::CaseInsensitive) == 0)
         {
             return true;
         }
 
-        // ディレクトリとして含まれているかを確認するため、末尾に '/' を付与した文字列を作成します
-        QString directoryPrefixString = normalizedBaseDirectoryPath + "/";
-
-        // 前方一致でパスが含まれているかを確認します
-        if(normalizedTargetFilePath.startsWith(directoryPrefixString, Qt::CaseInsensitive) == true)
+        if(normalizedTargetFilePath.startsWith(normalizedBaseDirectoryPath, Qt::CaseInsensitive) == true)
         {
             return true;
         }
@@ -87,7 +81,7 @@ namespace {
     }
 }
 
-FileTree::FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent)
+FileTree::FileTree(ComponentBase* component, std::weak_ptr<EditDataManager> loadFileManager, QWidget* parent)
     : ComponentBase(component), QWidget(parent)
     , loadFileManager(std::move(loadFileManager))
     , treeWidget(new QTreeWidget(this))
@@ -98,6 +92,7 @@ FileTree::FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager> l
     , warningIcon(QIcon(":/images/resources/image/warning.svg"))
 {
 
+    this->setObjectName("FileTree");
     this->treeWidget->setAnimated(true);
     this->treeWidget->header()->setVisible(false);
     this->treeWidget->setColumnCount(TreeColIndex::NumColumn);
@@ -272,12 +267,12 @@ void FileTree::setupMainTree()
     std::vector<MapOrderInfo> mapOrderList;
     for(const auto& file : files) {
         if(file.mapID >= 0) {
-            mapOrderList.push_back({file.mapID, file.order, file.parentMapID});
+            mapOrderList.emplace_back(file.mapID, file.order, file.parentMapID);
         }
     }
 
     // order順にソート
-    std::sort(mapOrderList.begin(), mapOrderList.end(), [](const auto& a, const auto& b) {
+    std::ranges::sort(mapOrderList, [](const auto& a, const auto& b) {
         return a.order < b.order;
     });
 
@@ -367,7 +362,7 @@ void FileTree::setupScriptTree()
             if(result->ignore) {
                 child->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
             }
-            else if(0 == std::ranges::count(result->lines, true, &langscore::TextPosition::ignore)) {
+            else if(0 == std::ranges::count(result->lines, true, &langscore::ScriptTextPosition::ignore)) {
                 child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
             }
             else {
@@ -800,7 +795,7 @@ void FileTree::onChangeScriptTableItemCheck(QString scriptName, Qt::CheckState c
     this->treeWidget->blockSignals(true);
     if(result != scriptList.cend())
     {
-        auto ignoredCount = std::ranges::count(result->lines, true, &langscore::TextPosition::ignore);
+        auto ignoredCount = std::ranges::count(result->lines, true, &langscore::ScriptTextPosition::ignore);
         if(result->ignore || result->lines.size() == ignoredCount) {
             scriptNameItem->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
         }
@@ -1215,6 +1210,10 @@ void FileTree::toggleItemVisibility(QTreeWidgetItem* targetItem)
     }
     else if(treeType == TreeItemType::Pictures) {
         auto filePath = targetItem->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
+        filePath = getNormalizedBaseDirectory(filePath);
+        if(filePath.isEmpty()) {
+            return;
+        }
         auto& graphList = this->setting->writeObj.graphDataInfo;
         for(auto& graphInformation : graphList) {
             if(checkFilePathIsContainedInDirectoryPath(graphInformation.filePath, filePath)) {
@@ -1246,41 +1245,17 @@ void FileTree::toggleShowHiddenFiles(bool isChecked)
     this->updateTreeItemText();
 }
 
-void FileTree::updateTreeVisibility()
+void FileTree::updateTreeVisibilityBasic(QTreeWidgetItem* parentItem)
 {
-    QSignalBlocker blocker(this->treeWidget);
-
-    std::function<void(TreeItemType, QTreeWidgetItem*)> updateChildrenVisibility;
-    updateChildrenVisibility = [this, &updateChildrenVisibility](TreeItemType treeType, QTreeWidgetItem* parentItem)
+    for(int i = 0; i < parentItem->childCount(); i++) 
     {
-        for(int j = 0; j < parentItem->childCount(); j++) {
-            QTreeWidgetItem* childItem = parentItem->child(j);
-            bool isVisible = true;
+        QTreeWidgetItem* childItem = parentItem->child(i);
 
-            auto fileName = ::getFileName(childItem);
-
-            if(treeType == TreeItemType::Basic) {
-                const auto& information = this->setting->fetchBasicDataInfo(fileName);
-                isVisible = information.visible;
-            }
-            else if(treeType == TreeItemType::Map) {
-                const auto& information = this->setting->fetchMapInfo(fileName);
-                isVisible = information.visible;
-            }
-            else if(treeType == TreeItemType::Script) {
-                const auto& information = this->setting->fetchScriptInfo(fileName);
-                isVisible = information.visible;
-            }
-            else if(treeType == TreeItemType::Pictures) {
-                auto filePath = childItem->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
-                const auto& graphList = this->setting->writeObj.graphDataInfo;
-                for(const auto& graphInformation : graphList) {
-                    if(checkFilePathIsContainedInDirectoryPath(graphInformation.filePath, filePath)) {
-                        isVisible = graphInformation.visible;
-                        break;
-                    }
-                }
-            }
+        auto fileName = ::getFileName(childItem);
+        if(fileName.isEmpty() == false)
+        {
+            const auto& information = this->setting->fetchBasicDataInfo(fileName);
+            auto isVisible = information.visible;
 
             //UserRole::VISIBLEは設定ファイル側と同値にするため、ここで変更しないこと。
             if(isVisible == false && this->setting->isShowHiddenFilesOnTree == false) {
@@ -1289,18 +1264,122 @@ void FileTree::updateTreeVisibility()
             else {
                 childItem->setHidden(false);
             }
+        }
 
-            if(0 < childItem->childCount()) {
-                updateChildrenVisibility(treeType, childItem);
+        if(0 < childItem->childCount()) {
+            updateTreeVisibilityBasic(childItem);
+        }
+    }
+}
+
+void FileTree::updateTreeVisibilityMap(QTreeWidgetItem* parentItem)
+{
+    for(int i = 0; i < parentItem->childCount(); i++)
+    {
+        QTreeWidgetItem* childItem = parentItem->child(i);
+
+        auto fileName = ::getFileName(childItem);
+        if(fileName.isEmpty() == false)
+        {
+            const auto& information = this->setting->fetchMapInfo(fileName);
+            auto isVisible = information.visible;
+
+            //UserRole::VISIBLEは設定ファイル側と同値にするため、ここで変更しないこと。
+            if(isVisible == false && this->setting->isShowHiddenFilesOnTree == false) {
+                childItem->setHidden(true);
+            }
+            else {
+                childItem->setHidden(false);
             }
         }
-    };
+
+        if(0 < childItem->childCount()) {
+            updateTreeVisibilityMap(childItem);
+        }
+    }
+}
+
+void FileTree::updateTreeVisibilityScript(QTreeWidgetItem* parentItem)
+{
+    for(int i = 0; i < parentItem->childCount(); i++)
+    {
+        QTreeWidgetItem* childItem = parentItem->child(i);
+
+        auto fileName = ::getFileName(childItem);
+
+        if(fileName.isEmpty() == false)
+        {
+            const auto& information = this->setting->fetchScriptInfo(fileName);
+            auto isVisible = information.visible;
+
+            //UserRole::VISIBLEは設定ファイル側と同値にするため、ここで変更しないこと。
+            if(isVisible == false && this->setting->isShowHiddenFilesOnTree == false) {
+                childItem->setHidden(true);
+            }
+            else {
+                childItem->setHidden(false);
+            }
+        }
+
+        if(0 < childItem->childCount()) {
+            updateTreeVisibilityScript(childItem);
+        }
+    }
+}
+
+void FileTree::updateTreeVisibilityPictures(QTreeWidgetItem* parentItem)
+{
+    for(int i = 0; i < parentItem->childCount(); i++)
+    {
+        QTreeWidgetItem* childItem = parentItem->child(i);
+
+        auto filePath = childItem->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
+        filePath = getNormalizedBaseDirectory(filePath);
+        if(filePath.isEmpty()) { continue; }
+
+        const auto& graphList = this->setting->writeObj.graphDataInfo;
+        bool isVisible = false;
+        for(const auto& graphInformation : graphList) {
+            if(checkFilePathIsContainedInDirectoryPath(graphInformation.filePath, filePath)) {
+                isVisible = graphInformation.visible;
+                break;
+            }
+        }
+
+        //UserRole::VISIBLEは設定ファイル側と同値にするため、ここで変更しないこと。
+        if(isVisible == false && this->setting->isShowHiddenFilesOnTree == false) {
+            childItem->setHidden(true);
+        }
+        else {
+            childItem->setHidden(false);
+        }
+
+        if(0 < childItem->childCount()) {
+            updateTreeVisibilityScript(childItem);
+        }
+    }
+}
+
+void FileTree::updateTreeVisibility()
+{
+    QSignalBlocker blocker(this->treeWidget);
 
     for(int i = 0; i < this->treeWidget->topLevelItemCount(); i++) 
     {
         QTreeWidgetItem* topLevelItem = this->treeWidget->topLevelItem(i);
         const auto treeType = topLevelItem->data(TreeColIndex::CheckBox, UserRole::ITEM_TYPE);
-        updateChildrenVisibility(static_cast<TreeItemType>(treeType.toInt()), topLevelItem);
+        if(treeType == TreeItemType::Basic) {
+            updateTreeVisibilityBasic(topLevelItem);
+        }
+        else if(treeType == TreeItemType::Map) {
+            updateTreeVisibilityMap(topLevelItem);
+        }
+        else if(treeType == TreeItemType::Script) {
+            updateTreeVisibilityScript(topLevelItem);
+        }
+        else if(treeType == TreeItemType::Pictures) {
+            updateTreeVisibilityPictures(topLevelItem);
+        }
     }
 
     this->update();

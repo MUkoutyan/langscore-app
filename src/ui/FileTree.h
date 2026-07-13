@@ -2,8 +2,9 @@
 
 #include <QTreeWidget>
 #include <QObject>
+#include <QCheckBox>
 #include "ComponentBase.h"
-#include "CSVEditDataManager.h"
+#include "EditDataManager.h"
 #include "service/GraphicsImageLoader.h"
 #include "service/ValidationErrorInfo.h"
 
@@ -56,7 +57,7 @@ public:
     };
 
 
-    FileTree(ComponentBase* component, std::weak_ptr<CSVEditDataManager>, QWidget* parent = nullptr);
+    FileTree(ComponentBase* component, std::weak_ptr<EditDataManager>, QWidget* parent = nullptr);
     ~FileTree();
 
     void clear();
@@ -134,7 +135,7 @@ private:
     QWidget* settingPane = nullptr;
     QCheckBox* showHiddenCheckBox = nullptr;
 
-    std::weak_ptr<CSVEditDataManager> loadFileManager;
+    std::weak_ptr<EditDataManager> loadFileManager;
     QTreeWidget* treeWidget;
     bool _suspendHistory;
 
@@ -155,6 +156,11 @@ private:
     QTreeWidgetItem* findTreeItemByFileName(const QString& fileName);
     QTreeWidgetItem* findTreeItemRecursive(QTreeWidgetItem* parent, const QString& fileName);
     void clearErrorItemsRecursive(QTreeWidgetItem* parent);
+
+    void updateTreeVisibilityBasic(QTreeWidgetItem* parentItem);
+    void updateTreeVisibilityMap(QTreeWidgetItem* parentItem);
+    void updateTreeVisibilityScript(QTreeWidgetItem* parentItem);
+    void updateTreeVisibilityPictures(QTreeWidgetItem* parentItem);
 
     //キーはファイルパス
     ValidationErrorInfo convertErrorInfo(std::vector<QString> csvText);

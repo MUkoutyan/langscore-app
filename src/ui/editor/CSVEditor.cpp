@@ -1,9 +1,9 @@
 ﻿#include "CSVEditor.h"
 #include "CSVEditorTableModel.h"
-#include "../csvtable/MultiLineEditDelegate.h"
+#include "MultiLineEditDelegate.h"
 #include "../dialog/TranslationApiSettingsDialog.h"
 #include "FastCSVContainer.h"
-#include "service/LanguageNames.h"
+#include "../dialog/LanguageColumnSelectionDialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFile>
@@ -26,115 +26,14 @@
 #include <QDialog>
 #include <QCheckBox>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QLabel>
 
 using namespace langscore;
 
-class LanguageColumnSelectionDialog : public QDialog 
-{
-    Q_OBJECT
-
-public:
-    LanguageColumnSelectionDialog(const QStringList& languages, CSVEditor* csvEditor, QWidget* parent = nullptr)
-        : QDialog(parent), selectedLanguages()
-    {
-        setWindowTitle(tr("Hide Language Columns"));
-        setModal(true);
-        resize(300, 400);
-        
-        setupUI(languages, csvEditor);
-    }
-
-    std::vector<std::pair<QString, bool>> getLanguagesVisibleState() const {
-        std::vector<std::pair<QString, bool>> result;
-        for (const auto& [lang, checkBox] : checkBoxes.asKeyValueRange()) {
-            result.emplace_back(std::pair(lang, checkBox->isChecked()));
-        }
-        return result;
-    }
-
-private slots:
-    void onSelectAll() {
-        for (auto* checkBox : checkBoxes) {
-            checkBox->setChecked(true);
-        }
-    }
-    
-    void onDeselectAll() {
-        for (auto* checkBox : checkBoxes) {
-            checkBox->setChecked(false);
-        }
-    }
-
-private:
-    void setupUI(const QStringList& languages, CSVEditor* csvEditor) {
-        auto* mainLayout = new QVBoxLayout(this);
-        
-        // Title label
-        auto* titleLabel = new QLabel(tr("Select language columns to hide:"), this);
-        titleLabel->setWordWrap(true);
-        mainLayout->addWidget(titleLabel);
-        
-        // Checkbox area with scroll if needed
-        auto* scrollArea   = new QScrollArea(this);
-        auto* scrollWidget = new QWidget();
-        auto* scrollLayout = new QVBoxLayout(scrollWidget);
-        
-        // Create checkboxes for each language
-        for (const QString& language : languages) 
-        {
-            auto* checkBox = new QCheckBox(languageDisplayName(language), scrollWidget);
-            
-            // Set initial state based on current column visibility
-            bool isCurrentlyVisible = (false == csvEditor->isLanguageColumnHidden(language));
-            checkBox->setChecked(isCurrentlyVisible);
-            
-            checkBoxes[language] = checkBox;
-            scrollLayout->addWidget(checkBox);
-        }
-        
-        scrollLayout->addStretch();
-        scrollArea->setWidget(scrollWidget);
-        scrollArea->setWidgetResizable(true);
-        scrollArea->setMaximumHeight(250);
-        mainLayout->addWidget(scrollArea);
-        
-        // Selection buttons
-        auto* selectionLayout = new QHBoxLayout();
-        auto* selectAllBtn = new QPushButton(tr("Select All"), this);
-        auto* deselectAllBtn = new QPushButton(tr("Deselect All"), this);
-        
-        connect(selectAllBtn, &QPushButton::clicked, this, &LanguageColumnSelectionDialog::onSelectAll);
-        connect(deselectAllBtn, &QPushButton::clicked, this, &LanguageColumnSelectionDialog::onDeselectAll);
-        
-        selectionLayout->addWidget(selectAllBtn);
-        selectionLayout->addWidget(deselectAllBtn);
-        selectionLayout->addStretch();
-        mainLayout->addLayout(selectionLayout);
-        
-        // Dialog buttons
-        auto* buttonLayout = new QHBoxLayout();
-        auto* okButton = new QPushButton(tr("OK"), this);
-        auto* cancelButton = new QPushButton(tr("Cancel"), this);
-        
-        connect(okButton, &QPushButton::clicked, this, &QDialog::accept);
-        connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
-        
-        buttonLayout->addStretch();
-        buttonLayout->addWidget(okButton);
-        buttonLayout->addWidget(cancelButton);
-        mainLayout->addLayout(buttonLayout);
-    }
-
-    
-    QMap<QString, QCheckBox*> checkBoxes;
-    QStringList selectedLanguages;
-};
-
-
 
 // CSVEditor implementation
-CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent)
+CSVEditor::CSVEditor(std::weak_ptr<EditDataManager> loadFileManager, ComponentBase* component, QWidget* parent)
     : QTableView(parent)
     , ComponentBase(component)
     , loadFileManager(loadFileManager)
@@ -144,14 +43,16 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
     , translationManager(std::make_unique<TranslationManager>(this))
     , progressDialog(nullptr)
 {
+    this->setObjectName("CSVEditor");
     this->setSelectionBehavior(QAbstractItemView::SelectItems);
     this->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    // We'll implement custom sorting (asc/desc/none) via header clicks
     this->setSortingEnabled(false);
     this->setContextMenuPolicy(Qt::CustomContextMenu);
 
     this->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     this->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    this->verticalScrollBar()->setSingleStep(20);
+    this->horizontalScrollBar()->setSingleStep(20);
 
     // マルチライン編集デリゲートを設定
     auto* multiLineDelegate = new MultiLineEditDelegate(this);
@@ -162,7 +63,6 @@ CSVEditor::CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, Componen
     
     connect(this, &QWidget::customContextMenuRequested, this, &CSVEditor::onCustomContextMenuRequested);
             
-    // Translation manager connections
     connect(translationManager.get(), &TranslationManager::batchTranslationCompleted,
             this, &CSVEditor::onBatchTranslationCompleted);
     connect(translationManager.get(), &TranslationManager::batchTranslationError,
@@ -297,11 +197,12 @@ void CSVEditor::updateColumnVisibilityMenu()
     QStringList recognizedLanguages = getRecognizedLanguageCodesInColumns();
     
     // Enable/disable actions based on available columns
-    hideLanguageColumnsAction->setEnabled(!recognizedLanguages.isEmpty());
+    hideLanguageColumnsAction->setEnabled(recognizedLanguages.isEmpty() == false);
     
     // Check if any columns are hidden
     bool hasHiddenColumns = false;
-    for (int i = 0; i < model()->columnCount(); ++i) {
+    const auto columns = model()->columnCount();
+    for (int i = 0; i < columns; ++i) {
         if (isColumnHidden(i)) {
             hasHiddenColumns = true;
             break;
@@ -320,13 +221,12 @@ void CSVEditor::updateColumnVisibilityMenu()
 
 void CSVEditor::hideLanguageColumns()
 {
-    if (!model()) return;
+    if(model() == nullptr) { return; }
     
     QStringList recognizedLanguages = getRecognizedLanguageCodesInColumns();
     
     if (recognizedLanguages.isEmpty()) {
-        QMessageBox::information(this, tr("Column Visibility"), 
-                               tr("No recognizable language columns found."));
+        QMessageBox::information(this, tr("Column Visibility"), tr("No recognizable language columns found."));
         return;
     }
     
@@ -362,13 +262,18 @@ QStringList CSVEditor::getRecognizedLanguageCodesInColumns() const
     QAbstractItemModel* m = proxy ? proxy->sourceModel() : model();
     if(!m) { return QStringList(); }
 
-    const QStringList systemColumnName = {"original", "type"};
-
     QStringList recognizedLanguages;
-    for(int col = 0; col < m->columnCount(); ++col) {
+    const auto columns = m->columnCount();
+    
+    const auto langNames = this->setting->languages
+        | std::views::transform([](const auto& l) { return l.languageName; })
+        | std::ranges::to<QStringList>();
+
+    for(int col = 0; col < columns; ++col) 
+    {
         QString headerText = m->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
-        if(!systemColumnName.contains(headerText)) {
-            recognizedLanguages.append(headerText);
+        if(langNames.contains(headerText)) {
+            recognizedLanguages.append(std::move(headerText));
         }
     }
 
@@ -423,7 +328,7 @@ void CSVEditor::translateSelectedCells()
     int originalColumn = findOriginalColumn();
     if (originalColumn == -1) {
         QMessageBox::warning(this, tr("Translation Error"), 
-                           tr("Could not find 'Original' column for source text."));
+                           tr("Could not find 'Original' column for source text.(no use api)"));
         return;
     }
     
@@ -440,40 +345,57 @@ void CSVEditor::translateSelectedCells()
     
     // Prepare translation requests
     QList<TranslationManager::BatchTranslationRequest> requests;
-    
+
+    QString sourceLang = TranslationService::GetTranslationLanguageCode(preferredService, this->setting->defaultLanguage);
+    bool detectSameLang = false;
     for (const QModelIndex& cellIndex : emptyCells) {
         QString originalText = getOriginalTextForRow(cellIndex.row());
         QString targetLang = getTargetLanguageForColumn(cellIndex.column(), preferredService);
         
         if (originalText.isEmpty()) {
-            continue; // Skip rows without original text
+            continue; 
         }
         
         if (targetLang.isEmpty()) {
-            continue; // Skip columns without recognizable language
+            continue;
+        }
+
+        if(sourceLang == targetLang) {
+            detectSameLang = true;
         }
         
         TranslationManager::BatchTranslationRequest request;
         request.text = originalText;
-        request.sourceLang = "ja"; // Assume Japanese source, can be made configurable
+        request.sourceLang = sourceLang;
         request.targetLang = targetLang;
         request.row = cellIndex.row();
         request.column = cellIndex.column();
         
-        requests.append(request);
+        requests.append(std::move(request));
     }
     
     if (requests.isEmpty()) {
         QMessageBox::warning(this, tr("Translation Error"), 
-                           tr("No valid translation requests could be prepared."));
+                           tr("No valid translation requests could be prepared.(no use api)"));
         return;
+    }
+
+    if(detectSameLang) 
+    {
+        auto button = QMessageBox::information(
+            //翻訳する言語と翻訳後の言語が同じセルがあります。続けますか？
+            this, tr("Translation"), tr("There are cells where the source language and the target language are the same.\nDo you want to continue?"), 
+            QMessageBox::Yes, QMessageBox::No
+        );
+        if(button == QMessageBox::No) {
+            return;
+        }
     }
     
     // Show progress dialog
-    if (!progressDialog) {
+    if (progressDialog == nullptr) {
         progressDialog = new TranslationProgressDialog(this);
-        connect(progressDialog, &TranslationProgressDialog::cancelled,
-                this, [this]() {
+        connect(progressDialog, &TranslationProgressDialog::cancelled, this, [this]() {
             // Handle cancellation if needed
         });
     }
@@ -517,173 +439,20 @@ QString CSVEditor::getTargetLanguageForColumn(int column, TranslationService::Se
 {
     if (!model()) return QString();
     
-    // Get header text
     QString headerText = model()->headerData(column, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
-    
-    // Define language mappings for different services
-    static const QMap<QString, QMap<TranslationService::ServiceType, QString>> langServiceMap = {
-        // English
-        {"english", {{TranslationService::ServiceType::DeepL, "EN"}, {TranslationService::ServiceType::GoogleTranslate, "en"}}},
-        {"en", {{TranslationService::ServiceType::DeepL, "EN"}, {TranslationService::ServiceType::GoogleTranslate, "en"}}},
-        
-        // Japanese
-        {"japanese", {{TranslationService::ServiceType::DeepL, "JA"}, {TranslationService::ServiceType::GoogleTranslate, "ja"}}},
-        {"jp", {{TranslationService::ServiceType::DeepL, "JA"}, {TranslationService::ServiceType::GoogleTranslate, "ja"}}},
-        {"ja", {{TranslationService::ServiceType::DeepL, "JA"}, {TranslationService::ServiceType::GoogleTranslate, "ja"}}},
-        
-        // Chinese (Simplified)
-        {"chinese", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh"}}},
-        {"zh", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh"}}},
-        {"cn", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh"}}},
-        {"zh-cn", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-CN"}}},
-        {"zh_cn", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-CN"}}},
-        {"simplified chinese", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh"}}},
-        
-        // Chinese (Traditional)
-        {"traditional chinese", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
-        {"zh-tw", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
-        {"zh_tw", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
-        
-        // German
-        {"german", {{TranslationService::ServiceType::DeepL, "DE"}, {TranslationService::ServiceType::GoogleTranslate, "de"}}},
-        {"de", {{TranslationService::ServiceType::DeepL, "DE"}, {TranslationService::ServiceType::GoogleTranslate, "de"}}},
-        
-        // French
-        {"french", {{TranslationService::ServiceType::DeepL, "FR"}, {TranslationService::ServiceType::GoogleTranslate, "fr"}}},
-        {"fr", {{TranslationService::ServiceType::DeepL, "FR"}, {TranslationService::ServiceType::GoogleTranslate, "fr"}}},
-        
-        // Spanish
-        {"spanish", {{TranslationService::ServiceType::DeepL, "ES"}, {TranslationService::ServiceType::GoogleTranslate, "es"}}},
-        {"es", {{TranslationService::ServiceType::DeepL, "ES"}, {TranslationService::ServiceType::GoogleTranslate, "es"}}},
-        
-        // Italian
-        {"italian", {{TranslationService::ServiceType::DeepL, "IT"}, {TranslationService::ServiceType::GoogleTranslate, "it"}}},
-        {"it", {{TranslationService::ServiceType::DeepL, "IT"}, {TranslationService::ServiceType::GoogleTranslate, "it"}}},
-        
-        // Portuguese
-        {"portuguese", {{TranslationService::ServiceType::DeepL, "PT"}, {TranslationService::ServiceType::GoogleTranslate, "pt"}}},
-        {"pt", {{TranslationService::ServiceType::DeepL, "PT"}, {TranslationService::ServiceType::GoogleTranslate, "pt"}}},
-        
-        // Russian
-        {"russian", {{TranslationService::ServiceType::DeepL, "RU"}, {TranslationService::ServiceType::GoogleTranslate, "ru"}}},
-        {"ru", {{TranslationService::ServiceType::DeepL, "RU"}, {TranslationService::ServiceType::GoogleTranslate, "ru"}}},
-        
-        // Korean
-        {"korean", {{TranslationService::ServiceType::DeepL, "KO"}, {TranslationService::ServiceType::GoogleTranslate, "ko"}}},
-        {"ko", {{TranslationService::ServiceType::DeepL, "KO"}, {TranslationService::ServiceType::GoogleTranslate, "ko"}}},
-        
-        // Dutch
-        {"dutch", {{TranslationService::ServiceType::DeepL, "NL"}, {TranslationService::ServiceType::GoogleTranslate, "nl"}}},
-        {"nl", {{TranslationService::ServiceType::DeepL, "NL"}, {TranslationService::ServiceType::GoogleTranslate, "nl"}}},
-        
-        // Polish
-        {"polish", {{TranslationService::ServiceType::DeepL, "PL"}, {TranslationService::ServiceType::GoogleTranslate, "pl"}}},
-        {"pl", {{TranslationService::ServiceType::DeepL, "PL"}, {TranslationService::ServiceType::GoogleTranslate, "pl"}}},
-        
-        // Swedish
-        {"swedish", {{TranslationService::ServiceType::DeepL, "SV"}, {TranslationService::ServiceType::GoogleTranslate, "sv"}}},
-        {"sv", {{TranslationService::ServiceType::DeepL, "SV"}, {TranslationService::ServiceType::GoogleTranslate, "sv"}}},
-        
-        // Danish
-        {"danish", {{TranslationService::ServiceType::DeepL, "DA"}, {TranslationService::ServiceType::GoogleTranslate, "da"}}},
-        {"da", {{TranslationService::ServiceType::DeepL, "DA"}, {TranslationService::ServiceType::GoogleTranslate, "da"}}},
-        
-        // Norwegian
-        {"norwegian", {{TranslationService::ServiceType::DeepL, "NB"}, {TranslationService::ServiceType::GoogleTranslate, "no"}}},
-        {"no", {{TranslationService::ServiceType::DeepL, "NB"}, {TranslationService::ServiceType::GoogleTranslate, "no"}}},
-        {"nb", {{TranslationService::ServiceType::DeepL, "NB"}, {TranslationService::ServiceType::GoogleTranslate, "no"}}},
-        
-        // Finnish
-        {"finnish", {{TranslationService::ServiceType::DeepL, "FI"}, {TranslationService::ServiceType::GoogleTranslate, "fi"}}},
-        {"fi", {{TranslationService::ServiceType::DeepL, "FI"}, {TranslationService::ServiceType::GoogleTranslate, "fi"}}},
-        
-        // Czech
-        {"czech", {{TranslationService::ServiceType::DeepL, "CS"}, {TranslationService::ServiceType::GoogleTranslate, "cs"}}},
-        {"cs", {{TranslationService::ServiceType::DeepL, "CS"}, {TranslationService::ServiceType::GoogleTranslate, "cs"}}},
-        
-        // Hungarian
-        {"hungarian", {{TranslationService::ServiceType::DeepL, "HU"}, {TranslationService::ServiceType::GoogleTranslate, "hu"}}},
-        {"hu", {{TranslationService::ServiceType::DeepL, "HU"}, {TranslationService::ServiceType::GoogleTranslate, "hu"}}},
-        
-        // Romanian
-        {"romanian", {{TranslationService::ServiceType::DeepL, "RO"}, {TranslationService::ServiceType::GoogleTranslate, "ro"}}},
-        {"ro", {{TranslationService::ServiceType::DeepL, "RO"}, {TranslationService::ServiceType::GoogleTranslate, "ro"}}},
-        
-        // Slovak
-        {"slovak", {{TranslationService::ServiceType::DeepL, "SK"}, {TranslationService::ServiceType::GoogleTranslate, "sk"}}},
-        {"sk", {{TranslationService::ServiceType::DeepL, "SK"}, {TranslationService::ServiceType::GoogleTranslate, "sk"}}},
-        
-        // Slovenian
-        {"slovenian", {{TranslationService::ServiceType::DeepL, "SL"}, {TranslationService::ServiceType::GoogleTranslate, "sl"}}},
-        {"sl", {{TranslationService::ServiceType::DeepL, "SL"}, {TranslationService::ServiceType::GoogleTranslate, "sl"}}},
-        
-        // Bulgarian
-        {"bulgarian", {{TranslationService::ServiceType::DeepL, "BG"}, {TranslationService::ServiceType::GoogleTranslate, "bg"}}},
-        {"bg", {{TranslationService::ServiceType::DeepL, "BG"}, {TranslationService::ServiceType::GoogleTranslate, "bg"}}},
-        
-        // Estonian
-        {"estonian", {{TranslationService::ServiceType::DeepL, "ET"}, {TranslationService::ServiceType::GoogleTranslate, "et"}}},
-        {"et", {{TranslationService::ServiceType::DeepL, "ET"}, {TranslationService::ServiceType::GoogleTranslate, "et"}}},
-        
-        // Latvian
-        {"latvian", {{TranslationService::ServiceType::DeepL, "LV"}, {TranslationService::ServiceType::GoogleTranslate, "lv"}}},
-        {"lv", {{TranslationService::ServiceType::DeepL, "LV"}, {TranslationService::ServiceType::GoogleTranslate, "lv"}}},
-        
-        // Lithuanian
-        {"lithuanian", {{TranslationService::ServiceType::DeepL, "LT"}, {TranslationService::ServiceType::GoogleTranslate, "lt"}}},
-        {"lt", {{TranslationService::ServiceType::DeepL, "LT"}, {TranslationService::ServiceType::GoogleTranslate, "lt"}}},
-        
-        // Ukrainian
-        {"ukrainian", {{TranslationService::ServiceType::DeepL, "UK"}, {TranslationService::ServiceType::GoogleTranslate, "uk"}}},
-        {"uk", {{TranslationService::ServiceType::DeepL, "UK"}, {TranslationService::ServiceType::GoogleTranslate, "uk"}}},
-        
-        // Turkish
-        {"turkish", {{TranslationService::ServiceType::DeepL, "TR"}, {TranslationService::ServiceType::GoogleTranslate, "tr"}}},
-        {"tr", {{TranslationService::ServiceType::DeepL, "TR"}, {TranslationService::ServiceType::GoogleTranslate, "tr"}}},
-        
-        // Greek
-        {"greek", {{TranslationService::ServiceType::DeepL, "EL"}, {TranslationService::ServiceType::GoogleTranslate, "el"}}},
-        {"el", {{TranslationService::ServiceType::DeepL, "EL"}, {TranslationService::ServiceType::GoogleTranslate, "el"}}},
-        
-        // Arabic
-        {"arabic", {{TranslationService::ServiceType::DeepL, "AR"}, {TranslationService::ServiceType::GoogleTranslate, "ar"}}},
-        {"ar", {{TranslationService::ServiceType::DeepL, "AR"}, {TranslationService::ServiceType::GoogleTranslate, "ar"}}},
-        
-        // Hindi
-        {"hindi", {{TranslationService::ServiceType::DeepL, "HI"}, {TranslationService::ServiceType::GoogleTranslate, "hi"}}},
-        {"hi", {{TranslationService::ServiceType::DeepL, "HI"}, {TranslationService::ServiceType::GoogleTranslate, "hi"}}},
-        
-        // Indonesian
-        {"indonesian", {{TranslationService::ServiceType::DeepL, "ID"}, {TranslationService::ServiceType::GoogleTranslate, "id"}}},
-        {"id", {{TranslationService::ServiceType::DeepL, "ID"}, {TranslationService::ServiceType::GoogleTranslate, "id"}}},
-        
-        // Malay
-        {"malay", {{TranslationService::ServiceType::DeepL, "MS"}, {TranslationService::ServiceType::GoogleTranslate, "ms"}}},
-        {"ms", {{TranslationService::ServiceType::DeepL, "MS"}, {TranslationService::ServiceType::GoogleTranslate, "ms"}}},
-        
-        // Thai
-        {"thai", {{TranslationService::ServiceType::DeepL, "TH"}, {TranslationService::ServiceType::GoogleTranslate, "th"}}},
-        {"th", {{TranslationService::ServiceType::DeepL, "TH"}, {TranslationService::ServiceType::GoogleTranslate, "th"}}},
-        
-        // Vietnamese
-        {"vietnamese", {{TranslationService::ServiceType::DeepL, "VI"}, {TranslationService::ServiceType::GoogleTranslate, "vi"}}},
-        {"vi", {{TranslationService::ServiceType::DeepL, "VI"}, {TranslationService::ServiceType::GoogleTranslate, "vi"}}}
-    };
-    
-    // Look up the language mapping for the header text
-    if (langServiceMap.contains(headerText)) {
-        const auto& serviceMap = langServiceMap[headerText];
-        if (serviceMap.contains(serviceType)) {
-            return serviceMap[serviceType];
-        }
-    }
-    
-    return QString(); // Return empty string if language not found
+    return TranslationService::GetTranslationLanguageCode(serviceType, headerText);
 }
 
 int CSVEditor::findOriginalColumn() const
 {
-    return 0;
+    auto columns = this->model()->columnCount();
+    for(int i = 0; i < columns; ++i) {
+        auto header_id = this->model()->headerData(i, Qt::Horizontal, Qt::UserRole).toString();
+        if(header_id == Column_ID_Original) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<TranslationManager::BatchTranslationResult>& results)
@@ -746,22 +515,22 @@ void CSVEditor::connectModelSignals()
     }
 }
 
-void CSVEditor::sortStateChanged(int col, CSVEditorSortFilterProxyModel::SortOrder order)
+void CSVEditor::sortStateChanged(int col, SortOrder order)
 {
     auto* h = horizontalHeader();
-    if(order == CSVEditorSortFilterProxyModel::SortOrder::None) {
+    if(order == SortOrder::None) {
         h->setSortIndicatorShown(false);
     }
     else {
         h->setSortIndicatorShown(true);
-        h->setSortIndicator(col, order == CSVEditorSortFilterProxyModel::SortOrder::Ascending
+        h->setSortIndicator(col, order == SortOrder::Ascending
             ? Qt::AscendingOrder : Qt::DescendingOrder);
     }
 }
 
 void CSVEditor::onModelDataChanged()
 {
-    if (!_suppressUndoTracking) {
+    if (_suppressUndoTracking == false) {
         _isModified = true;
     }
     updateTranslationMenu(); // Update menu when data changes
@@ -941,7 +710,7 @@ void CSVEditor::clearSelectedCells()
         }
     }
 
-    if (!edits.isEmpty()) {
+    if (edits.isEmpty() == false) {
         executeEditCommand(edits, tr("Clear Cells"));
     }
 }
@@ -1224,6 +993,3 @@ void CSVEditor::onHeaderSectionClicked(int logicalIndex)
         proxy->cycleColumnSort(logicalIndex);
     }
 }
-
-// Include the MOC file for the LanguageColumnSelectionDialog class
-#include "CSVEditor.moc"

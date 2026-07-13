@@ -1,4 +1,4 @@
-﻿#include "CSVEditDataManager.h"
+﻿#include "EditDataManager.h"
 
 #include "MainCSVTableModel.h"
 #include "ScriptCSVTableModel.h"
@@ -7,21 +7,21 @@
 #include <QDir>
 
 
-CSVEditDataManager::CSVEditDataManager(QObject* parent)
+EditDataManager::EditDataManager(QObject* parent)
     : QObject(parent)
     , undoStack(nullptr)
     , ownsUndoStack(false)
 {
 }
 
-CSVEditDataManager::~CSVEditDataManager()
+EditDataManager::~EditDataManager()
 {
     if (ownsUndoStack && undoStack) {
         delete undoStack;
     }
 }
 
-void CSVEditDataManager::setUndoStack(QUndoStack* stack)
+void EditDataManager::setUndoStack(QUndoStack* stack)
 {
     if (ownsUndoStack && undoStack) {
         delete undoStack;
@@ -32,7 +32,7 @@ void CSVEditDataManager::setUndoStack(QUndoStack* stack)
     emit undoStackChanged(undoStack);
 }
 
-QUndoStack* CSVEditDataManager::ensureUndoStack()
+QUndoStack* EditDataManager::ensureUndoStack()
 {
     if (!undoStack) {
         undoStack = new QUndoStack(this);
@@ -42,7 +42,7 @@ QUndoStack* CSVEditDataManager::ensureUndoStack()
     return undoStack;
 }
 
-QAbstractTableModel* CSVEditDataManager::getOrCreateModel(const QString& filePath, ModelType type) {
+QAbstractTableModel* EditDataManager::getOrCreateModel(const QString& filePath, ModelType type) {
     auto it = sessions_.find(filePath);
     if(it != sessions_.end()) {
         return it->second->model.get();
@@ -60,17 +60,17 @@ QAbstractTableModel* CSVEditDataManager::getOrCreateModel(const QString& filePat
     return modelPtr;
 }
 
-MainCSVTableModel* CSVEditDataManager::getMainCSVModel(const QString& filePath) {
+MainCSVTableModel* EditDataManager::getMainCSVModel(const QString& filePath) {
     auto* model = getOrCreateModel(filePath, ModelType::MainCSV);
     return qobject_cast<MainCSVTableModel*>(model);
 }
 
-ScriptCSVTableModel* CSVEditDataManager::getScriptCSVModel(const QString& filePath) {
+ScriptCSVTableModel* EditDataManager::getScriptCSVModel(const QString& filePath) {
     auto* model = getOrCreateModel(filePath, ModelType::ScriptCSV);
     return qobject_cast<ScriptCSVTableModel*>(model);
 }
 
-std::unique_ptr<QAbstractTableModel> CSVEditDataManager::createModel(ModelType type) {
+std::unique_ptr<QAbstractTableModel> EditDataManager::createModel(ModelType type) {
     switch(type) {
     case ModelType::MainCSV:
         return std::make_unique<MainCSVTableModel>();
@@ -81,7 +81,7 @@ std::unique_ptr<QAbstractTableModel> CSVEditDataManager::createModel(ModelType t
     }
 }
 
-bool CSVEditDataManager::saveModel(const QString& filePath)
+bool EditDataManager::saveModel(const QString& filePath)
 {
     auto it = sessions_.find(filePath);
     if (it == sessions_.end()) {
@@ -120,7 +120,7 @@ bool CSVEditDataManager::saveModel(const QString& filePath)
     return success;
 }
 
-bool CSVEditDataManager::saveAllModels(const QString& editingDirectory)
+bool EditDataManager::saveAllModels(const QString& editingDirectory)
 {
     bool allSuccess = true;
     
@@ -138,16 +138,8 @@ bool CSVEditDataManager::saveAllModels(const QString& editingDirectory)
         //if (!session->isDirty) {
         //    continue; // 変更されていないセッションはスキップ
         //}
-
-        // 元のファイルパスから編集用のパスを生成
-        QFileInfo fileInfo(originalPath);
-        QString baseName = fileInfo.completeBaseName();
-        QString extension = fileInfo.suffix();
         
-        // CSVファイルとして保存
-        QString savePath = editingDirectory + "/" + baseName + ".csv";
-        
-        if (!saveModel(originalPath)) {
+        if (saveModel(originalPath) == false) {
             allSuccess = false;
         }
     }

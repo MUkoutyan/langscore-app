@@ -360,7 +360,7 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
     return list[list.size() - 1];
 }
 
-void settings::removeScriptInfoPoint(QString fileName, langscore::TextPosition point)
+void settings::removeScriptInfoPoint(QString fileName, langscore::ScriptTextPosition point)
 {
     fileName = QFileInfo(fileName).completeBaseName() + scriptExt(projectType);
     auto& list = writeObj.scriptInfo;

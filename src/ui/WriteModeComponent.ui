@@ -184,7 +184,7 @@ Unchecked text and images are excluded from translation.</string>
      </property>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="langTab">
        <attribute name="title">
@@ -267,7 +267,7 @@ Unchecked text and images are excluded from translation.</string>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_2">
+      <widget class="QWidget" name="scriptsTab">
        <attribute name="title">
         <string>Scripts</string>
        </attribute>
@@ -304,7 +304,7 @@ Unchecked text and images are excluded from translation.</string>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_3">
+      <widget class="QWidget" name="graphicsTab">
        <attribute name="title">
         <string>Graphic</string>
        </attribute>
@@ -333,7 +333,7 @@ Unchecked text and images are excluded from translation.</string>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_4">
+      <widget class="QWidget" name="logTab">
        <attribute name="title">
         <string>Log</string>
        </attribute>

@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "ComponentBase.h"
-#include "CSVEditDataManager.h"
-#include "csveditor/CSVEditor.h"
+#include "EditDataManager.h"
+#include "editor/CSVEditor.h"
 
 
 struct ScriptTextData; // 前方宣言
@@ -19,7 +19,7 @@ class invoker;
 class MainCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
-    MainCSVTable(ComponentBase* component, std::weak_ptr<CSVEditDataManager> loadFileManager, QWidget* parent = nullptr);
+    MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManager> loadFileManager, QWidget* parent = nullptr);
     
     void clear();
 
@@ -51,9 +51,12 @@ private:
     void receive(DispatchType type, const QVariantList& args) override;
     void restoreColumnWidths();
 
-    std::weak_ptr<CSVEditDataManager> loadFileManager;
+    std::weak_ptr<EditDataManager> loadFileManager;
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
+    QToolButton* filterMenuButton;
+    QAction* showAllAction;
+    QAction* hideTranslatedAction;
     QPushButton* hideLanguageColumnsAction;
     QPushButton* validateButton;
     QPushButton* validateResultListButton;
@@ -69,4 +72,5 @@ private:
     QTimer* updateTimer;
     QString currentFileName;
     bool _finishInvoke;
+    bool _showAllScriptContents;
 };

@@ -6,7 +6,8 @@
 #include <QClipboard>
 #include <memory>
 #include "ComponentBase.h"
-#include "CSVEditDataManager.h"
+#include "EditorTableDefines.h"
+#include "EditDataManager.h"
 #include "CSVEditCommand.h"
 #include "CSVEditorSortFilterProxyModel.h"
 #include "../dialog/TranslationProgressDialog.h"
@@ -21,7 +22,7 @@ class CSVEditor : public QTableView, public ComponentBase, public CSVEditCommand
     Q_OBJECT
 
 public:
-    explicit CSVEditor(std::weak_ptr<CSVEditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
+    explicit CSVEditor(std::weak_ptr<EditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
 
     void setModel(QAbstractItemModel* model) override;
 
@@ -67,7 +68,7 @@ private slots:
     void onBatchTranslationError(int batchId, const QString& errorMessage);
     void onTranslationProgress(int batchId, int completed, int total);
     void showAllColumns();
-    void sortStateChanged(int col, langscore::CSVEditorSortFilterProxyModel::SortOrder order);
+    void sortStateChanged(int col, SortOrder order);
 
 private:
     void setupActions();
@@ -98,7 +99,7 @@ private:
 
     void setData(QModelIndex index, QVariant value, int role) override;
 
-    std::weak_ptr<CSVEditDataManager> loadFileManager;
+    std::weak_ptr<EditDataManager> loadFileManager;
     
     // Actions
     QAction* cutAction;

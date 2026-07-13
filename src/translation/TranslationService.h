@@ -42,6 +42,8 @@ public:
     virtual void translateText(const TranslationRequest& request) = 0;
     virtual QStringList getSupportedLanguages() const = 0;
 
+    static QString GetTranslationLanguageCode(TranslationService::ServiceType service, QString languageName);
+
 signals:
     void translationCompleted(const TranslationResult& result);
     void translationError(int requestId, const QString& errorMessage);

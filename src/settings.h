@@ -1,10 +1,9 @@
 ﻿#pragma once
 #include <QStringList>
 #include <QLocale>
-#include <QMap>
 #include <QFont>
-#include <QCheckBox>
 #include <vector>
+//※optionalは参照を保持できないため使用しない。
 #include "text_position.h"
 
 class settings
@@ -100,23 +99,6 @@ public:
         QStringList csvNameList;
     };
 
-
-    //struct TextPoint
-    //{
-    //    size_t row = 0;
-    //    size_t col = 0;
-    //    QString argName;
-    //    bool disable = false;	//元スクリプト変更によって位置が噛み合わなくなった場合true
-    //    bool ignore = false;
-    //    int writeMode = 0;
-    //    bool operator==(const std::pair<size_t, size_t>& x) const noexcept {
-    //        return row == x.first && col == x.second;
-    //    }
-    //    bool operator==(const QString& x) const noexcept {
-    //        return x == argName;
-    //    }
-    //};
-
     //Write
     struct BasicData
     {
@@ -141,7 +123,7 @@ public:
     struct ScriptInfo : public BasicData 
     {
         QString scriptName = "";
-        std::vector<langscore::TextPosition> lines;
+        std::vector<langscore::ScriptTextPosition> lines;
 
         bool isIgnore() const {
             return this->ignore || std::ranges::all_of(lines, [](const auto& pos) { return pos.ignore; });
@@ -217,7 +199,7 @@ public:
     BasicData &fetchBasicDataInfo(QString fileName);
     MapInfo &fetchMapInfo(QString fileName);
     ScriptInfo &fetchScriptInfo(QString fileName);
-    void removeScriptInfoPoint(QString fileName, langscore::TextPosition point);
+    void removeScriptInfoPoint(QString fileName, langscore::ScriptTextPosition point);
 
     void setPackingDirectory(QString path);
 

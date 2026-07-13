@@ -51,7 +51,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     , invokeType(InvokeType::None)
     , lastWritePath("")
     , scriptViewer(nullptr)
-    , csvEditDataManager(std::make_shared<CSVEditDataManager>())
+    , csvEditDataManager(std::make_shared<EditDataManager>())
 {
     this->addDispatch(this);
     csvEditDataManager->ensureUndoStack();
@@ -75,6 +75,16 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         this->scriptTable = new ScriptCSVTable(this, this->csvEditDataManager, this);
         this->addDispatch(this->scriptTable);
         this->ui->verticalLayout_8->addWidget(this->scriptTable, 1);
+    }
+
+    {
+        auto appSettings = ComponentBase::getAppSettings();
+        if(appSettings.contains("WriteModeComponent/splitter")) {
+            this->ui->splitter->restoreState(appSettings.value("WriteModeComponent/splitter").toByteArray());
+        }
+        if(appSettings.contains("WriteModeComponent/splitter_2")) {
+            this->ui->splitter_2->restoreState(appSettings.value("WriteModeComponent/splitter_2").toByteArray());
+        }
     }
 
     this->ui->modeDesc->hide();
@@ -108,7 +118,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             return;
         }
 
-        this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+        this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
         this->ui->logText->clear();
         this->ui->logText->insertPlainText(tr("Update Projects...\n"));
 
@@ -148,6 +158,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
 
 #ifdef QT_DEBUG
     auto* configView = new QPlainTextEdit(this);
+    configView->setObjectName("Config View");
     auto configTabIndex = this->ui->tabWidget->addTab(configView, "Config");
 
     connect(this->ui->tabWidget, &QTabWidget::currentChanged, this, [this, configTabIndex, configView](int index)
@@ -179,8 +190,17 @@ QTreeView::item {
     connect(fileTree, &FileTree::setTabIndex, this, &WriteModeComponent::onSetTabIndex);
 
     connect(fileTree, &FileTree::notifyScriptTreeItemCheckChanged, this, &WriteModeComponent::onScriptTableItemCheckChanged);
-    //connect(scriptTable, &ScriptCSVTable::changeScriptTableItemCheck, this, &WriteModeComponent::onScriptTreeItemCheckChanged);
+    connect(scriptTable, &ScriptCSVTable::scriptTableSelected, this, &WriteModeComponent::scriptTableSelected);
     connect(scriptTable, &ScriptCSVTable::notifyScriptTableChangeItemCheck, this, &WriteModeComponent::onScriptTreeItemCheckChanged);
+
+    connect(this->ui->splitter, &QSplitter::splitterMoved, this, [this](int, int) {
+        auto settings = ComponentBase::getAppSettings();
+        settings.setValue("WriteModeComponent/splitter", this->ui->splitter->saveState());
+    });
+    connect(this->ui->splitter_2, &QSplitter::splitterMoved, this, [this](int, int) {
+        auto settings = ComponentBase::getAppSettings();
+        settings.setValue("WriteModeComponent/splitter_2", this->ui->splitter_2->saveState());
+    });
 }
 
 WriteModeComponent::~WriteModeComponent(){
@@ -229,15 +249,22 @@ void WriteModeComponent::treeItemChanged(QTreeWidgetItem *_item, int column)
     this->fileTree->itemChanged(_item, column);
 }
 
-void WriteModeComponent::scriptTableSelected(QString scriptName, QString fileName, size_t textRow, size_t textCol, int textLen)
+void WriteModeComponent::scriptTableSelected(QString scriptName, QString fileName, QString textPoint, int textLen)
 {
     auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + "/" + fileName + GetScriptExtension(this->setting->projectType);
-
-
     this->scriptViewer->showFile(scriptFilePath);
-    if(textRow != std::numeric_limits<size_t>::max()){
+
+    constexpr size_t invalid = std::numeric_limits<size_t>::max();
+    auto [textRow, textCol] = parseScriptWithRowCol(textPoint);
+
+    if(textRow == invalid && textCol == invalid) {
+        this->scriptViewer->updateSearchHighlights("@default " + textPoint);
+    }
+    else if(textRow != std::numeric_limits<size_t>::max())
+    {
         this->scriptViewer->scrollWithHighlight(textRow, textCol, textLen);
     }
+
 }
 
 void WriteModeComponent::exportPlugin()
@@ -265,7 +292,7 @@ void WriteModeComponent::exportPlugin()
     this->setting->writeObj.enableLanguagePatch = dialog.isEnableLanguagePatch();
     this->setting->setPackingDirectory(relativePath);
 
-    this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+    this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
 
     this->ui->logText->clear();
     this->ui->logText->insertPlainText(tr("Update Plugin...\n"));
@@ -306,7 +333,7 @@ void WriteModeComponent::exportTranslateFiles()
 
     if(dialog.backup()){ backup(); }
 
-    this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+    this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
 
     this->ui->logText->clear();
     this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
@@ -346,7 +373,7 @@ void WriteModeComponent::firstExportTranslateFiles()
 
     if(dialog.backup()){ backup(); }
 
-    this->ui->tabWidget->setCurrentWidget(this->ui->tab_4);
+    this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
 
     this->ui->logText->clear();
     this->ui->logText->insertPlainText(tr("Write Translate Files(First)...\n"));

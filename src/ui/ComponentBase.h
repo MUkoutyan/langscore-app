@@ -22,6 +22,7 @@ public:
         DisableBlur,
         ChangeColor,    //Theme
         ValidateCSV,
+        ValidateAll,
         NotifyFinishValidateCSV,
         SendLog,
     };

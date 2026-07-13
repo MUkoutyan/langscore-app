@@ -96,6 +96,9 @@ MainWindow::MainWindow(QWidget *parent)
             this->analyzeDialog->openFile(std::move(path));
         }
     });
+    connect(this->taskBar, &FormTaskBar::validationAll, this, [this]() {
+        this->dispatch(ValidateAll, {});
+    });
     //connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
     connect(this->taskBar, &FormTaskBar::quit,            this, &MainWindow::close);
 
@@ -112,7 +115,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->history, &QUndoStack::indexChanged, this, [this](int idx){
         if(this->lastSavedHistoryIndex != idx){
             this->setWindowTitle("Langscore " + tr("Edited"));
-        }else{
+        } else {
             this->setWindowTitle("Langscore");
         }
     });

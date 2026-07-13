@@ -337,15 +337,15 @@ QJsonArray serializeScripts(const settings::WriteProps& writeObj)
             if(point.ignore == false) { continue; }
             QJsonObject obj;
 
-            if(std::holds_alternative<TextPosition::RowCol>(point.d))
+            if(std::holds_alternative<ScriptTextPosition::RowCol>(point.d))
             {
-                auto& cell = std::get<TextPosition::RowCol>(point.d);
+                auto& cell = std::get<ScriptTextPosition::RowCol>(point.d);
                 obj[key(JsonKey::Row)] = qint64(cell.row);
                 obj[key(JsonKey::Col)] = qint64(cell.col);
             }
             else 
             {
-                auto& cell = std::get<TextPosition::ScriptArg>(point.d);
+                auto& cell = std::get<ScriptTextPosition::ScriptArg>(point.d);
                 obj[key(JsonKey::ParameterText)] = cell.valueName;
                 
             }
@@ -731,26 +731,26 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
         QJsonObject obj = value.toObject();
         QString fileName = obj["file"].toString();
 
-        TextPosition line;
-        line.value = obj["original"].toString();
+        ScriptTextPosition line;
+        line.originalText = obj["original"].toString();
 
         // TextPositionの生成
         //pos.scriptFileName = fileName;
         if(obj.contains("parameterName")) {
-            line.type = TextPosition::Type::Argument;
+            line.type = ScriptTextPosition::Type::Argument;
             if(obj.contains("value")) {
-                line.value = obj["value"].toString();
+                line.originalText = obj["value"].toString();
             }
-            TextPosition::ScriptArg rowCol;
+            ScriptTextPosition::ScriptArg rowCol;
             rowCol.valueName = obj["parameterName"].toString();
             line.d = rowCol;
         }
         else {
-            line.type = TextPosition::Type::RowCol;
+            line.type = ScriptTextPosition::Type::RowCol;
             if(obj.contains("value")) {
-                line.value = obj["value"].toString();
+                line.originalText = obj["value"].toString();
             }
-            TextPosition::RowCol rowCol;
+            ScriptTextPosition::RowCol rowCol;
             rowCol.row = obj["row"].toInteger();
             rowCol.col = obj["col"].toInteger();
             line.d = rowCol;
@@ -774,19 +774,19 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
                 auto ignorePointArray = jsonScript[key(JsonKey::IgnorePoints)].toArray();
                 for(const auto& jsonPoint : ignorePointArray) {
                     auto obj = jsonPoint.toObject();
-                    langscore::TextPosition pos;
+                    langscore::ScriptTextPosition pos;
 
                     // パラメータ名がある場合は ScriptArg
                     if(obj.contains(key(JsonKey::ParameterText))) {
-                        pos.type = langscore::TextPosition::Type::Argument;
-                        langscore::TextPosition::ScriptArg arg;
+                        pos.type = langscore::ScriptTextPosition::Type::Argument;
+                        langscore::ScriptTextPosition::ScriptArg arg;
                         arg.valueName = obj[key(JsonKey::ParameterText)].toString();
                         pos.d = arg;
                     }
                     else {
                         // RowCol
-                        pos.type = langscore::TextPosition::Type::RowCol;
-                        langscore::TextPosition::RowCol rc;
+                        pos.type = langscore::ScriptTextPosition::Type::RowCol;
+                        langscore::ScriptTextPosition::RowCol rc;
                         rc.row = obj[key(JsonKey::Row)].toInteger();
                         rc.col = obj[key(JsonKey::Col)].toInteger();
                         pos.d = rc;
