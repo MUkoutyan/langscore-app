@@ -538,7 +538,7 @@ void MainCSVTable::receive(DispatchType type, const QVariantList& args)
             row++;
         }
 
-        QTimer::singleShot(1, [this]() {
+        QTimer::singleShot(1, this, [this]() {
             this->validateResultTable->resizeColumnsToContents();
             this->csvEditor->update();
             // モデルの背景色やユーザーロールが更新されているため、ビューへ反映させる

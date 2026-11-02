@@ -323,7 +323,7 @@ void CSVEditor::translateSelectedCells()
         QMessageBox::information(this, tr("Translation"), tr("Translation is in progress."));
         return;
     }
-    
+
     QList<QModelIndex> emptyCells = getEmptySelectedCells();
     if (emptyCells.isEmpty()) {
         QMessageBox::information(this, tr("Translation"), 
@@ -700,7 +700,7 @@ void CSVEditor::setText(QModelIndex index, QString newText)
     if(edit.oldValue == edit.newValue) { return; }
 
     executeEditCommand({edit}, QString{});
-    QTimer::singleShot(1, [this, row = index.row()]() {
+    QTimer::singleShot(1, this, [this, row = index.row()]() {
         this->resizeRowToContents(row);
     });
 }
