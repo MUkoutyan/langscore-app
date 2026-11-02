@@ -82,11 +82,10 @@ namespace {
                 relativeFolder.replace('/', QDir::separator());
                 info.folder = relativeFolder;
 
+                //除外リストには画像フォルダからの相対パスが入っている（FileTree::writeToPictureListSetting）
+                const auto relativePath = graphicsFolder.relativeFilePath(pict.absoluteFilePath());
                 auto& pixtureList = setting->writeObj.ignorePicturePath;
-                auto result = std::find_if(pixtureList.begin(), pixtureList.end(), [&info](const auto& pic) {
-                    return QFileInfo(pic).completeBaseName() == info.fileName;
-                });
-                if(result != pixtureList.end()) {
+                if(std::ranges::find(pixtureList, relativePath) != pixtureList.end()) {
                     info.ignore = true;
                     ignorePictures++;
                 }

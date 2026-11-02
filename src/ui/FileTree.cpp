@@ -444,16 +444,7 @@ void FileTree::setupGraphicsTree()
             child->setHidden(true);
         }
 
-        auto& pixtureList = this->setting->writeObj.ignorePicturePath;
-        auto result = std::find_if(pixtureList.cbegin(), pixtureList.cend(), [&pictureFileName](const auto& pic) {
-            return QFileInfo(pic).completeBaseName() == pictureFileName;
-        });
-        if(result != pixtureList.end()) {
-            child->setCheckState(TreeColIndex::CheckBox, Qt::Unchecked);
-        }
-        else {
-            child->setCheckState(TreeColIndex::CheckBox, Qt::Checked);
-        }
+        child->setCheckState(TreeColIndex::CheckBox, graphInfo.ignore ? Qt::Unchecked : Qt::Checked);
 
         parentItem->addChild(child);
 
