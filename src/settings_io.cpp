@@ -340,7 +340,7 @@ QJsonArray serializeScripts(const settings::WriteProps& writeObj)
 
         QJsonObject script;
         script[key(JsonKey::Name)] = info.fileName;
-        script[key(JsonKey::Ignore)] = info.isIgnore();
+        script[key(JsonKey::Ignore)] = info.ignore;
         script["IsVisible"] = info.visible;
         QJsonArray ignorePointArray;
         for(const auto& point : info.lines) 
