@@ -514,9 +514,14 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
 void WriteModeComponent::changeEnabledUIState(bool enable)
 {
     this->fileTree->setEnabled(enable);
-    //this->ui->tableWidget_script->setEnabled(enable);
-    this->ui->writeButton->setEnabled(enable);
+    this->ui->writeCSVAndPluginButton->setEnabled(enable);
+    this->ui->updatePluginButton->setEnabled(enable);
     this->ui->updateButton->setEnabled(enable);
+    //言語が1つも選ばれていない場合は、処理が終わっても書き出しボタンを無効のままにする
+    const bool hasEnabledLanguage = std::ranges::any_of(this->setting->languages, [](const settings::Language& lang) {
+        return lang.enable;
+    });
+    this->ui->writeButton->setEnabled(enable && hasEnabledLanguage);
 }
 
 void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
