@@ -59,6 +59,8 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
 
+    bool isEditableIndex(const QModelIndex& index);
+
 private slots:
     void onCustomContextMenuRequested(const QPoint& pos);
     void onModelDataChanged();

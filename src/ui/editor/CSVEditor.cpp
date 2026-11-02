@@ -558,6 +558,12 @@ void CSVEditor::selectAndEditNextCell()
     this->edit(newSelectIndex);
 }
 
+bool CSVEditor::isEditableIndex(const QModelIndex& index)
+{
+    if(index.isValid() == false) { return false; }
+    return (model()->flags(index) & Qt::ItemIsEditable) != 0;
+}
+
 void CSVEditor::keyPressEvent(QKeyEvent* event)
 {
     auto currentSelectedIndexes = getSelectedIndexes();
@@ -628,16 +634,12 @@ void CSVEditor::showContextMenu(const QPoint& globalPos)
     if(contextMenu) 
     {
         auto currentSelectedIndexes = getSelectedIndexes();
-        for(auto& index : currentSelectedIndexes)
-        {
-            if(index.isValid() == false) { continue; }
-
-            auto flag = model()->flags(index);
-            bool isEditable = (flag & Qt::ItemIsEditable) != 0;
-            cutAction->setEnabled(isEditable);
-            pasteAction->setEnabled(isEditable);
-            deleteAction->setEnabled(isEditable);
-        } 
+        const bool hasEditableCell = std::ranges::any_of(currentSelectedIndexes, [this](const QModelIndex& index) {
+            return isEditableIndex(index);
+        });
+        cutAction->setEnabled(hasEditableCell);
+        pasteAction->setEnabled(hasEditableCell);
+        deleteAction->setEnabled(hasEditableCell);
         
         // Update translation menu
         updateTranslationMenu();
@@ -701,11 +703,11 @@ void CSVEditor::setText(QModelIndex index, QString newText)
 void CSVEditor::clearSelectedCells()
 {
     QModelIndexList indexes = getSelectedIndexes();
-    if (indexes.isEmpty()) return;
+    if(indexes.isEmpty()) { return; }
 
     QList<CSVEditCommand::CellEdit> edits;
     for (const auto& index : indexes) {
-        if (index.isValid()) {
+        if (this->isEditableIndex(index)) {
             CSVEditCommand::CellEdit edit;
             edit.index = index;
             edit.oldValue = model()->data(index, Qt::EditRole);
@@ -776,13 +778,15 @@ void CSVEditor::paste()
                 }
 
                 QModelIndex targetIndex = model()->index(targetRow, targetColumn);
-                if (targetIndex.isValid()) {
-                    CSVEditCommand::CellEdit edit;
-                    edit.index = targetIndex;
-                    edit.oldValue = model()->data(targetIndex, Qt::EditRole);
-                    edit.newValue = fields[fieldIndex];
-                    edits.append(edit);
+                if (isEditableIndex(targetIndex) == false) {
+                    continue;
                 }
+
+                CSVEditCommand::CellEdit edit;
+                edit.index = targetIndex;
+                edit.oldValue = model()->data(targetIndex, Qt::EditRole);
+                edit.newValue = fields[fieldIndex];
+                edits.append(edit);
             }
         }
 

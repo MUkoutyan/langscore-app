@@ -240,6 +240,11 @@ bool CSVEditorTableModel::setData(const QModelIndex& index, const QVariant& valu
     if(role != Qt::EditRole || !index.isValid()) {
         return false;
     }
+    
+    //original・type 列は編集不可。貼り付けや削除など、どの経路から来ても書き換えない
+    if((flags(index) & Qt::ItemIsEditable) == 0) {
+        return false;
+    }
 
     int row = index.row();
     int col = index.column();
