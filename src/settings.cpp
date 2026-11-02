@@ -154,10 +154,16 @@ settings::TextValidateTypeMap settings::getValidationCsvData(QString fileName)
 
 settings::TextValidateTypeMap& settings::getValidationCsvDataRef(QString fileName)
 {
-    auto it = std::ranges::find_if(writeObj.basicDataInfo, [&fileName](const auto& data) {
-        return data.fileName.contains(fileName);
-    });
-    if(it != writeObj.basicDataInfo.end()) {
+    //部分一致だと別のファイルに当たるため、拡張子を除いた名前で完全に一致させる
+    fileName = langscore::withoutAllExtension(fileName);
+    const auto isSameFile = [&fileName](const auto& data) {
+        return langscore::withoutAllExtension(data.fileName) == fileName;
+    };
+
+    if(auto it = std::ranges::find_if(writeObj.basicDataInfo, isSameFile); it != writeObj.basicDataInfo.end()) {
+        return it->validateInfo;
+    }
+    if(auto it = std::ranges::find_if(writeObj.mapDataInfo, isSameFile); it != writeObj.mapDataInfo.end()) {
         return it->validateInfo;
     }
     static settings::TextValidateTypeMap Invalid{};
