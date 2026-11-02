@@ -146,8 +146,11 @@ QSize MultiLineEditDelegate::sizeHint(const QStyleOptionViewItem& option,
 {
     QSize size = QStyledItemDelegate::sizeHint(option, index);
     
+    auto model = index.model();
+    if(model == nullptr) { return size; }
+
     // テキストが改行を含む場合、高さを調整
-    QString text = index.model()->data(index, Qt::DisplayRole).toString();
+    QString text = model->data(index, Qt::DisplayRole).toString();
     if (text.contains('\n')) {
         QFontMetrics fm(option.font);
         int lineCount = text.split('\n').size();

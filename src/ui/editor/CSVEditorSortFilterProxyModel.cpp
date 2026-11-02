@@ -178,15 +178,18 @@ bool CSVEditorSortFilterProxyModel::filterAcceptsRow(int sourceRow, const QModel
     if(this->_filterMode.testFlag(FilterMode::HideTranslatedRow))
     {
         const int colCount = srcModel->columnCount(sourceParent);
+        bool isFilledAll = true;
         for(int col = 0; col < colCount; ++col) 
         {
             const auto isLangHeader = srcModel->headerData(col, Qt::Horizontal, DataType::IsLanguageColumn).toBool();
             if(isLangHeader == false) { continue; }
 
             const QModelIndex idx = srcModel->index(sourceRow, col, sourceParent);
-            if(srcModel->data(idx, Qt::DisplayRole).toString().isEmpty() == false) {
-                return false;
-            }
+            isFilledAll &= (srcModel->data(idx, Qt::DisplayRole).toString().isEmpty() == false);
+        }
+
+        if(isFilledAll){
+            return false;
         }
     }
 

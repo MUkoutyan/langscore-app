@@ -135,7 +135,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 
         {
             auto appSettings = ComponentBase::getAppSettings();
-            _showAllScriptContents = appSettings.value("ScriptCSVTable/showAllContents", true).toBool();
+            _showAllScriptContents = appSettings.value("MainCSVTable/showAllContents", true).toBool();
         }
         showAllAction->setChecked(_showAllScriptContents);
         hideTranslatedAction->setChecked(!_showAllScriptContents);
@@ -153,7 +153,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
             auto settings = ComponentBase::getAppSettings();
             settings.setValue("MainCSVTable/showAllContents", true);
             if(this->_proxyModel) {
-                this->_proxyModel->setFilterNoTranslateColumn(_showAllScriptContents);
+                this->_proxyModel->setFilterNoTranslateColumn(_showAllScriptContents == false);
             }
         });
         connect(hideTranslatedAction, &QAction::triggered, this, [this]()
@@ -162,7 +162,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
             auto settings = ComponentBase::getAppSettings();
             settings.setValue("MainCSVTable/showAllContents", false);
             if(this->_proxyModel) {
-                this->_proxyModel->setFilterNoTranslateColumn(_showAllScriptContents);
+                this->_proxyModel->setFilterNoTranslateColumn(_showAllScriptContents == false);
             }
         });
         connect(filterMenuButton, &QToolButton::clicked,
@@ -316,6 +316,7 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     mainModel->setRuntimeData(this->runtimeData);
     _proxyModel->setSortState(0, SortOrder::None);
     _proxyModel->setSourceModel(mainModel);
+    _proxyModel->setFilterNoTranslateColumn(_showAllScriptContents == false); 
     this->csvEditor->setModel(_proxyModel);
 
     // 言語列を追加（読み込み直後のみ。読み込み済みのモデルには既に追加されている）
