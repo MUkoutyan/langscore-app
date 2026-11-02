@@ -71,7 +71,7 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
     const auto& scriptExt = GetScriptExtension(_settings->projectType);
     const auto jsonPath = editingDir + "/Scripts.lsjson";
 
-    QMap<QString, QVector<QString>> origToTrans;
+    QMap<QString, QJsonObject> origToTrans;
     if(QFile::exists(jsonPath))
     {
         QFile file(jsonPath);
@@ -86,14 +86,7 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
                     const QJsonObject obj = val.toObject();
                     const QString orig = obj["original"].toString();
                     auto translates = obj["translates"].toObject();
-                    QVector<QString> trans;
-                    trans.reserve(_languages.size());
-                    //言語が欠けていても列がずれないよう、_languages と同じ並び・同じ数で格納する
-                    for(const auto& lang : _languages)
-                    {
-                        trans.append(translates[lang].toString());
-                    }
-                    origToTrans.insert(orig, trans);
+                    origToTrans.insert(orig, translates);
                 }
             }
         }
@@ -136,7 +129,10 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
             rd.translations.resize(_languages.size(), "");
             const auto transIt = origToTrans.find(rd.originalText);
             if(transIt != origToTrans.end()) {
-                rd.translations = transIt.value();
+                rd.savedTranslates = transIt.value();
+                for(int i = 0; i < _languages.size(); ++i) {
+                    rd.translations[i] = rd.savedTranslates[_languages[i]].toString();
+                }
             }
 
             const int newRow = static_cast<int>(_rows.size());
@@ -186,7 +182,7 @@ bool ScriptCSVTableModel::saveToEditJsonFile(const QString& editJsonFile) const
                 obj["parameterName"] = args.valueName;
             }
 
-            QJsonObject translates;
+            QJsonObject translates = rd->savedTranslates;
             for(const auto& [lang, text] : std::views::zip(_languages, rd->translations))
             {
                 translates[lang] = text;

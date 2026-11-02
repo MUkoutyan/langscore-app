@@ -4,6 +4,7 @@
 #include "ComponentBase.h"
 #include <QVector>
 #include <QSet>
+#include <QJsonObject>
 #include <memory>
 #include <unordered_map>
 #include "../../text_position.h"
@@ -68,6 +69,7 @@ private:
         langscore::ScriptTextPosition position;
         QString originalText;
         QVector<QString> translations; // _languages と同順
+        QJsonObject savedTranslates;   // 読み込んだ翻訳。_languagesに依存せず、ファイルの内容をそのまま保持する。
     };
 
     QVector<ScriptRowData>    _rows;
@@ -79,6 +81,7 @@ private:
 
     // scriptDisplayName → 行インデックス のキャッシュ
     std::unordered_map<QString, std::vector<int>> _scriptNameToRows;
+
 
     void rebuildCache();
 };
