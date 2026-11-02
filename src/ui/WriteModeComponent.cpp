@@ -216,7 +216,6 @@ WriteModeComponent::~WriteModeComponent(){
 
 void WriteModeComponent::show()
 {
-    this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
     for(auto& lang : this->setting->languages)
     {
         if(lang.languageName == QLocale::system().bcp47Name()){

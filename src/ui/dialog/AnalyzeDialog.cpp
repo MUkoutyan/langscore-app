@@ -179,6 +179,7 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
 
 void AnalyzeDialog::invokeAnalyze()
 {
+    this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
     this->ui->analyzeButton->setEnabled(false);
     this->dispatch(DispatchType::SaveProject,{});
     this->ui->invokeLog->clear();
