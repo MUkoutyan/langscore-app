@@ -1,46 +1,14 @@
-#include <QTest>
+#include "test_common.h"
 #include "FastCSVContainer.h"
 
-class TestFastCSVContainer : public QObject
-{
-    Q_OBJECT
-
-private slots:
-    void testLoadEmpty();
-    void testLoadBasic();
-    void testRowCount();
-    void testColumnCount();
-    void testAtByIndex();
-    void testAtByColumnName();
-    void testGetValue();
-    void testSetValue();
-    void testAddRow();
-    void testRemoveRow();
-    void testAddColumn();
-    void testRemoveColumnByIndex();
-    void testRemoveColumnByName();
-    void testFindRowsWithValue();
-    void testFindRowsContaining();
-    void testEscapeNoSpecial();
-    void testEscapeWithComma();
-    void testEscapeWithQuote();
-    void testEscapeWithNewline();
-    void testUnescapeEmpty();
-    void testUnescapeQuoted();
-    void testUnescapeDoubleQuote();
-    void testHeaders();
-    void testHasColumn();
-    void testLoadMissingColumns();
-};
-
-void TestFastCSVContainer::testLoadEmpty()
+TEST(FastCSVContainer, LoadEmpty)
 {
     langscore::FastCSVContainer csv;
-    QVERIFY(csv.loadFromCsvData({}) == false);
-    QVERIFY(csv.isEmpty());
+    EXPECT_FALSE(csv.loadFromCsvData({}));
+    EXPECT_TRUE(csv.isEmpty());
 }
 
-void TestFastCSVContainer::testLoadBasic()
+TEST(FastCSVContainer, LoadBasic)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -48,11 +16,11 @@ void TestFastCSVContainer::testLoadBasic()
         {"a", "b", "c"},
         {"d", "e", "f"},
     };
-    QVERIFY(csv.loadFromCsvData(data));
-    QVERIFY(csv.isEmpty() == false);
+    EXPECT_TRUE(csv.loadFromCsvData(data));
+    EXPECT_FALSE(csv.isEmpty());
 }
 
-void TestFastCSVContainer::testRowCount()
+TEST(FastCSVContainer, RowCount)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -62,10 +30,10 @@ void TestFastCSVContainer::testRowCount()
         {"e", "f"},
     };
     csv.loadFromCsvData(data);
-    QCOMPARE(csv.rowCount(), size_t{3});
+    EXPECT_EQ(csv.rowCount(), size_t{3});
 }
 
-void TestFastCSVContainer::testColumnCount()
+TEST(FastCSVContainer, ColumnCount)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -73,10 +41,10 @@ void TestFastCSVContainer::testColumnCount()
         {"a", "b", "c"},
     };
     csv.loadFromCsvData(data);
-    QCOMPARE(csv.columnCount(), size_t{3});
+    EXPECT_EQ(csv.columnCount(), size_t{3});
 }
 
-void TestFastCSVContainer::testAtByIndex()
+TEST(FastCSVContainer, AtByIndex)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -84,11 +52,11 @@ void TestFastCSVContainer::testAtByIndex()
         {"hello", "world"},
     };
     csv.loadFromCsvData(data);
-    QCOMPARE(csv.at(size_t{0}, size_t{0}), QString("hello"));
-    QCOMPARE(csv.at(size_t{0}, size_t{1}), QString("world"));
+    EXPECT_EQ(csv.at(size_t{0}, size_t{0}), QString("hello"));
+    EXPECT_EQ(csv.at(size_t{0}, size_t{1}), QString("world"));
 }
 
-void TestFastCSVContainer::testAtByColumnName()
+TEST(FastCSVContainer, AtByColumnName)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -96,11 +64,11 @@ void TestFastCSVContainer::testAtByColumnName()
         {"foo", "42"},
     };
     csv.loadFromCsvData(data);
-    QCOMPARE(csv.at(size_t{0}, QString("name")), QString("foo"));
-    QCOMPARE(csv.at(size_t{0}, QString("value")), QString("42"));
+    EXPECT_EQ(csv.at(size_t{0}, QString("name")), QString("foo"));
+    EXPECT_EQ(csv.at(size_t{0}, QString("value")), QString("42"));
 }
 
-void TestFastCSVContainer::testGetValue()
+TEST(FastCSVContainer, GetValue)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -110,16 +78,16 @@ void TestFastCSVContainer::testGetValue()
     csv.loadFromCsvData(data);
 
     QString out;
-    QVERIFY(csv.getValue(size_t{0}, size_t{0}, out));
-    QCOMPARE(out, QString("alpha"));
+    EXPECT_TRUE(csv.getValue(size_t{0}, size_t{0}, out));
+    EXPECT_EQ(out, QString("alpha"));
 
-    QVERIFY(csv.getValue(size_t{0}, size_t{1}, out));
-    QCOMPARE(out, QString("beta"));
+    EXPECT_TRUE(csv.getValue(size_t{0}, size_t{1}, out));
+    EXPECT_EQ(out, QString("beta"));
 
-    QVERIFY(csv.getValue(size_t{1}, size_t{0}, out) == false);
+    EXPECT_FALSE(csv.getValue(size_t{1}, size_t{0}, out));
 }
 
-void TestFastCSVContainer::testSetValue()
+TEST(FastCSVContainer, SetValue)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -127,11 +95,11 @@ void TestFastCSVContainer::testSetValue()
         {"original"},
     };
     csv.loadFromCsvData(data);
-    QVERIFY(csv.setValue(size_t{0}, size_t{0}, QString("modified")));
-    QCOMPARE(csv.at(size_t{0}, size_t{0}), QString("modified"));
+    EXPECT_TRUE(csv.setValue(size_t{0}, size_t{0}, QString("modified")));
+    EXPECT_EQ(csv.at(size_t{0}, size_t{0}), QString("modified"));
 }
 
-void TestFastCSVContainer::testAddRow()
+TEST(FastCSVContainer, AddRow)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -140,11 +108,11 @@ void TestFastCSVContainer::testAddRow()
     };
     csv.loadFromCsvData(data);
     csv.addRow(std::vector<QString>{"c", "d"});
-    QCOMPARE(csv.rowCount(), size_t{2});
-    QCOMPARE(csv.at(size_t{1}, size_t{0}), QString("c"));
+    EXPECT_EQ(csv.rowCount(), size_t{2});
+    EXPECT_EQ(csv.at(size_t{1}, size_t{0}), QString("c"));
 }
 
-void TestFastCSVContainer::testRemoveRow()
+TEST(FastCSVContainer, RemoveRow)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -154,11 +122,11 @@ void TestFastCSVContainer::testRemoveRow()
     };
     csv.loadFromCsvData(data);
     csv.removeRow(size_t{0});
-    QCOMPARE(csv.rowCount(), size_t{1});
-    QCOMPARE(csv.at(size_t{0}, size_t{0}), QString("c"));
+    EXPECT_EQ(csv.rowCount(), size_t{1});
+    EXPECT_EQ(csv.at(size_t{0}, size_t{0}), QString("c"));
 }
 
-void TestFastCSVContainer::testAddColumn()
+TEST(FastCSVContainer, AddColumn)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -167,11 +135,11 @@ void TestFastCSVContainer::testAddColumn()
     };
     csv.loadFromCsvData(data);
     csv.addColumn("col2", "default");
-    QCOMPARE(csv.columnCount(), size_t{2});
-    QCOMPARE(csv.at(size_t{0}, QString("col2")), QString("default"));
+    EXPECT_EQ(csv.columnCount(), size_t{2});
+    EXPECT_EQ(csv.at(size_t{0}, QString("col2")), QString("default"));
 }
 
-void TestFastCSVContainer::testRemoveColumnByIndex()
+TEST(FastCSVContainer, RemoveColumnByIndex)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -180,13 +148,13 @@ void TestFastCSVContainer::testRemoveColumnByIndex()
     };
     csv.loadFromCsvData(data);
     csv.removeColumn(size_t{1});
-    QCOMPARE(csv.columnCount(), size_t{2});
-    QVERIFY(csv.hasColumn("col1"));
-    QVERIFY(csv.hasColumn("col2") == false);
-    QVERIFY(csv.hasColumn("col3"));
+    EXPECT_EQ(csv.columnCount(), size_t{2});
+    EXPECT_TRUE(csv.hasColumn("col1"));
+    EXPECT_FALSE(csv.hasColumn("col2"));
+    EXPECT_TRUE(csv.hasColumn("col3"));
 }
 
-void TestFastCSVContainer::testRemoveColumnByName()
+TEST(FastCSVContainer, RemoveColumnByName)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -195,12 +163,12 @@ void TestFastCSVContainer::testRemoveColumnByName()
     };
     csv.loadFromCsvData(data);
     csv.removeColumn(QString("col1"));
-    QCOMPARE(csv.columnCount(), size_t{1});
-    QVERIFY(csv.hasColumn("col1") == false);
-    QVERIFY(csv.hasColumn("col2"));
+    EXPECT_EQ(csv.columnCount(), size_t{1});
+    EXPECT_FALSE(csv.hasColumn("col1"));
+    EXPECT_TRUE(csv.hasColumn("col2"));
 }
 
-void TestFastCSVContainer::testFindRowsWithValue()
+TEST(FastCSVContainer, FindRowsWithValue)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -211,12 +179,12 @@ void TestFastCSVContainer::testFindRowsWithValue()
     };
     csv.loadFromCsvData(data);
     auto rows = csv.findRowsWithValue(QString("key"), QString("a"));
-    QCOMPARE(rows.size(), size_t{2});
-    QCOMPARE(rows[0], size_t{0});
-    QCOMPARE(rows[1], size_t{2});
+    ASSERT_EQ(rows.size(), size_t{2});
+    EXPECT_EQ(rows[0], size_t{0});
+    EXPECT_EQ(rows[1], size_t{2});
 }
 
-void TestFastCSVContainer::testFindRowsContaining()
+TEST(FastCSVContainer, FindRowsContaining)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -227,56 +195,56 @@ void TestFastCSVContainer::testFindRowsContaining()
     };
     csv.loadFromCsvData(data);
     auto rows = csv.findRowsWithValueContaining(QString("text"), QString("World"));
-    QCOMPARE(rows.size(), size_t{2});
+    EXPECT_EQ(rows.size(), size_t{2});
 }
 
-void TestFastCSVContainer::testEscapeNoSpecial()
+TEST(FastCSVContainer, EscapeNoSpecial)
 {
     langscore::FastCSVContainer csv;
-    QCOMPARE(csv.escapeCSVField("hello"), QString("hello"));
-    QCOMPARE(csv.escapeCSVField(""), QString(""));
+    EXPECT_EQ(csv.escapeCSVField("hello"), QString("hello"));
+    EXPECT_EQ(csv.escapeCSVField(""), QString(""));
 }
 
-void TestFastCSVContainer::testEscapeWithComma()
+TEST(FastCSVContainer, EscapeWithComma)
 {
     langscore::FastCSVContainer csv;
-    QCOMPARE(csv.escapeCSVField("a,b"), QString("\"a,b\""));
+    EXPECT_EQ(csv.escapeCSVField("a,b"), QString("\"a,b\""));
 }
 
-void TestFastCSVContainer::testEscapeWithQuote()
+TEST(FastCSVContainer, EscapeWithQuote)
 {
     langscore::FastCSVContainer csv;
     // say "hi" → "say ""hi"""
-    QCOMPARE(csv.escapeCSVField("say \"hi\""), QString("\"say \"\"hi\"\"\""));
+    EXPECT_EQ(csv.escapeCSVField("say \"hi\""), QString("\"say \"\"hi\"\"\""));
 }
 
-void TestFastCSVContainer::testEscapeWithNewline()
+TEST(FastCSVContainer, EscapeWithNewline)
 {
     langscore::FastCSVContainer csv;
-    QCOMPARE(csv.escapeCSVField("line1\nline2"), QString("\"line1\nline2\""));
+    EXPECT_EQ(csv.escapeCSVField("line1\nline2"), QString("\"line1\nline2\""));
 }
 
-void TestFastCSVContainer::testUnescapeEmpty()
+TEST(FastCSVContainer, UnescapeEmpty)
 {
     langscore::FastCSVContainer csv;
-    QCOMPARE(csv.unescapeCSVField(""), QString(""));
+    EXPECT_EQ(csv.unescapeCSVField(""), QString(""));
 }
 
-void TestFastCSVContainer::testUnescapeQuoted()
+TEST(FastCSVContainer, UnescapeQuoted)
 {
     langscore::FastCSVContainer csv;
     // "hello" → hello
-    QCOMPARE(csv.unescapeCSVField("\"hello\""), QString("hello"));
+    EXPECT_EQ(csv.unescapeCSVField("\"hello\""), QString("hello"));
 }
 
-void TestFastCSVContainer::testUnescapeDoubleQuote()
+TEST(FastCSVContainer, UnescapeDoubleQuote)
 {
     langscore::FastCSVContainer csv;
     // "say ""hi""" → say "hi"
-    QCOMPARE(csv.unescapeCSVField("\"say \"\"hi\"\"\""), QString("say \"hi\""));
+    EXPECT_EQ(csv.unescapeCSVField("\"say \"\"hi\"\"\""), QString("say \"hi\""));
 }
 
-void TestFastCSVContainer::testHeaders()
+TEST(FastCSVContainer, Headers)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -285,13 +253,13 @@ void TestFastCSVContainer::testHeaders()
     };
     csv.loadFromCsvData(data);
     const auto& headers = csv.headers();
-    QCOMPARE(headers.size(), qsizetype{3});
-    QCOMPARE(headers[0], QString("id"));
-    QCOMPARE(headers[1], QString("name"));
-    QCOMPARE(headers[2], QString("desc"));
+    ASSERT_EQ(headers.size(), qsizetype{3});
+    EXPECT_EQ(headers[0], QString("id"));
+    EXPECT_EQ(headers[1], QString("name"));
+    EXPECT_EQ(headers[2], QString("desc"));
 }
 
-void TestFastCSVContainer::testHasColumn()
+TEST(FastCSVContainer, HasColumn)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -299,12 +267,12 @@ void TestFastCSVContainer::testHasColumn()
         {"a", "b"},
     };
     csv.loadFromCsvData(data);
-    QVERIFY(csv.hasColumn("col1"));
-    QVERIFY(csv.hasColumn("col2"));
-    QVERIFY(csv.hasColumn("col3") == false);
+    EXPECT_TRUE(csv.hasColumn("col1"));
+    EXPECT_TRUE(csv.hasColumn("col2"));
+    EXPECT_FALSE(csv.hasColumn("col3"));
 }
 
-void TestFastCSVContainer::testLoadMissingColumns()
+TEST(FastCSVContainer, LoadMissingColumns)
 {
     langscore::FastCSVContainer csv;
     std::vector<std::vector<QString>> data = {
@@ -312,12 +280,9 @@ void TestFastCSVContainer::testLoadMissingColumns()
         {"a"},
     };
     csv.loadFromCsvData(data);
-    QCOMPARE(csv.columnCount(), size_t{3});
+    EXPECT_EQ(csv.columnCount(), size_t{3});
 
     QString out;
-    QVERIFY(csv.getValue(size_t{0}, size_t{2}, out));
-    QCOMPARE(out, QString(""));
+    EXPECT_TRUE(csv.getValue(size_t{0}, size_t{2}, out));
+    EXPECT_EQ(out, QString(""));
 }
-
-QTEST_MAIN(TestFastCSVContainer)
-#include "tst_FastCSVContainer.moc"

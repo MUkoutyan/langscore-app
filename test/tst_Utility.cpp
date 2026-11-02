@@ -1,105 +1,80 @@
-#include <QTest>
+#include "test_common.h"
 // utility.hpp は settings::ProjectType を直接参照するため、先に settings.h が必要
 #include "settings.h"
 #include "utility.hpp"
 
-class TestUtility : public QObject
+TEST(Utility, WordCountAscii)
 {
-    Q_OBJECT
-
-private slots:
-    void testWordCountAscii();
-    void testWordCountJapanese();
-    void testWordCountEmpty();
-    void testWordCountMixed();
-    void testGetExtensionNormal();
-    void testGetExtensionNoExt();
-    void testGetExtensionMultiple();
-    void testWithoutExtensionNormal();
-    void testWithoutExtensionNoExt();
-    void testWithoutAllExtensionSingle();
-    void testWithoutAllExtensionMultiple();
-    void testWithoutAllExtensionNoExt();
-    void testGetScriptExtensionVXAce();
-    void testGetScriptExtensionMV();
-    void testGetScriptExtensionMZ();
-};
-
-void TestUtility::testWordCountAscii()
-{
-    QCOMPARE(langscore::wordCountUTF8("hello"), 5);
+    EXPECT_EQ(langscore::wordCountUTF8("hello"), 5);
 }
 
-void TestUtility::testWordCountJapanese()
+TEST(Utility, WordCountJapanese)
 {
     // 日本語文字（BMP）は toLatin1() が 0 になり、カウント対象となる
-    QCOMPARE(langscore::wordCountUTF8(QString::fromUtf8("あいう")), 3);
+    EXPECT_EQ(langscore::wordCountUTF8(QString::fromUtf8("あいう")), 3);
 }
 
-void TestUtility::testWordCountEmpty()
+TEST(Utility, WordCountEmpty)
 {
-    QCOMPARE(langscore::wordCountUTF8(""), 0);
+    EXPECT_EQ(langscore::wordCountUTF8(""), 0);
 }
 
-void TestUtility::testWordCountMixed()
+TEST(Utility, WordCountMixed)
 {
-    QCOMPARE(langscore::wordCountUTF8(QString("a") + QString::fromUtf8("あ")), 2);
+    EXPECT_EQ(langscore::wordCountUTF8(QString("a") + QString::fromUtf8("あ")), 2);
 }
 
-void TestUtility::testGetExtensionNormal()
+TEST(Utility, GetExtensionNormal)
 {
-    QCOMPARE(langscore::getExtension("file.txt"), QString("txt"));
+    EXPECT_EQ(langscore::getExtension("file.txt"), QString("txt"));
 }
 
-void TestUtility::testGetExtensionNoExt()
+TEST(Utility, GetExtensionNoExt)
 {
-    QCOMPARE(langscore::getExtension("file"), QString());
+    EXPECT_EQ(langscore::getExtension("file"), QString());
 }
 
-void TestUtility::testGetExtensionMultiple()
+TEST(Utility, GetExtensionMultiple)
 {
-    QCOMPARE(langscore::getExtension("archive.tar.gz"), QString("gz"));
+    EXPECT_EQ(langscore::getExtension("archive.tar.gz"), QString("gz"));
 }
 
-void TestUtility::testWithoutExtensionNormal()
+TEST(Utility, WithoutExtensionNormal)
 {
-    QCOMPARE(langscore::withoutExtension("file.txt"), QString("file"));
+    EXPECT_EQ(langscore::withoutExtension("file.txt"), QString("file"));
 }
 
-void TestUtility::testWithoutExtensionNoExt()
+TEST(Utility, WithoutExtensionNoExt)
 {
-    QCOMPARE(langscore::withoutExtension("file"), QString("file"));
+    EXPECT_EQ(langscore::withoutExtension("file"), QString("file"));
 }
 
-void TestUtility::testWithoutAllExtensionSingle()
+TEST(Utility, WithoutAllExtensionSingle)
 {
-    QCOMPARE(langscore::withoutAllExtension("file.txt"), QString("file"));
+    EXPECT_EQ(langscore::withoutAllExtension("file.txt"), QString("file"));
 }
 
-void TestUtility::testWithoutAllExtensionMultiple()
+TEST(Utility, WithoutAllExtensionMultiple)
 {
-    QCOMPARE(langscore::withoutAllExtension("archive.tar.gz"), QString("archive"));
+    EXPECT_EQ(langscore::withoutAllExtension("archive.tar.gz"), QString("archive"));
 }
 
-void TestUtility::testWithoutAllExtensionNoExt()
+TEST(Utility, WithoutAllExtensionNoExt)
 {
-    QCOMPARE(langscore::withoutAllExtension("file"), QString("file"));
+    EXPECT_EQ(langscore::withoutAllExtension("file"), QString("file"));
 }
 
-void TestUtility::testGetScriptExtensionVXAce()
+TEST(Utility, GetScriptExtensionVXAce)
 {
-    QCOMPARE(langscore::GetScriptExtension(settings::VXAce), QString(".rb"));
+    EXPECT_EQ(langscore::GetScriptExtension(settings::VXAce), QString(".rb"));
 }
 
-void TestUtility::testGetScriptExtensionMV()
+TEST(Utility, GetScriptExtensionMV)
 {
-    QCOMPARE(langscore::GetScriptExtension(settings::MV), QString(".js"));
+    EXPECT_EQ(langscore::GetScriptExtension(settings::MV), QString(".js"));
 }
 
-void TestUtility::testGetScriptExtensionMZ()
+TEST(Utility, GetScriptExtensionMZ)
 {
-    QCOMPARE(langscore::GetScriptExtension(settings::MZ), QString(".js"));
+    EXPECT_EQ(langscore::GetScriptExtension(settings::MZ), QString(".js"));
 }
-
-QTEST_MAIN(TestUtility)
-#include "tst_Utility.moc"

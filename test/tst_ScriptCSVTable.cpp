@@ -1,19 +1,11 @@
-#include <QTest>
+#include "test_common.h"
 #include <QPointer>
 #include "ScriptCSVTable.h"
 #include "ScriptCSVTableModel.h"
 #include "EditDataManager.h"
 
-class TestScriptCSVTable : public QObject
-{
-    Q_OBJECT
-
-private slots:
-    // 不具合の再発防止
-    void testClearKeepsManagerOwnedModel();
-};
-
-void TestScriptCSVTable::testClearKeepsManagerOwnedModel()
+// 不具合の再発防止
+TEST(ScriptCSVTable, ClearKeepsManagerOwnedModel)
 {
     // clear() が EditDataManager の所有するモデルを削除しないこと
     ComponentBase component;
@@ -24,7 +16,7 @@ void TestScriptCSVTable::testClearKeepsManagerOwnedModel()
     const auto modelPath = QString("/editing/Scripts.lsjson");
     table->setupScriptTable();
     QPointer<ScriptCSVTableModel> model = manager->getScriptCSVModel(modelPath);
-    QVERIFY(model != nullptr);
+    ASSERT_NE(model, nullptr);
 
     table->clear();
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
@@ -34,8 +26,5 @@ void TestScriptCSVTable::testClearKeepsManagerOwnedModel()
         // 削除済みのモデルを manager が再度 delete して二重解放になるため、意図的に破棄しない
         new std::shared_ptr<EditDataManager>(manager);
     }
-    QVERIFY(alive);
+    EXPECT_TRUE(alive);
 }
-
-QTEST_MAIN(TestScriptCSVTable)
-#include "tst_ScriptCSVTable.moc"

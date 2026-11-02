@@ -1,5 +1,4 @@
-#include <QTest>
-#include <QSignalSpy>
+#include "test_common.h"
 #include <QSettings>
 #include <QFile>
 #include <QNetworkAccessManager>
@@ -29,100 +28,87 @@ public:
     CapturingNetworkAccessManager* capture = new CapturingNetworkAccessManager(this);
     TestableDeepLService() { networkManager = capture; }
 
-    QString bodyValue(const QString& key) const {
+    QString BodyValue(const QString& key) const {
         return QUrlQuery(QString::fromUtf8(capture->lastBody)).queryItemValue(key, QUrl::FullyDecoded);
     }
 };
 
-class TestDeepLTranslationService : public QObject
+class DeepLTranslationServiceTest : public ::testing::Test
 {
-    Q_OBJECT
+protected:
+    // API キーは実行ファイルと同じフォルダの settings.ini に保存されるため、前後で消しておく
+    static void SetUpTestSuite() { QFile::remove(SettingsPath()); }
+    static void TearDownTestSuite() { QFile::remove(SettingsPath()); }
 
-private slots:
-    void initTestCase();
-    void cleanupTestCase();
-    void testFreeKeyUsesFreeEndpoint();
+    static QString SettingsPath() { return QCoreApplication::applicationDirPath() + "/settings.ini"; }
 
-    // 不具合の再発防止
-    void testPlusSignIsEncoded();
-    void testProKeyUsesProEndpoint();
-    void testNorwegianTarget();
-    void testTraditionalChineseTarget();
+    static void SetApiKey(const QString& key)
+    {
+        QSettings settings(SettingsPath(), QSettings::IniFormat);
+        settings.setValue("translation/deeplApiKey", key);
+    }
 
-private:
-    QString settingsPath() const { return QCoreApplication::applicationDirPath() + "/settings.ini"; }
-    void setApiKey(const QString& key);
-    void translate(TestableDeepLService& service, const QString& text, const QString& targetLang);
+    static void Translate(TestableDeepLService& service, const QString& text, const QString& targetLang)
+    {
+        service.translateText({text, "", targetLang, 1});
+    }
+
+    // translationError が発行された回数を数える
+    static void CountErrors(TestableDeepLService& service, int& errorCount)
+    {
+        QObject::connect(&service, &TranslationService::translationError, [&errorCount](int, const QString&) {
+            ++errorCount;
+        });
+    }
 };
 
-void TestDeepLTranslationService::initTestCase()
+TEST_F(DeepLTranslationServiceTest, FreeKeyUsesFreeEndpoint)
 {
-    QFile::remove(settingsPath());
-}
-
-void TestDeepLTranslationService::cleanupTestCase()
-{
-    QFile::remove(settingsPath());
-}
-
-void TestDeepLTranslationService::setApiKey(const QString& key)
-{
-    QSettings settings(settingsPath(), QSettings::IniFormat);
-    settings.setValue("translation/deeplApiKey", key);
-}
-
-void TestDeepLTranslationService::translate(TestableDeepLService& service, const QString& text, const QString& targetLang)
-{
-    service.translateText({text, "", targetLang, 1});
-}
-
-void TestDeepLTranslationService::testFreeKeyUsesFreeEndpoint()
-{
-    setApiKey("dummy-key:fx");
+    SetApiKey("dummy-key:fx");
     TestableDeepLService service;
-    translate(service, "Hello", "JA");
-    QCOMPARE(service.capture->lastUrl.host(), QString("api-free.deepl.com"));
+    Translate(service, "Hello", "JA");
+    EXPECT_EQ(service.capture->lastUrl.host(), QString("api-free.deepl.com"));
 }
 
-void TestDeepLTranslationService::testPlusSignIsEncoded()
+// 不具合の再発防止
+TEST_F(DeepLTranslationServiceTest, PlusSignIsEncoded)
 {
     // form-urlencoded では "+" は空白を意味するため、"%2B" にエンコードされていること
-    setApiKey("dummy-key:fx");
+    SetApiKey("dummy-key:fx");
     TestableDeepLService service;
-    translate(service, "HP+10", "JA");
-    QVERIFY2(service.capture->lastBody.contains("HP%2B10"), service.capture->lastBody.constData());
+    Translate(service, "HP+10", "JA");
+    EXPECT_TRUE(service.capture->lastBody.contains("HP%2B10")) << service.capture->lastBody.constData();
 }
 
-void TestDeepLTranslationService::testProKeyUsesProEndpoint()
+TEST_F(DeepLTranslationServiceTest, ProKeyUsesProEndpoint)
 {
     // ":fx" で終わらない Pro 版のキーは api.deepl.com を使うこと
-    setApiKey("dummy-pro-key");
+    SetApiKey("dummy-pro-key");
     TestableDeepLService service;
-    translate(service, "Hello", "JA");
-    QCOMPARE(service.capture->lastUrl.host(), QString("api.deepl.com"));
+    Translate(service, "Hello", "JA");
+    EXPECT_EQ(service.capture->lastUrl.host(), QString("api.deepl.com"));
 }
 
-void TestDeepLTranslationService::testNorwegianTarget()
+TEST_F(DeepLTranslationServiceTest, NorwegianTarget)
 {
     // CSVEditor から渡される DeepL コード "NB" が受け付けられること
-    setApiKey("dummy-key:fx");
+    SetApiKey("dummy-key:fx");
     TestableDeepLService service;
-    QSignalSpy errorSpy(&service, &TranslationService::translationError);
-    translate(service, "Hello", TranslationService::GetTranslationLanguageCode(TranslationService::ServiceType::DeepL, "nb"));
-    QCOMPARE(errorSpy.count(), 0);
-    QCOMPARE(service.bodyValue("target_lang"), QString("NB"));
+    int errorCount = 0;
+    CountErrors(service, errorCount);
+    Translate(service, "Hello", TranslationService::GetTranslationLanguageCode(TranslationService::ServiceType::DeepL, "nb"));
+    EXPECT_EQ(errorCount, 0);
+    EXPECT_EQ(service.BodyValue("target_lang"), QString("NB"));
 }
 
-void TestDeepLTranslationService::testTraditionalChineseTarget()
+TEST_F(DeepLTranslationServiceTest, TraditionalChineseTarget)
 {
     // zh-tw 列の翻訳が繁体字（ZH-HANT）として送信されること
-    setApiKey("dummy-key:fx");
+    SetApiKey("dummy-key:fx");
     TestableDeepLService service;
-    QSignalSpy errorSpy(&service, &TranslationService::translationError);
-    translate(service, "Hello", TranslationService::GetTranslationLanguageCode(TranslationService::ServiceType::DeepL, "zh-tw"));
-    QCOMPARE(errorSpy.count(), 0);
-    QCOMPARE(service.bodyValue("target_lang"), QString("ZH-HANT"));
+    int errorCount = 0;
+    CountErrors(service, errorCount);
+    Translate(service, "Hello", TranslationService::GetTranslationLanguageCode(TranslationService::ServiceType::DeepL, "zh-tw"));
+    EXPECT_EQ(errorCount, 0);
+    EXPECT_EQ(service.BodyValue("target_lang"), QString("ZH-HANT"));
 }
-
-QTEST_MAIN(TestDeepLTranslationService)
-#include "tst_DeepLTranslationService.moc"

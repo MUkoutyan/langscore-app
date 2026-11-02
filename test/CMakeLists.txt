@@ -5,7 +5,20 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Network Test)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
+
+# googletest を取得する（langscore-divisi と同じバージョン）
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/releases/download/v1.15.2/googletest-1.15.2.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+# アプリと同じ MSVC ランタイム（/MD, /MDd）を使う
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
@@ -16,24 +29,7 @@ include_directories(
     ${CMAKE_BINARY_DIR}
 )
 
-function(add_langscore_test test_name)
-    cmake_parse_arguments(ARG "" "" "SOURCES" ${ARGN})
-    add_executable(${test_name} ${ARG_SOURCES})
-    target_link_libraries(${test_name} PRIVATE Qt6::Widgets Qt6::Network Qt6::Test)
-    if(MSVC)
-        target_compile_options(${test_name} PRIVATE "/MP")
-    endif()
-    add_test(NAME ${test_name} COMMAND ${test_name})
-
-    # Qt の DLL と platform plugin を PATH に通さずに実行できるようにする
-    set(qt_bin_dir "$<TARGET_FILE_DIR:Qt6::Core>")
-    set_tests_properties(${test_name} PROPERTIES ENVIRONMENT_MODIFICATION
-        "PATH=path_list_prepend:${qt_bin_dir};QT_QPA_PLATFORM=set:offscreen")
-    set_target_properties(${test_name} PROPERTIES VS_DEBUGGER_ENVIRONMENT
-        "PATH=${qt_bin_dir};%PATH%\nQT_QPA_PLATFORM=offscreen")
-endfunction()
-
-# アプリ本体のソース（main.cpp を除く）を静的ライブラリ化し、GUIクラスのテストで使用する
+# アプリ本体のソース（main.cpp を除く）を静的ライブラリ化し、テストから使用する
 set(LANGSCORE_APP_LIB_SOURCES ${PROJECT_SOURCES})
 list(REMOVE_ITEM LANGSCORE_APP_LIB_SOURCES main.cpp resources.qrc)
 list(TRANSFORM LANGSCORE_APP_LIB_SOURCES PREPEND "${CMAKE_SOURCE_DIR}/")
@@ -45,64 +41,33 @@ if(MSVC)
     target_compile_options(langscore_app_lib PRIVATE "/MP")
 endif()
 
-function(add_langscore_app_test test_name)
-    add_langscore_test(${test_name} SOURCES ${test_name}.cpp)
-    target_link_libraries(${test_name} PRIVATE langscore_app_lib)
-endfunction()
-
-# FastCSVContainer のテスト
-add_langscore_test(tst_FastCSVContainer
-    SOURCES
-        tst_FastCSVContainer.cpp
-        ${CMAKE_SOURCE_DIR}/src/ui/editor/FastCSVContainer.cpp
+# test フォルダの tst_*.cpp をすべて1つのテスト用 exe にまとめる（ファイルを追加すれば自動で含まれる）
+file(GLOB LANGSCORE_TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tst_*.cpp)
+add_executable(langscore_tests test_main.cpp test_common.h ${LANGSCORE_TEST_SOURCES})
+target_link_libraries(langscore_tests PRIVATE langscore_app_lib GTest::gtest Qt6::Widgets Qt6::Network)
+if(MSVC)
+    target_compile_options(langscore_tests PRIVATE "/MP")
+endif()
+# PATH を設定しなくても exe 単体で起動できるよう、Qt の DLL を exe の隣にコピーする。
+# テスト一覧の取得（gtest_discover_tests）はビルド直後に exe を実行するため、この処理を先に登録しておく
+add_custom_command(TARGET langscore_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:langscore_tests> $<TARGET_FILE_DIR:langscore_tests>
+    COMMAND_EXPAND_LISTS
+)
+# コピーした DLL からは Qt のプラグインを探せないため、場所を main で設定する（test_main.cpp）
+target_compile_definitions(langscore_tests PRIVATE
+    LANGSCORE_QT_PLUGIN_DIR="${QT6_INSTALL_PREFIX}/${QT6_INSTALL_PLUGINS}"
 )
 
-# utility.hpp のテスト
-add_langscore_test(tst_Utility
-    SOURCES
-        tst_Utility.cpp
+# テストを1件ずつ CTest に登録し、Visual Studio のテストエクスプローラーに表示できるようにする
+include(GoogleTest)
+# DeepL のテストは exe の隣の settings.ini を書き換え・削除するため、並列実行時に同時に動かないようにする
+gtest_discover_tests(langscore_tests
+    TEST_FILTER "DeepLTranslationServiceTest.*"
+    PROPERTIES RESOURCE_LOCK app_settings_ini
+    DISCOVERY_TIMEOUT 60
 )
-
-# LanguageNames のテスト
-add_langscore_test(tst_LanguageNames
-    SOURCES
-        tst_LanguageNames.cpp
-        ${CMAKE_SOURCE_DIR}/src/service/LanguageNames.cpp
+gtest_discover_tests(langscore_tests
+    TEST_FILTER "-DeepLTranslationServiceTest.*"
+    DISCOVERY_TIMEOUT 60
 )
-
-# csv.hpp のテスト
-add_langscore_test(tst_Csv
-    SOURCES
-        tst_Csv.cpp
-)
-
-# CSVEditCommand のテスト
-add_langscore_test(tst_CSVEditCommand
-    SOURCES
-        tst_CSVEditCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/ui/editor/CSVEditCommand.cpp
-)
-
-# TranslationService のテスト
-add_langscore_test(tst_TranslationService
-    SOURCES
-        tst_TranslationService.cpp
-        ${CMAKE_SOURCE_DIR}/src/translation/TranslationService.cpp
-)
-
-# settings のテスト
-add_langscore_test(tst_Settings
-    SOURCES
-        tst_Settings.cpp
-        ${CMAKE_SOURCE_DIR}/src/settings.cpp
-        ${CMAKE_SOURCE_DIR}/src/settings_io.cpp
-)
-
-# アプリ本体のライブラリを使うテスト
-add_langscore_app_test(tst_DeepLTranslationService)
-add_langscore_app_test(tst_CSVEditorSortFilterProxyModel)
-add_langscore_app_test(tst_CSVEditorTableModel)
-add_langscore_app_test(tst_ScriptCSVTableModel)
-add_langscore_app_test(tst_Invoker)
-add_langscore_app_test(tst_FileTree)
-add_langscore_app_test(tst_ScriptCSVTable)

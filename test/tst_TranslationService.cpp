@@ -1,4 +1,4 @@
-#include <QTest>
+#include "test_common.h"
 #include "translation/TranslationService.h"
 
 // normalizeLanguageCode は protected なのでサブクラス経由で呼び出す
@@ -14,76 +14,53 @@ struct DummyService : public TranslationService
 
 using ServiceType = TranslationService::ServiceType;
 
-class TestTranslationService : public QObject
+TEST(TranslationService, LanguageCode)
 {
-    Q_OBJECT
-
-private slots:
-    void testLanguageCode_data();
-    void testLanguageCode();
-    void testLanguageCodeUnknown();
-    void testNormalize_data();
-    void testNormalize();
-
-    // 不具合の再発防止
-    void testDeepLTraditionalChinese();
-};
-
-void TestTranslationService::testLanguageCode_data()
-{
-    QTest::addColumn<int>("service");
-    QTest::addColumn<QString>("name");
-    QTest::addColumn<QString>("expected");
-
-    QTest::newRow("deepl en")       << int(ServiceType::DeepL) << "en" << "EN";
-    QTest::newRow("deepl japanese") << int(ServiceType::DeepL) << "japanese" << "JA";
-    QTest::newRow("deepl zh-tw")    << int(ServiceType::DeepL) << "zh-tw" << "ZH-HANT";
-    QTest::newRow("google ja")      << int(ServiceType::GoogleTranslate) << "ja" << "ja";
-    QTest::newRow("google zh-cn")   << int(ServiceType::GoogleTranslate) << "zh-cn" << "zh-CN";
-    QTest::newRow("google zh-tw")   << int(ServiceType::GoogleTranslate) << "zh-tw" << "zh-TW";
+    struct Row { const char* label; ServiceType service; QString name; QString expected; };
+    const Row rows[] = {
+        {"deepl en",       ServiceType::DeepL,           "en",       "EN"},
+        {"deepl japanese", ServiceType::DeepL,           "japanese", "JA"},
+        {"deepl zh-tw",    ServiceType::DeepL,           "zh-tw",    "ZH-HANT"},
+        {"google ja",      ServiceType::GoogleTranslate, "ja",       "ja"},
+        {"google zh-cn",   ServiceType::GoogleTranslate, "zh-cn",    "zh-CN"},
+        {"google zh-tw",   ServiceType::GoogleTranslate, "zh-tw",    "zh-TW"},
+    };
+    for(const auto& row : rows)
+    {
+        SCOPED_TRACE(row.label);
+        EXPECT_EQ(TranslationService::GetTranslationLanguageCode(row.service, row.name), row.expected);
+    }
 }
 
-void TestTranslationService::testLanguageCode()
+TEST(TranslationService, LanguageCodeUnknown)
 {
-    QFETCH(int, service);
-    QFETCH(QString, name);
-    QFETCH(QString, expected);
-    QCOMPARE(TranslationService::GetTranslationLanguageCode(ServiceType(service), name), expected);
+    EXPECT_EQ(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "klingon"), QString());
+    EXPECT_EQ(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, ""), QString());
 }
 
-void TestTranslationService::testLanguageCodeUnknown()
+TEST(TranslationService, Normalize)
 {
-    QCOMPARE(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "klingon"), QString());
-    QCOMPARE(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, ""), QString());
+    struct Row { const char* label; QString input; QString expected; };
+    const Row rows[] = {
+        {"lower",       "EN",       "en"},
+        {"trim",        "  ja  ",   "ja"},
+        {"alias",       "Japanese", "ja"},
+        {"prefix",      "lang_jp",  "ja"},
+        {"suffix",      "en_lang",  "en"},
+        {"zh_TW",       "zh_TW",    "zh-TW"},
+        {"passthrough", "xx",       "xx"},
+    };
+    for(const auto& row : rows)
+    {
+        SCOPED_TRACE(row.label);
+        EXPECT_EQ(DummyService::normalizeLanguageCode(row.input), row.expected);
+    }
 }
 
-void TestTranslationService::testNormalize_data()
-{
-    QTest::addColumn<QString>("input");
-    QTest::addColumn<QString>("expected");
-
-    QTest::newRow("lower")       << "EN" << "en";
-    QTest::newRow("trim")        << "  ja  " << "ja";
-    QTest::newRow("alias")       << "Japanese" << "ja";
-    QTest::newRow("prefix")      << "lang_jp" << "ja";
-    QTest::newRow("suffix")      << "en_lang" << "en";
-    QTest::newRow("zh_TW")       << "zh_TW" << "zh-TW";
-    QTest::newRow("passthrough") << "xx" << "xx";
-}
-
-void TestTranslationService::testNormalize()
-{
-    QFETCH(QString, input);
-    QFETCH(QString, expected);
-    QCOMPARE(DummyService::normalizeLanguageCode(input), expected);
-}
-
-void TestTranslationService::testDeepLTraditionalChinese()
+// 不具合の再発防止
+TEST(TranslationService, DeepLTraditionalChinese)
 {
     // 繁体字は DeepL の繁体字ターゲット（ZH-HANT）に変換されること。"ZH" は簡体字になる
-    QCOMPARE(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "zh-tw"), QString("ZH-HANT"));
-    QCOMPARE(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "traditional chinese"), QString("ZH-HANT"));
+    EXPECT_EQ(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "zh-tw"), QString("ZH-HANT"));
+    EXPECT_EQ(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "traditional chinese"), QString("ZH-HANT"));
 }
-
-QTEST_MAIN(TestTranslationService)
-#include "tst_TranslationService.moc"

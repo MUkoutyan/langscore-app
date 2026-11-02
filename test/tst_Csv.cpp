@@ -1,162 +1,143 @@
-#include <QTest>
+#include "test_common.h"
 #include <QTemporaryDir>
 #include <QFile>
 #include <QDir>
 #include "csv.hpp"
 
-class TestCsv : public QObject
+class CsvTest : public ::testing::Test
 {
-    Q_OBJECT
-
-private slots:
-    void testParseLineBasic();
-    void testParseLineQuotedComma();
-    void testReadCsvBasic();
-    void testReadCsvMultiLineCell();
-    void testReadCsvHeaderOnly();
-    void testReadCsvMissingFile();
-    void testParseScriptNameRowCol();
-    void testParseScriptNameArgument();
-    void testParseScriptRowCol();
-    void testParseScriptRowColInvalid();
-    void testReadCsvUtf8Bom();
-
-    // 不具合の再発防止
-    void testParseLineTrailingEmptyColumn();
-    void testReadCsvTrailingEmptyColumn();
-    void testReadCsvNonAnsiPath();
-
-private:
+protected:
     QTemporaryDir tempDir;
-    QString writeFile(const QString& name, const QByteArray& content);
+
+    QString WriteFile(const QString& name, const QByteArray& content)
+    {
+        auto path = tempDir.filePath(name);
+        QFile file(path);
+        if(file.open(QFile::WriteOnly) == false)
+        {
+            ADD_FAILURE() << "cannot create test file: " << path.toStdString();
+            return path;
+        }
+        file.write(content);
+        return path;
+    }
 };
 
-QString TestCsv::writeFile(const QString& name, const QByteArray& content)
-{
-    auto path = tempDir.filePath(name);
-    QFile file(path);
-    if(file.open(QFile::WriteOnly) == false){ qFatal("cannot create test file"); }
-    file.write(content);
-    return path;
-}
-
-void TestCsv::testParseLineBasic()
+TEST_F(CsvTest, ParseLineBasic)
 {
     auto cols = langscore::parseCsvLine("a,b,c");
-    QCOMPARE(cols.size(), size_t{3});
-    QCOMPARE(cols[0], QString("a"));
-    QCOMPARE(cols[1], QString("b"));
-    QCOMPARE(cols[2], QString("c"));
+    ASSERT_EQ(cols.size(), size_t{3});
+    EXPECT_EQ(cols[0], QString("a"));
+    EXPECT_EQ(cols[1], QString("b"));
+    EXPECT_EQ(cols[2], QString("c"));
 }
 
-void TestCsv::testParseLineQuotedComma()
+TEST_F(CsvTest, ParseLineQuotedComma)
 {
     // ダブルクォート内のカンマは区切りとして扱わない（クォート自体は保持される）
     auto cols = langscore::parseCsvLine("\"a,b\",c");
-    QCOMPARE(cols.size(), size_t{2});
-    QCOMPARE(cols[0], QString("\"a,b\""));
-    QCOMPARE(cols[1], QString("c"));
+    ASSERT_EQ(cols.size(), size_t{2});
+    EXPECT_EQ(cols[0], QString("\"a,b\""));
+    EXPECT_EQ(cols[1], QString("c"));
 }
 
-void TestCsv::testReadCsvBasic()
+TEST_F(CsvTest, ReadCsvBasic)
 {
-    auto path = writeFile("basic.csv", "original,en\nこんにちは,Hello\n");
+    auto path = WriteFile("basic.csv", "original,en\nこんにちは,Hello\n");
     auto csv = langscore::readCsv(path);
-    QCOMPARE(csv.size(), size_t{2});
-    QCOMPARE(csv[0][0], QString("original"));
-    QCOMPARE(csv[0][1], QString("en"));
-    QCOMPARE(csv[1][0], QString::fromUtf8("こんにちは"));
-    QCOMPARE(csv[1][1], QString("Hello"));
+    ASSERT_EQ(csv.size(), size_t{2});
+    EXPECT_EQ(csv[0][0], QString("original"));
+    EXPECT_EQ(csv[0][1], QString("en"));
+    EXPECT_EQ(csv[1][0], QString::fromUtf8("こんにちは"));
+    EXPECT_EQ(csv[1][1], QString("Hello"));
 }
 
-void TestCsv::testReadCsvMultiLineCell()
+TEST_F(CsvTest, ReadCsvMultiLineCell)
 {
-    auto path = writeFile("multiline.csv", "id,text\n1,\"line1\nline2\"\n2,hello\n");
+    auto path = WriteFile("multiline.csv", "id,text\n1,\"line1\nline2\"\n2,hello\n");
     auto csv = langscore::readCsv(path);
-    QCOMPARE(csv.size(), size_t{3});
-    QCOMPARE(csv[1][0], QString("1"));
-    QCOMPARE(csv[1][1], QString("\"line1\nline2\""));
-    QCOMPARE(csv[2][1], QString("hello"));
+    ASSERT_EQ(csv.size(), size_t{3});
+    EXPECT_EQ(csv[1][0], QString("1"));
+    EXPECT_EQ(csv[1][1], QString("\"line1\nline2\""));
+    EXPECT_EQ(csv[2][1], QString("hello"));
 }
 
-void TestCsv::testReadCsvHeaderOnly()
+TEST_F(CsvTest, ReadCsvHeaderOnly)
 {
     // ヘッダーのみ（2行未満）は空として扱う
-    auto path = writeFile("header.csv", "original,en\n");
-    QVERIFY(langscore::readCsv(path).empty());
+    auto path = WriteFile("header.csv", "original,en\n");
+    EXPECT_TRUE(langscore::readCsv(path).empty());
 }
 
-void TestCsv::testReadCsvMissingFile()
+TEST_F(CsvTest, ReadCsvMissingFile)
 {
-    QVERIFY(langscore::readCsv(tempDir.filePath("not_exists.csv")).empty());
+    EXPECT_TRUE(langscore::readCsv(tempDir.filePath("not_exists.csv")).empty());
 }
 
-void TestCsv::testParseScriptNameRowCol()
+TEST_F(CsvTest, ParseScriptNameRowCol)
 {
     auto pos = langscore::parseScriptNameWithRowCol("Script.rb:10:5");
-    QCOMPARE(pos.type, langscore::ScriptTextPosition::Type::RowCol);
+    ASSERT_EQ(pos.type, langscore::ScriptTextPosition::Type::RowCol);
     auto cell = std::get<langscore::ScriptTextPosition::RowCol>(pos.d);
-    QCOMPARE(cell.row, size_t{10});
-    QCOMPARE(cell.col, size_t{5});
+    EXPECT_EQ(cell.row, size_t{10});
+    EXPECT_EQ(cell.col, size_t{5});
 }
 
-void TestCsv::testParseScriptNameArgument()
+TEST_F(CsvTest, ParseScriptNameArgument)
 {
     auto pos = langscore::parseScriptNameWithRowCol("Plugin.js:messageText");
-    QCOMPARE(pos.type, langscore::ScriptTextPosition::Type::Argument);
-    QCOMPARE(std::get<langscore::ScriptTextPosition::ScriptArg>(pos.d).valueName, QString("messageText"));
+    ASSERT_EQ(pos.type, langscore::ScriptTextPosition::Type::Argument);
+    EXPECT_EQ(std::get<langscore::ScriptTextPosition::ScriptArg>(pos.d).valueName, QString("messageText"));
 }
 
-void TestCsv::testParseScriptRowCol()
+TEST_F(CsvTest, ParseScriptRowCol)
 {
     auto [row, col] = langscore::parseScriptWithRowCol("3:4");
-    QCOMPARE(row, size_t{3});
-    QCOMPARE(col, size_t{4});
+    EXPECT_EQ(row, size_t{3});
+    EXPECT_EQ(col, size_t{4});
 }
 
-void TestCsv::testParseScriptRowColInvalid()
+TEST_F(CsvTest, ParseScriptRowColInvalid)
 {
     constexpr size_t invalid = std::numeric_limits<size_t>::max();
-    QCOMPARE(std::get<0>(langscore::parseScriptWithRowCol("abc")), invalid);
-    QCOMPARE(std::get<0>(langscore::parseScriptWithRowCol("x:4")), invalid);
-    QCOMPARE(std::get<1>(langscore::parseScriptWithRowCol("3:y")), invalid);
+    EXPECT_EQ(std::get<0>(langscore::parseScriptWithRowCol("abc")), invalid);
+    EXPECT_EQ(std::get<0>(langscore::parseScriptWithRowCol("x:4")), invalid);
+    EXPECT_EQ(std::get<1>(langscore::parseScriptWithRowCol("3:y")), invalid);
 }
 
-void TestCsv::testParseLineTrailingEmptyColumn()
+TEST_F(CsvTest, ReadCsvUtf8Bom)
+{
+    // BOM 付き UTF-8 の先頭ヘッダーに BOM が残らないこと
+    auto path = WriteFile("bom.csv", "\xEF\xBB\xBForiginal,en\nA,B\n");
+    auto csv = langscore::readCsv(path);
+    ASSERT_EQ(csv.size(), size_t{2});
+    EXPECT_EQ(csv[0][0], QString("original"));
+}
+
+// 不具合の再発防止
+TEST_F(CsvTest, ParseLineTrailingEmptyColumn)
 {
     // 末尾の空列が落ちず、2列として扱われること
     auto cols = langscore::parseCsvLine("a,");
-    QCOMPARE(cols.size(), size_t{2});
-    QCOMPARE(cols[1], QString());
+    ASSERT_EQ(cols.size(), size_t{2});
+    EXPECT_EQ(cols[1], QString());
 }
 
-void TestCsv::testReadCsvTrailingEmptyColumn()
+TEST_F(CsvTest, ReadCsvTrailingEmptyColumn)
 {
     // 翻訳が未入力（最後の列が空）の行も列数が揃うこと
-    auto path = writeFile("trailing.csv", "original,en\nHello,\n");
+    auto path = WriteFile("trailing.csv", "original,en\nHello,\n");
     auto csv = langscore::readCsv(path);
-    QCOMPARE(csv.size(), size_t{2});
-    QCOMPARE(csv[1].size(), size_t{2});
+    ASSERT_EQ(csv.size(), size_t{2});
+    EXPECT_EQ(csv[1].size(), size_t{2});
 }
 
-void TestCsv::testReadCsvUtf8Bom()
-{
-    // BOM 付き UTF-8 の先頭ヘッダーに BOM が残らないこと
-    auto path = writeFile("bom.csv", "\xEF\xBB\xBForiginal,en\nA,B\n");
-    auto csv = langscore::readCsv(path);
-    QCOMPARE(csv.size(), size_t{2});
-    QCOMPARE(csv[0][0], QString("original"));
-}
-
-void TestCsv::testReadCsvNonAnsiPath()
+TEST_F(CsvTest, ReadCsvNonAnsiPath)
 {
     // ANSI コードページで表現できない文字（ハングル）を含むパスでも読み込めること
-    const QString dirName(u"\uD55C\uAE00");
-    QVERIFY(QDir(tempDir.path()).mkdir(dirName));
-    auto path = writeFile(dirName + "/data.csv", "original,en\nA,B\n");
-    QVERIFY(QFile::exists(path));
-    QCOMPARE(langscore::readCsv(path).size(), size_t{2});
+    const QString dirName(u"한글");
+    ASSERT_TRUE(QDir(tempDir.path()).mkdir(dirName));
+    auto path = WriteFile(dirName + "/data.csv", "original,en\nA,B\n");
+    ASSERT_TRUE(QFile::exists(path));
+    EXPECT_EQ(langscore::readCsv(path).size(), size_t{2});
 }
-
-QTEST_MAIN(TestCsv)
-#include "tst_Csv.moc"

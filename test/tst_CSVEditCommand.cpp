@@ -1,4 +1,4 @@
-#include <QTest>
+#include "test_common.h"
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 #include "CSVEditCommand.h"
@@ -21,27 +21,14 @@ struct ModelListener : public CSVEditCommand::CellEditsListener
     QStandardItemModel model{2, 2};
     bool suppressedDuringSet = false;
 
-    void setData(QModelIndex index, QVariant value, int role) override {
+    void setData(QModelIndex index, QVariant value, int role) override
+    {
         suppressedDuringSet = _suppressUndoTracking;
         model.setData(index, value, role);
     }
 };
 
-class TestCSVEditCommand : public QObject
-{
-    Q_OBJECT
-
-private slots:
-    void testRedoUndo();
-    void testFlags();
-    void testInvalidIndexSkipped();
-    void testText();
-
-    // 不具合の再発防止
-    void testUndoAfterSort();
-};
-
-void TestCSVEditCommand::testRedoUndo()
+TEST(CSVEditCommand, RedoUndo)
 {
     ModelListener listener;
     auto a = listener.model.index(0, 0);
@@ -51,45 +38,46 @@ void TestCSVEditCommand::testRedoUndo()
 
     QUndoStack stack;
     stack.push(new CSVEditCommand(&listener, {{a, "oldA", "newA"}, {b, "oldB", "newB"}}));
-    QCOMPARE(a.data().toString(), QString("newA"));
-    QCOMPARE(b.data().toString(), QString("newB"));
+    EXPECT_EQ(a.data().toString(), QString("newA"));
+    EXPECT_EQ(b.data().toString(), QString("newB"));
 
     stack.undo();
-    QCOMPARE(a.data().toString(), QString("oldA"));
-    QCOMPARE(b.data().toString(), QString("oldB"));
+    EXPECT_EQ(a.data().toString(), QString("oldA"));
+    EXPECT_EQ(b.data().toString(), QString("oldB"));
 
     stack.redo();
-    QCOMPARE(a.data().toString(), QString("newA"));
-    QCOMPARE(b.data().toString(), QString("newB"));
+    EXPECT_EQ(a.data().toString(), QString("newA"));
+    EXPECT_EQ(b.data().toString(), QString("newB"));
 }
 
-void TestCSVEditCommand::testFlags()
+TEST(CSVEditCommand, Flags)
 {
     ModelListener listener;
     auto a = listener.model.index(0, 0);
     CSVEditCommand cmd(&listener, {{a, "", "x"}});
     cmd.redo();
-    QVERIFY(listener.suppressedDuringSet);
-    QVERIFY(listener._suppressUndoTracking == false);
-    QVERIFY(listener._isModified);
+    EXPECT_TRUE(listener.suppressedDuringSet);
+    EXPECT_FALSE(listener._suppressUndoTracking);
+    EXPECT_TRUE(listener._isModified);
 }
 
-void TestCSVEditCommand::testInvalidIndexSkipped()
+TEST(CSVEditCommand, InvalidIndexSkipped)
 {
     ModelListener listener;
     CSVEditCommand cmd(&listener, {{QModelIndex(), "", "x"}});
     cmd.redo();
-    QVERIFY(listener.suppressedDuringSet == false);
+    EXPECT_FALSE(listener.suppressedDuringSet);
 }
 
-void TestCSVEditCommand::testText()
+TEST(CSVEditCommand, Text)
 {
     ModelListener listener;
-    QCOMPARE(CSVEditCommand(&listener, {}).text(), QString("Edit Cells"));
-    QCOMPARE(CSVEditCommand(&listener, {}, "Paste").text(), QString("Paste"));
+    EXPECT_EQ(CSVEditCommand(&listener, {}).text(), QString("Edit Cells"));
+    EXPECT_EQ(CSVEditCommand(&listener, {}, "Paste").text(), QString("Paste"));
 }
 
-void TestCSVEditCommand::testUndoAfterSort()
+// 不具合の再発防止
+TEST(CSVEditCommand, UndoAfterSort)
 {
     // 編集後に並び替えてから Undo しても、編集したセルが元に戻ること
     ProxyListener listener;
@@ -99,14 +87,11 @@ void TestCSVEditCommand::testUndoAfterSort()
     QUndoStack stack;
     auto edited = listener.proxy.index(0, 0);   // "b" のセル
     stack.push(new CSVEditCommand(&listener, {{edited, "b", "x"}}));
-    QCOMPARE(listener.source.index(0, 0).data().toString(), QString("x"));
+    EXPECT_EQ(listener.source.index(0, 0).data().toString(), QString("x"));
 
     listener.proxy.sort(0);                     // 表示順: "a", "x"
     stack.undo();
 
-    QCOMPARE(listener.source.index(0, 0).data().toString(), QString("b"));
-    QCOMPARE(listener.source.index(1, 0).data().toString(), QString("a"));
+    EXPECT_EQ(listener.source.index(0, 0).data().toString(), QString("b"));
+    EXPECT_EQ(listener.source.index(1, 0).data().toString(), QString("a"));
 }
-
-QTEST_MAIN(TestCSVEditCommand)
-#include "tst_CSVEditCommand.moc"

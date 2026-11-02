@@ -1,78 +1,49 @@
-#include <QTest>
+#include "test_common.h"
 #include "LanguageNames.h"
 
-class TestLanguageNames : public QObject
+TEST(LanguageNames, KnownLanguages)
 {
-    Q_OBJECT
-
-private slots:
-    void testKnownLanguages_data();
-    void testKnownLanguages();
-    void testEmptyInput();
-    void testUnknownInput();
-    void testUnderscoreNormalization();
-    void testCaseInsensitive();
-    void testBcp47Fallback();
-    void testMapNotEmpty();
-};
-
-void TestLanguageNames::testKnownLanguages_data()
-{
-    QTest::addColumn<QString>("code");
-
-    QTest::newRow("en")    << "en";
-    QTest::newRow("ja")    << "ja";
-    QTest::newRow("de")    << "de";
-    QTest::newRow("fr")    << "fr";
-    QTest::newRow("zh")    << "zh";
-    QTest::newRow("ko")    << "ko";
-    QTest::newRow("zh-cn") << "zh-cn";
-    QTest::newRow("zh-tw") << "zh-tw";
+    const QStringList codes = {"en", "ja", "de", "fr", "zh", "ko", "zh-cn", "zh-tw"};
+    for(const auto& code : codes)
+    {
+        SCOPED_TRACE(code.toStdString());
+        EXPECT_FALSE(langscore::languageDisplayName(code).isEmpty());
+    }
 }
 
-void TestLanguageNames::testKnownLanguages()
+TEST(LanguageNames, EmptyInput)
 {
-    QFETCH(QString, code);
-    QVERIFY(langscore::languageDisplayName(code).isEmpty() == false);
+    EXPECT_EQ(langscore::languageDisplayName(""), QString());
 }
 
-void TestLanguageNames::testEmptyInput()
+TEST(LanguageNames, UnknownInput)
 {
-    QCOMPARE(langscore::languageDisplayName(""), QString());
+    EXPECT_EQ(langscore::languageDisplayName("xx-zz"), QString());
 }
 
-void TestLanguageNames::testUnknownInput()
-{
-    QCOMPARE(langscore::languageDisplayName("xx-zz"), QString());
-}
-
-void TestLanguageNames::testUnderscoreNormalization()
+TEST(LanguageNames, UnderscoreNormalization)
 {
     // "_" は "-" に正規化されるため zh_CN → zh-cn として検索される
-    QVERIFY(langscore::languageDisplayName("zh_CN").isEmpty() == false);
-    QVERIFY(langscore::languageDisplayName("zh_TW").isEmpty() == false);
+    EXPECT_FALSE(langscore::languageDisplayName("zh_CN").isEmpty());
+    EXPECT_FALSE(langscore::languageDisplayName("zh_TW").isEmpty());
 }
 
-void TestLanguageNames::testCaseInsensitive()
+TEST(LanguageNames, CaseInsensitive)
 {
     // 大文字小文字を区別しない（toLower で正規化される）
-    QVERIFY(langscore::languageDisplayName("EN").isEmpty() == false);
-    QVERIFY(langscore::languageDisplayName("JA").isEmpty() == false);
+    EXPECT_FALSE(langscore::languageDisplayName("EN").isEmpty());
+    EXPECT_FALSE(langscore::languageDisplayName("JA").isEmpty());
 }
 
-void TestLanguageNames::testBcp47Fallback()
+TEST(LanguageNames, Bcp47Fallback)
 {
     // en-US → en にフォールバックして一致
-    QVERIFY(langscore::languageDisplayName("en-US").isEmpty() == false);
+    EXPECT_FALSE(langscore::languageDisplayName("en-US").isEmpty());
     // zh-Hant-HK → zh-hant-hk → zh-hant → zh でフォールバック
-    QVERIFY(langscore::languageDisplayName("zh-Hant-HK").isEmpty() == false);
+    EXPECT_FALSE(langscore::languageDisplayName("zh-Hant-HK").isEmpty());
 }
 
-void TestLanguageNames::testMapNotEmpty()
+TEST(LanguageNames, MapNotEmpty)
 {
-    const auto& map = langscore::languageDisplayMap();
-    QVERIFY(map.empty() == false);
+    EXPECT_FALSE(langscore::languageDisplayMap().empty());
 }
-
-QTEST_MAIN(TestLanguageNames)
-#include "tst_LanguageNames.moc"

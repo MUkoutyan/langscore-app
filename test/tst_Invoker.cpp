@@ -1,28 +1,22 @@
-#include <QTest>
-#include <QSignalSpy>
+#include "test_common.h"
 #include <QFile>
 #include "invoker.h"
 
-class TestInvoker : public QObject
-{
-    Q_OBJECT
-
-private slots:
-    // 不具合の再発防止
-    void testFinishEmittedWhenStartFails();
-};
-
-void TestInvoker::testFinishEmittedWhenStartFails()
+// 不具合の再発防止
+TEST(Invoker, FinishEmittedWhenStartFails)
 {
     // divisi.exe を起動できない場合も finish が通知され、呼び出し側が UI を元に戻せること
-    QVERIFY(QFile::exists(QCoreApplication::applicationDirPath() + "/bin/divisi.exe") == false);
+    ASSERT_FALSE(QFile::exists(QCoreApplication::applicationDirPath() + "/bin/divisi.exe"));
 
     ComponentBase component;
     invoker inv(&component);
-    QSignalSpy finishSpy(&inv, &invoker::finish);
+    int finishCount = 0;
+    QObject::connect(&inv, &invoker::finish, [&finishCount](int, QProcess::ExitStatus) {
+        ++finishCount;
+    });
     inv.analyze();
-    QTRY_COMPARE_WITH_TIMEOUT(finishSpy.count(), 1, 1000);
-}
 
-QTEST_MAIN(TestInvoker)
-#include "tst_Invoker.moc"
+    // 非同期で通知されるため、イベントループを回して待つ
+    EXPECT_TRUE(WaitUntil([&finishCount]() { return 0 < finishCount; }, 1000));
+    EXPECT_EQ(finishCount, 1);
+}

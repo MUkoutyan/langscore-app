@@ -1,4 +1,4 @@
-#include <QTest>
+#include "test_common.h"
 #include <QStandardItemModel>
 #include "CSVEditorSortFilterProxyModel.h"
 
@@ -6,12 +6,14 @@
 class SourceModel : public QStandardItemModel
 {
 public:
-    SourceModel() : QStandardItemModel(0, 2) {
+    SourceModel() : QStandardItemModel(0, 2)
+    {
         appendRow({new QStandardItem("apple"), new QStandardItem("Apfel")});
         appendRow({new QStandardItem("banana"), new QStandardItem("")});
     }
 
-    QVariant headerData(int section, Qt::Orientation orientation, int role) const override {
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override
+    {
         if(orientation == Qt::Horizontal && role == DataType::IsLanguageColumn) {
             return section == 1;
         }
@@ -22,50 +24,38 @@ public:
     }
 };
 
-class TestCSVEditorSortFilterProxyModel : public QObject
+TEST(CSVEditorSortFilterProxyModel, HideTranslatedRow)
 {
-    Q_OBJECT
+    SourceModel source;
+    langscore::CSVEditorSortFilterProxyModel proxy;
+    proxy.setSourceModel(&source);
+    proxy.setFilterMode(FilterMode::HideTranslatedRow);
+    ASSERT_EQ(proxy.rowCount(), 1);
+    EXPECT_EQ(proxy.index(0, 0).data().toString(), QString("banana"));
+}
 
-private slots:
-    void testHideTranslatedRow();
-
-    // 不具合の再発防止
-    void testFilterTextHidesNonMatchingRows();
-    void testFilterTextNoMatchHidesRows();
-    void testHideTranslatedRowWithFilterColumn();
-};
-
-void TestCSVEditorSortFilterProxyModel::testFilterTextHidesNonMatchingRows()
+// 不具合の再発防止
+TEST(CSVEditorSortFilterProxyModel, FilterTextHidesNonMatchingRows)
 {
     // 検索文字列に一致しない行は表示されないこと
     SourceModel source;
     langscore::CSVEditorSortFilterProxyModel proxy;
     proxy.setSourceModel(&source);
     proxy.setFilterText("ban");
-    QCOMPARE(proxy.rowCount(), 1);
+    EXPECT_EQ(proxy.rowCount(), 1);
 }
 
-void TestCSVEditorSortFilterProxyModel::testHideTranslatedRow()
-{
-    SourceModel source;
-    langscore::CSVEditorSortFilterProxyModel proxy;
-    proxy.setSourceModel(&source);
-    proxy.setFilterMode(FilterMode::HideTranslatedRow);
-    QCOMPARE(proxy.rowCount(), 1);
-    QCOMPARE(proxy.index(0, 0).data().toString(), QString("banana"));
-}
-
-void TestCSVEditorSortFilterProxyModel::testFilterTextNoMatchHidesRows()
+TEST(CSVEditorSortFilterProxyModel, FilterTextNoMatchHidesRows)
 {
     // どの列にも一致しない検索文字列では、行が表示されないこと
     SourceModel source;
     langscore::CSVEditorSortFilterProxyModel proxy;
     proxy.setSourceModel(&source);
     proxy.setFilterText("zzz");
-    QCOMPARE(proxy.rowCount(), 0);
+    EXPECT_EQ(proxy.rowCount(), 0);
 }
 
-void TestCSVEditorSortFilterProxyModel::testHideTranslatedRowWithFilterColumn()
+TEST(CSVEditorSortFilterProxyModel, HideTranslatedRowWithFilterColumn)
 {
     // 検索列を指定していても「翻訳済みの行を隠す」が適用されること
     SourceModel source;
@@ -74,9 +64,6 @@ void TestCSVEditorSortFilterProxyModel::testHideTranslatedRowWithFilterColumn()
     proxy.setFilterTargetColumn(0);
     proxy.setFilterText("a");
     proxy.setFilterMode(FilterMode::HideTranslatedRow);
-    QCOMPARE(proxy.rowCount(), 1);
-    QCOMPARE(proxy.index(0, 0).data().toString(), QString("banana"));
+    ASSERT_EQ(proxy.rowCount(), 1);
+    EXPECT_EQ(proxy.index(0, 0).data().toString(), QString("banana"));
 }
-
-QTEST_MAIN(TestCSVEditorSortFilterProxyModel)
-#include "tst_CSVEditorSortFilterProxyModel.moc"

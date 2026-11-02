@@ -1,4 +1,4 @@
-#include <QTest>
+#include "test_common.h"
 #include <QTreeWidget>
 #include <QLineEdit>
 #include "FileTree.h"
@@ -13,45 +13,36 @@ struct TestComponent : public ComponentBase
     using ComponentBase::runtimeData;
 };
 
-class TestFileTree : public QObject
+class FileTreeTest : public ::testing::Test
 {
-    Q_OBJECT
-
-private slots:
-    void init();
-    void cleanup();
-
-    // 不具合の再発防止
-    void testSearchShowsVisibleItems();
-    void testErrorJsonSplitAcrossChunks();
-
-private:
+protected:
     std::unique_ptr<TestComponent> component;
     std::shared_ptr<EditDataManager> manager;
     std::unique_ptr<FileTree> tree;
+
+    void SetUp() override
+    {
+        component = std::make_unique<TestComponent>();
+        manager = std::make_shared<EditDataManager>();
+        tree = std::make_unique<FileTree>(component.get(), manager);
+    }
+
+    void TearDown() override
+    {
+        tree.reset();
+        manager.reset();
+        component.reset();
+    }
 };
 
-void TestFileTree::init()
-{
-    component = std::make_unique<TestComponent>();
-    manager = std::make_shared<EditDataManager>();
-    tree = std::make_unique<FileTree>(component.get(), manager);
-}
-
-void TestFileTree::cleanup()
-{
-    tree.reset();
-    manager.reset();
-    component.reset();
-}
-
-void TestFileTree::testSearchShowsVisibleItems()
+// 不具合の再発防止
+TEST_F(FileTreeTest, SearchShowsVisibleItems)
 {
     // 検索時、表示設定の項目は一致すれば表示され、非表示設定の項目は隠れること
     auto* treeWidget = tree->findChild<QTreeWidget*>();
     auto* searchEdit = tree->findChild<QLineEdit*>();
-    QVERIFY(treeWidget != nullptr);
-    QVERIFY(searchEdit != nullptr);
+    ASSERT_NE(treeWidget, nullptr);
+    ASSERT_NE(searchEdit, nullptr);
 
     auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
     auto* visibleItem = new QTreeWidgetItem(top, {"Actors"});
@@ -61,23 +52,20 @@ void TestFileTree::testSearchShowsVisibleItems()
 
     searchEdit->setText("Actor");
 
-    QVERIFY(visibleItem->isHidden() == false);
-    QVERIFY(hiddenItem->isHidden());
+    EXPECT_FALSE(visibleItem->isHidden());
+    EXPECT_TRUE(hiddenItem->isHidden());
 }
 
-void TestFileTree::testErrorJsonSplitAcrossChunks()
+TEST_F(FileTreeTest, ErrorJsonSplitAcrossChunks)
 {
     // divisi の標準出力が JSON の途中で分割されて届いても、エラーが失われないこと
     const QString json = R"({"Type":0,"Summary":0,"File":"C:/data/Actors.csv","Row":3,"Language":"en","Details":""})";
     const auto half = json.size() / 2;
-    QVERIFY(QMetaObject::invokeMethod(tree.get(), "addErrorText", Q_ARG(QString, json.left(half))));
-    QVERIFY(QMetaObject::invokeMethod(tree.get(), "addErrorText", Q_ARG(QString, json.mid(half))));
+    ASSERT_TRUE(QMetaObject::invokeMethod(tree.get(), "addErrorText", Q_ARG(QString, json.left(half))));
+    ASSERT_TRUE(QMetaObject::invokeMethod(tree.get(), "addErrorText", Q_ARG(QString, json.mid(half))));
 
     const auto& errors = component->runtimeData->errors;
-    QVERIFY(errors.contains("Actors"));
-    QCOMPARE(errors.at("Actors").size(), size_t{1});
-    QCOMPARE(errors.at("Actors")[0].row, std::int64_t{3});
+    ASSERT_TRUE(errors.contains("Actors"));
+    ASSERT_EQ(errors.at("Actors").size(), size_t{1});
+    EXPECT_EQ(errors.at("Actors")[0].row, std::int64_t{3});
 }
-
-QTEST_MAIN(TestFileTree)
-#include "tst_FileTree.moc"
