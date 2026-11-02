@@ -87,6 +87,12 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)
     {
+        //別のプロジェクトを読み込む前に、今のプロジェクトの未保存の変更を確認する。
+        //setGameProjectPathの後だと保存先が新しいプロジェクトになるため、ここで行う
+        const auto button = this->askCloseProject();
+        if(button == QMessageBox::Cancel) { return; }
+        if(button == QMessageBox::Save) { this->dispatch(SaveProject, {}); }
+
         const auto configFilePath = path+"_langscore/config.json";
         if(QFile::exists(configFilePath)){
             this->initialAnalysis = false;
