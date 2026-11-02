@@ -41,6 +41,8 @@ private:
     bool _finishInvoke;
 
     bool initialAnalysis;
+    // 初回解析を行ったプロジェクトの langscore フォルダ。破棄時に削除してよいのはこのフォルダのみ
+    QString initialAnalysisProjectDir;
     bool explicitSave;
     int lastSavedHistoryIndex;
 

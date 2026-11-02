@@ -37,6 +37,9 @@ public:
     void translateBatch(const QList<BatchTranslationRequest>& requests, 
                        TranslationService::ServiceType preferredService = TranslationService::ServiceType::DeepL);
     
+    // 未送信のリクエストを破棄し、送信済みの結果も無視する
+    void cancelAll();
+
     bool hasConfiguredService() const;
     QStringList getAvailableServices() const;
 

@@ -89,3 +89,6 @@ test/build-Test-リリース
 /test/Project1
 build/*
 .vscode
+test/.vs
+test/out
+out

@@ -40,13 +40,16 @@ AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
         this->update();
     });
 
-    connect(invoker, &invoker::finish, this, [this](int exitCode)
+    connect(invoker, &invoker::finish, this, [this](int exitCode, QProcess::ExitStatus status)
     {
-        if(exitCode != invoker::SUCCESS){ return; }
+        this->ui->analyzeButton->setEnabled(true);
+        if(exitCode != invoker::SUCCESS || status == QProcess::CrashExit){
+            this->ui->invokeLog->insertPlainText("Analyze Failed.");
+            return;
+        }
 
         const auto& outputDirPath = this->setting->analyzeDirectoryPath();
         auto outputDir = QDir(outputDirPath);
-        this->ui->analyzeButton->setEnabled(true);
         if(outputDir.exists() == false){
             this->ui->invokeLog->insertPlainText("Analyze Failed.");
             this->ui->invokeLog->insertPlainText(this->invoker->lastProcessOption().join(' '));
@@ -113,10 +116,10 @@ void AnalyzeDialog::dropEvent(QDropEvent *event)
     for(const auto& url : urls){
         auto fi = QFileInfo(url.toLocalFile());
         if(fi.isFile()){
-            auto extention = fi.filesystemFilePath().extension();
+            //std::filesystem::path::string() は ANSI コードページに変換され日本語パスが化けるため Qt でパスを扱う
+            const auto extention = "." + fi.suffix().toStdString();
             if(std::ranges::find(supportedExtention, extention) != supportedExtention.end()){
-                auto dir = fi.dir();
-                this->openFile(dir.filesystemAbsolutePath().string().c_str());
+                this->openFile(fi.absolutePath());
             }
         }
         else if(fi.isDir()){

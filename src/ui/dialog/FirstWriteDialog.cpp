@@ -52,7 +52,7 @@ void FirstWriteDialog::setOutputPath(QString directoryPath)
 QString FirstWriteDialog::outputPath() const
 {
     auto result = this->ui->lineEdit->text();
-    if(result.last(1) == "/"){
+    if(result.endsWith('/')){
         result.chop(1);
     }
     return result;
@@ -74,7 +74,8 @@ bool FirstWriteDialog::backup() const
 
 void FirstWriteDialog::changeOutputPath(const QString &text)
 {
-    this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+    //出力先が空のままでは書き出せない
+    this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(text.trimmed().isEmpty() == false);
     auto fileInfo = QFileInfo(text);
     if(fileInfo.exists() == false){
         return;

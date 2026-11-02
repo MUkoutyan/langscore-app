@@ -72,7 +72,7 @@ void WriteDialog::setOutputPath(QString directoryPath)
 QString WriteDialog::outputPath() const
 {
     auto result = this->ui->lineEdit->text();
-    if(result.last(1) == "/"){
+    if(result.endsWith('/')){
         result.chop(1);
     }
     return result;
@@ -103,7 +103,8 @@ bool WriteDialog::backup() const
 void WriteDialog::changeOutputPath(const QString &text)
 {
     this->ui->baseWidget->setHidden(true);
-    this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+    //出力先が空のままでは書き出せない
+    this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(text.trimmed().isEmpty() == false);
     auto fileInfo = QFileInfo(text);
     if(fileInfo.exists() == false){
         return;
@@ -120,8 +121,8 @@ void WriteDialog::changeOutputPath(const QString &text)
     QDirIterator it(text, QStringList() << "*.csv", QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext())
     {
-        auto info = it.fileInfo();
-        it.next();
+        //next() で次のファイルに進めてから情報を取得する（先に fileInfo() を呼ぶと最初のファイルを調べられない）
+        auto info = QFileInfo(it.next());
         if(info.suffix() != "csv"){ continue; }
 
         this->ui->baseWidget->setVisible(true);

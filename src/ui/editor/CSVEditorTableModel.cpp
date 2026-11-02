@@ -277,10 +277,14 @@ QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientatio
     if(orientation != Qt::Horizontal) {
         return QVariant();
     }
+    //headerAt は範囲外で例外を投げるため、先に範囲を確認する
+    if(section < 0 || section >= static_cast<int>(csvContainer.columnCount())) {
+        return role == DataType::IsLanguageColumn ? QVariant(false) : QVariant();
+    }
 
-    if(role == Qt::DisplayRole) 
+    if(role == Qt::DisplayRole)
     {
-        if(section >= 0 && section < static_cast<int>(csvContainer.columnCount())) {
+        {
             auto name = csvContainer.headerAt(static_cast<size_t>(section));
             if(name == "original") {
                 return tr("Original");
@@ -305,6 +309,10 @@ QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientatio
         return csvContainer.headerAt(static_cast<size_t>(section));
     }
     else if(role == DataType::IsLanguageColumn) {
+        //MainCSVTable は setSettings より前に proxy へ setSourceModel するため、未設定の場合がある
+        if(_settings == nullptr) {
+            return false;
+        }
         auto name = csvContainer.headerAt(static_cast<size_t>(section));
         if(std::ranges::find(_settings->languages, name, &settings::Language::languageName) != _settings->languages.cend()) {
             return true;

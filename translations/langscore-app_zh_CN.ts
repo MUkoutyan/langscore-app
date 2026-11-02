@@ -29,12 +29,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/AnalyzeDialog.cpp" line="54"/>
+        <location filename="../src/ui/dialog/AnalyzeDialog.cpp" line="57"/>
         <source>If you see this text, contact support through Ci-en or other means.</source>
         <translation>如果看到此文本，请通过 Ci-en 或其他方式联系支持人员。</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/AnalyzeDialog.cpp" line="55"/>
+        <location filename="../src/ui/dialog/AnalyzeDialog.cpp" line="58"/>
         <source>https://ci-en.net/creator/16302</source>
         <translation></translation>
     </message>
@@ -42,133 +42,131 @@
 <context>
     <name>CSVEditor</name>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="191"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="88"/>
         <source>Cut</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="195"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="92"/>
         <source>Copy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="199"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="1047"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="1047"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="96"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="790"/>
         <source>Paste</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="203"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="100"/>
         <source>Delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="207"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="104"/>
         <source>Select All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="212"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="109"/>
         <source>Translation Settings...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="215"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="283"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="283"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="112"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="185"/>
         <source>Translate Selected Cells</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="219"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="315"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="315"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="116"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="218"/>
         <source>Hide Language Columns...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="222"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="119"/>
+        <source>Filter Settings...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="122"/>
         <source>Show All Columns</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="255"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="428"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="933"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="428"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="933"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="156"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="323"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="388"/>
         <source>Translation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="262"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="326"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="326"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="163"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="229"/>
         <source>Column Visibility</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="285"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="187"/>
         <source>Translate %1 Empty Cell(s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="312"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="215"/>
         <source>Hide Language Columns (%1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="327"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="229"/>
         <source>No recognizable language columns found.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="429"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="324"/>
         <source>No empty cells selected for translation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="435"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="477"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="736"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="477"/>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="736"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="330"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="379"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="499"/>
         <source>Translation Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="436"/>
-        <source>Could not find &apos;Original&apos; column for source text.</source>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="331"/>
+        <source>Could not find &apos;Original&apos; column for source text.(no use api)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="478"/>
-        <source>No valid translation requests could be prepared.</source>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="380"/>
+        <source>No valid translation requests could be prepared.(no use api)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="721"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="388"/>
+        <source>There are cells where the source language and the target language are the same.
+Do you want to continue?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="484"/>
         <source>Translate Cells</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="915"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="676"/>
         <source>Save CSV File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="916"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="677"/>
         <source>CSV Files (*.csv)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="932"/>
-        <source>Original</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="975"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="718"/>
         <source>Clear Cells</source>
         <translation type="unfinished"></translation>
     </message>
@@ -262,7 +260,7 @@ No need to enter &quot;\&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/translation/DeepLTranslationService.cpp" line="112"/>
+        <location filename="../src/translation/DeepLTranslationService.cpp" line="114"/>
         <source>Invalid response from DeepL API</source>
         <translation type="unfinished"></translation>
     </message>
@@ -270,61 +268,59 @@ No need to enter &quot;\&quot;</source>
 <context>
     <name>FileTree</name>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="327"/>
-        <location filename="../src/ui/FileTree.cpp" line="418"/>
-        <location filename="../src/ui/FileTree.cpp" line="418"/>
+        <location filename="../src/ui/FileTree.cpp" line="340"/>
+        <location filename="../src/ui/FileTree.cpp" line="432"/>
         <source>Unchecking the box excludes this script from translation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="575"/>
+        <location filename="../src/ui/FileTree.cpp" line="598"/>
         <source>Basics Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="588"/>
+        <location filename="../src/ui/FileTree.cpp" line="611"/>
         <source>Map Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="616"/>
+        <location filename="../src/ui/FileTree.cpp" line="639"/>
         <source>Script Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="680"/>
+        <location filename="../src/ui/FileTree.cpp" line="703"/>
         <source>Graphics Tree Change Enable State</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="852"/>
+        <location filename="../src/ui/FileTree.cpp" line="879"/>
         <source>Search...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="864"/>
+        <location filename="../src/ui/FileTree.cpp" line="891"/>
         <source>Show Hidden Items</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="1029"/>
-        <location filename="../src/ui/FileTree.cpp" line="1034"/>
-        <location filename="../src/ui/FileTree.cpp" line="1034"/>
+        <location filename="../src/ui/FileTree.cpp" line="1105"/>
+        <location filename="../src/ui/FileTree.cpp" line="1110"/>
         <source>Change Tree State : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="1062"/>
+        <location filename="../src/ui/FileTree.cpp" line="1138"/>
         <source>Hide Item</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="1065"/>
+        <location filename="../src/ui/FileTree.cpp" line="1141"/>
         <source>Show Item</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FileTree.cpp" line="1407"/>
+        <location filename="../src/ui/FileTree.cpp" line="1574"/>
         <source>Line</source>
         <translation type="unfinished"></translation>
     </message>
@@ -369,7 +365,7 @@ No need to enter &quot;\&quot;</source>
         <translation>选择导出目录</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/FirstWriteDialog.cpp" line="84"/>
+        <location filename="../src/ui/dialog/FirstWriteDialog.cpp" line="85"/>
         <source>The path must be a directory!</source>
         <translation>路径必须是一个目录！</translation>
     </message>
@@ -437,59 +433,63 @@ No need to enter &quot;\&quot;</source>
         <translation>显示撤消视图...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="123"/>
-        <location filename="../src/ui/FormTaskBar.cpp" line="129"/>
-        <location filename="../src/ui/FormTaskBar.cpp" line="129"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="118"/>
+        <source>Validation all file...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FormTaskBar.cpp" line="131"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="137"/>
         <source>System</source>
         <translation>系统</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="124"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="132"/>
         <source>Theme</source>
         <translation>主题</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="125"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="133"/>
         <source>Light</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="127"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="135"/>
         <source>Dark</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="142"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="150"/>
         <source>Translation API Settings...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="156"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="164"/>
         <source>Color</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="164"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="172"/>
         <source>Help</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="166"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="174"/>
         <source>Manual... (Web site)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="172"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="180"/>
         <source>History... (Web site)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="178"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="186"/>
         <source>Version : </source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="227"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="235"/>
         <source>Not Found Directory. Delete this item from the history at the end of the project.</source>
         <translation>未找到目录。在项目结束时从历史记录中删除此项目。</translation>
     </message>
@@ -515,40 +515,288 @@ No need to enter &quot;\&quot;</source>
 <context>
     <name>LanguageColumnSelectionDialog</name>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="40"/>
+        <location filename="../src/ui/dialog/LanguageColumnSelectionDialog.h" line="20"/>
         <source>Hide Language Columns</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="73"/>
+        <location filename="../src/ui/dialog/LanguageColumnSelectionDialog.h" line="53"/>
         <source>Select language columns to hide:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="102"/>
+        <location filename="../src/ui/dialog/LanguageColumnSelectionDialog.h" line="83"/>
         <source>Select All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="103"/>
+        <location filename="../src/ui/dialog/LanguageColumnSelectionDialog.h" line="84"/>
         <source>Deselect All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="115"/>
+        <location filename="../src/ui/dialog/LanguageColumnSelectionDialog.h" line="96"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditor.cpp" line="116"/>
+        <location filename="../src/ui/dialog/LanguageColumnSelectionDialog.h" line="97"/>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>LanguageNames</name>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="11"/>
+        <source>English</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="12"/>
+        <source>Japanese</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="13"/>
+        <source>German</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="14"/>
+        <source>French</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="15"/>
+        <source>Spanish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="16"/>
+        <source>Italian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="17"/>
+        <source>Chinese</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="19"/>
+        <source>Chinese (Simplified)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="25"/>
+        <source>Chinese (Traditional)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="31"/>
+        <source>Korean</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="32"/>
+        <source>Russian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="33"/>
+        <source>Portuguese</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="34"/>
+        <source>Dutch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="35"/>
+        <source>Swedish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="36"/>
+        <source>Norwegian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="37"/>
+        <source>Danish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="38"/>
+        <source>Finnish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="39"/>
+        <source>Polish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="40"/>
+        <source>Czech</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="41"/>
+        <source>Hungarian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="42"/>
+        <source>Turkish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="43"/>
+        <source>Arabic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="44"/>
+        <source>Hebrew</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="45"/>
+        <source>Hindi</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="46"/>
+        <source>Bengali</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="47"/>
+        <source>Punjabi</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="48"/>
+        <source>Vietnamese</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="49"/>
+        <source>Indonesian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="50"/>
+        <source>Malay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="51"/>
+        <source>Thai</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="52"/>
+        <source>Greek</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="53"/>
+        <source>Romanian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="54"/>
+        <source>Serbian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="55"/>
+        <source>Ukrainian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="56"/>
+        <source>Bulgarian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="57"/>
+        <source>Lithuanian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="58"/>
+        <source>Latvian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="59"/>
+        <source>Estonian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="60"/>
+        <source>Slovak</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="61"/>
+        <source>Slovenian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="62"/>
+        <source>Croatian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="63"/>
+        <source>Catalan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="64"/>
+        <source>Galician</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="65"/>
+        <source>Basque</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="66"/>
+        <source>Maltese</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="67"/>
+        <source>Icelandic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="68"/>
+        <source>Irish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="69"/>
+        <source>Albanian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/service/LanguageNames.cpp" line="70"/>
+        <source>Macedonian</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>LanguageSelectComponent</name>
     <message>
-        <location filename="../src/ui/LanguageSelectComponent.cpp" line="13"/>
+        <location filename="../src/ui/LanguageSelectComponent.cpp" line="14"/>
         <source>Original Language</source>
         <translation type="unfinished"></translation>
     </message>
@@ -556,48 +804,85 @@ No need to enter &quot;\&quot;</source>
 <context>
     <name>MainCSVTable</name>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="29"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="37"/>
+        <source>Filter Columns</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="38"/>
         <source>Validate</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="276"/>
-        <source>file : </source>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="39"/>
+        <source>Show validate result</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="279"/>
-        <source>row : %1, col : %2</source>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="129"/>
+        <source>Display settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="283"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="131"/>
+        <source>Show All Contents</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="133"/>
+        <source>Hide Translated Rows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="383"/>
         <source>[Error] </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="286"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="386"/>
         <source>[Warning] </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="340"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="359"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="359"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="450"/>
+        <source>Row</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="450"/>
+        <source>Type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="450"/>
+        <source>Language</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="450"/>
+        <source>Description</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="508"/>
+        <source>File</source>
+        <translation type="unfinished">文件</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="577"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="596"/>
         <source>Change Table State : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="342"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="361"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="361"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="579"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="598"/>
         <source>Change Table State : Row %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="346"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="365"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="365"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="583"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="602"/>
         <source>Change Table State</source>
         <translation type="unfinished"></translation>
     </message>
@@ -610,28 +895,28 @@ No need to enter &quot;\&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="85"/>
+        <location filename="../MainWindow.cpp" line="86"/>
         <source>Save Projet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="113"/>
+        <location filename="../MainWindow.cpp" line="123"/>
         <source>Edited</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="255"/>
+        <location filename="../MainWindow.cpp" line="275"/>
         <source>Trying to close a project.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="255"/>
+        <location filename="../MainWindow.cpp" line="275"/>
         <source>Do you want to save the changes you made to the project?
 If not, the changes will be discarded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="333"/>
+        <location filename="../MainWindow.cpp" line="354"/>
         <source>Command List</source>
         <translation type="unfinished"></translation>
     </message>
@@ -713,60 +998,64 @@ If not, the changes will be discarded.</source>
     </message>
     <message>
         <location filename="../src/ui/PackingMode.ui" line="414"/>
-        <location filename="../src/ui/PackingMode.cpp" line="462"/>
-        <location filename="../src/ui/PackingMode.cpp" line="462"/>
+        <location filename="../src/ui/PackingMode.cpp" line="480"/>
         <source>Packing Translate File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="58"/>
+        <location filename="../src/ui/PackingMode.cpp" line="65"/>
         <source>Select Input Directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="75"/>
+        <location filename="../src/ui/PackingMode.cpp" line="83"/>
         <source>Crashed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="89"/>
+        <location filename="../src/ui/PackingMode.cpp" line="97"/>
         <source>Valid!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="94"/>
+        <location filename="../src/ui/PackingMode.cpp" line="103"/>
         <source>Complete Packing!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="132"/>
+        <location filename="../src/ui/PackingMode.cpp" line="107"/>
+        <source>Failed. Please check the log.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/PackingMode.cpp" line="145"/>
         <source>Show in Explorer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="236"/>
+        <location filename="../src/ui/PackingMode.cpp" line="254"/>
         <source>This may be due to the description around the %1 line.(line %2 for text)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="240"/>
+        <location filename="../src/ui/PackingMode.cpp" line="258"/>
         <source>The description around
 %1
 may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="468"/>
+        <location filename="../src/ui/PackingMode.cpp" line="486"/>
         <source>No packing is required for MV/MZ.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="523"/>
+        <location filename="../src/ui/PackingMode.cpp" line="541"/>
         <source>Confirmation of save a project.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/PackingMode.cpp" line="523"/>
+        <location filename="../src/ui/PackingMode.cpp" line="541"/>
         <source>The packing input directory has changed and the project needs to be saved.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -809,7 +1098,7 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditCommand.h" line="21"/>
+        <location filename="../src/ui/editor/CSVEditCommand.h" line="23"/>
         <source>Edit Cells</source>
         <translation type="unfinished"></translation>
     </message>
@@ -864,21 +1153,63 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <source> Invalid CSV. The description around %2 in the %1 row may be cause.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="516"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="527"/>
+        <source>Change Table State</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="517"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="528"/>
+        <source>Change Table State : %1</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScriptCSVTable</name>
     <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="109"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="56"/>
+        <source>Filter Columns</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="76"/>
+        <source>Automatic check</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="77"/>
+        <source>Display settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="86"/>
+        <source>Apply language font</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="93"/>
+        <source>Fixed Cell Width</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="126"/>
+        <source>Filter rows...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="135"/>
         <source>Show All Contents</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="114"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="137"/>
         <source>Hide Ignore Contents</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="141"/>
+        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="177"/>
         <source>Uncheck Sign Only Text</source>
         <translation type="unfinished"></translation>
     </message>
@@ -887,51 +1218,40 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <source>Uncheck text that does not contain hiragana</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="472"/>
-        <source>All Script Word Count : %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="706"/>
-        <source>Change Script Table Check</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="773"/>
-        <source>Original</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="773"/>
-        <source>Type</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="822"/>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="832"/>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="832"/>
-        <source>Change Table State : %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="825"/>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="835"/>
-        <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="835"/>
-        <source>Change Table State : Row %1</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>ScriptCSVTableModel</name>
     <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTableModel.cpp" line="50"/>
-        <source>Original</source>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="123"/>
+        <source>Parameter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/ScriptCSVTableModel.cpp" line="50"/>
-        <source>Type</source>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="500"/>
+        <source>Include</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="501"/>
+        <source>Script Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="502"/>
+        <source>Text Point</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="503"/>
+        <source>Original</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SearchBar</name>
+    <message>
+        <location filename="../src/ui/ScriptViewer.cpp" line="355"/>
+        <source>Search...</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -939,8 +1259,7 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     <name>TranslationApiSettingsDialog</name>
     <message>
         <location filename="../src/ui/dialog/TranslationApiSettingsDialog.ui" line="14"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="19"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="19"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="20"/>
         <source>Translation API Settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -968,10 +1287,8 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     <message>
         <location filename="../src/ui/dialog/TranslationApiSettingsDialog.ui" line="65"/>
         <location filename="../src/ui/dialog/TranslationApiSettingsDialog.ui" line="182"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="50"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="55"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="50"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="55"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="51"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="56"/>
         <source>Show</source>
         <translation type="unfinished"></translation>
     </message>
@@ -984,10 +1301,8 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     <message>
         <location filename="../src/ui/dialog/TranslationApiSettingsDialog.ui" line="89"/>
         <location filename="../src/ui/dialog/TranslationApiSettingsDialog.ui" line="206"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="154"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="156"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="154"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="156"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="155"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="157"/>
         <source>API key not set</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1035,49 +1350,43 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="50"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="55"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="55"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="51"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="56"/>
         <source>Hide</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="154"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="156"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="156"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="155"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="157"/>
         <source>API key configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="165"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="176"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="176"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="166"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="177"/>
         <source>Testing connection...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="223"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="249"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="249"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="224"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="250"/>
         <source>Connection successful</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="233"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="234"/>
         <source>Usage: %1 / %2 characters</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="238"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="252"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="252"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="239"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="253"/>
         <source>Connection failed: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="277"/>
         <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="278"/>
-        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="278"/>
+        <location filename="../src/ui/dialog/TranslationApiSettingsDialog.cpp" line="279"/>
         <source>Characters used: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1086,7 +1395,8 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     <name>TranslationManager</name>
     <message>
         <location filename="../src/translation/TranslationManager.cpp" line="38"/>
-        <source>No configured translation service available</source>
+        <location filename="../src/translation/TranslationManager.cpp" line="84"/>
+        <source>No configured translation service available. (no use api)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1094,7 +1404,6 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     <name>TranslationProgressDialog</name>
     <message>
         <location filename="../src/ui/dialog/TranslationProgressDialog.ui" line="14"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="12"/>
         <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="12"/>
         <source>Translation Progress</source>
         <translation type="unfinished"></translation>
@@ -1106,8 +1415,6 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     </message>
     <message>
         <location filename="../src/ui/dialog/TranslationProgressDialog.ui" line="81"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="34"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="85"/>
         <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="34"/>
         <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="85"/>
         <source>Cancel</source>
@@ -1135,7 +1442,6 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
     </message>
     <message>
         <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="67"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="79"/>
         <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="79"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
@@ -1213,38 +1519,61 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="71"/>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="220"/>
         <source>Enable Language Patch Mode</source>
         <extracomment>言語パッチモードを有効にする</extracomment>
         <translation type="unfinished">启用语言补丁模式</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="78"/>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="210"/>
         <source>Backup files to be overwritten</source>
         <extracomment>上書きされるファイルをバックアップ</extracomment>
         <translation type="unfinished">要覆盖的备份文件</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="147"/>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="130"/>
         <source>The file already exists!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="176"/>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="159"/>
         <source>Leave and overwrite existing translations</source>
         <extracomment>既存の翻訳を残して上書き</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="189"/>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="172"/>
         <source>Leave both (manual editing is required)</source>
         <extracomment>両方残す (手動で編集が必要になります)</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="205"/>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="188"/>
         <source>Overwrite by New  (Translations already written will be erased.)</source>
         <extracomment>新しい内容で上書き(既存の内容は消されます)</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="227"/>
+        <source>If you check this box, the same content as the original column will be reflected in the default language as well.</source>
+        <extracomment>チェックを付けた場合、オリジナル列と同じ内容がデフォルト言語にも反映されます。</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="230"/>
+        <source>Fill in the column for the default language.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="237"/>
+        <source>If checked, newly added text will be appended to the end.
+If unchecked, the order will depend on the event sequence.</source>
+        <extracomment>チェックを付けた場合、新しく追加された文章は末尾に追加されます。 チェックを付けない場合、イベント順に依存します。</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/WriteDialog.ui" line="241"/>
+        <source>Add new text to the end</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1258,7 +1587,7 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="unfinished">选择导出目录</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.cpp" line="105"/>
+        <location filename="../src/ui/dialog/WriteDialog.cpp" line="118"/>
         <source>The path must be a directory!</source>
         <translation type="unfinished">路径必须是一个目录！</translation>
     </message>
@@ -1349,64 +1678,73 @@ Unchecked text and images are excluded from translation.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="420"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="404"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="404"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="447"/>
         <source>Write Translate CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="94"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="104"/>
         <source>Update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="98"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="108"/>
         <source>When updated, the displayed content will be changed to the latest content.
 This process cannot be undone.
 Note:The translation file will not be changed until it is exported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="113"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="123"/>
         <source>Update Projects...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="115"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="125"/>
         <source>Update to the latest content...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="128"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="140"/>
+        <source>Failed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="141"/>
+        <source>Failed. Please check the log.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="145"/>
         <source>Done.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="133"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="150"/>
         <source> Complete.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="271"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="312"/>
         <source>Update Plugin...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="310"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="353"/>
         <source>Write Translate Files...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="350"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="393"/>
         <source>Write Translate Files(First)...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="400"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="443"/>
         <source>To export CSV, please select a language</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1414,52 +1752,52 @@ Note:The translation file will not be changed until it is exported.</source>
 <context>
     <name>langscore::CSVEditorTableModel</name>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="198"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="205"/>
         <source>name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="201"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="208"/>
         <source>description</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="204"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="211"/>
         <source>messageWithIcon</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="207"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="214"/>
         <source>battleName</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="210"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="217"/>
         <source>battleMessage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="213"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="220"/>
         <source>message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="216"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="223"/>
         <source>note</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="219"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="226"/>
         <source>other</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="275"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="290"/>
         <source>Original</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csveditor/CSVEditorTableModel.cpp" line="278"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="293"/>
         <source>Type</source>
         <translation type="unfinished"></translation>
     </message>

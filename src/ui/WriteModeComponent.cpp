@@ -132,9 +132,16 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
 
     connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
     connect(_invoker, &invoker::update, this, [this](){ this->update(); });
-    connect(_invoker, &invoker::finish, this, [this](int)
+    connect(_invoker, &invoker::finish, this, [this](int exitCode, QProcess::ExitStatus status)
     {
         this->changeEnabledUIState(true);
+        if(exitCode != invoker::SUCCESS || status == QProcess::CrashExit){
+            //失敗した処理を完了扱いにしない（初回書き出し済みフラグの保存なども行わない）
+            this->ui->logText->insertPlainText(tr("Failed."));
+            this->dispatch(StatusMessage, {tr("Failed. Please check the log."), 5000});
+            invokeType = InvokeType::None;
+            return;
+        }
         this->ui->logText->insertPlainText(tr("Done."));
 
         if(invokeType == InvokeType::Reanalisys){
@@ -227,8 +234,13 @@ void WriteModeComponent::clear()
     this->ui->mainFileWordCount->setText("");
 
     this->showAllScriptContents = true;
+    //ツリー・表を作り直すと Undo 履歴が保持している項目が削除されるため、履歴も破棄する
+    this->history->clear();
     this->fileTree->clear();
+    this->mainTable->clear();
     this->scriptTable->clear();
+    //再解析・プロジェクト切り替え後は保持している編集データが古くなるため破棄する（保存は SaveProject で済んでいる）
+    this->csvEditDataManager->closeAllSessions();
     this->scriptViewer->clear();
     for(auto langButton : this->languageButtons){
         this->ui->langTabGrid->removeWidget(langButton);
@@ -286,11 +298,13 @@ void WriteModeComponent::exportPlugin()
         return;
     }
 
-    QDir lsProjDir(this->setting->langscoreProjectDirectory);
-    auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
-    this->setting->writeObj.exportDirectory     = relativePath;
+    //アプリ再起動後など、このセッションで書き出しをしていない場合は保存済みの出力先をそのまま使う
+    if(lastWritePath.isEmpty() == false) {
+        QDir lsProjDir(this->setting->langscoreProjectDirectory);
+        this->setting->writeObj.exportDirectory = lsProjDir.relativeFilePath(lastWritePath);
+    }
     this->setting->writeObj.enableLanguagePatch = dialog.isEnableLanguagePatch();
-    this->setting->setPackingDirectory(relativePath);
+    this->setting->setPackingDirectory(this->setting->writeObj.exportDirectory);
 
     this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
 

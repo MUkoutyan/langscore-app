@@ -227,9 +227,10 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
 
 void ScriptCSVTable::clear()
 {
-    if(currentModel)  { 
-        currentModel->deleteLater();  
-        currentModel = nullptr; 
+    if(currentModel)  {
+        //モデルは EditDataManager が所有しているので削除せず、接続だけを解除する
+        disconnect(currentModel, nullptr, this, nullptr);
+        currentModel = nullptr;
     }
     if(_proxyModel)   { 
         _proxyModel->deleteLater();   

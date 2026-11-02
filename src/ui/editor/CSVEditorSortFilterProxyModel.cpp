@@ -153,18 +153,25 @@ bool CSVEditorSortFilterProxyModel::filterAcceptsRow(int sourceRow, const QModel
     if(_filterText.isEmpty() == false) 
     {
         const int colCount = srcModel->columnCount(sourceParent);
-        // 特定列のみ検索
-        if(_filterColumn >= 0 && _filterColumn < colCount) {
-            const QModelIndex idx = srcModel->index(sourceRow, _filterColumn, sourceParent);
-            return srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive);
-        }
-
-        // 全列を検索
-        for(int col = 0; col < colCount; ++col) {
+        auto cellContains = [&](int col) {
             const QModelIndex idx = srcModel->index(sourceRow, col, sourceParent);
-            if(srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive)) {
-                return true;
+            return srcModel->data(idx, Qt::DisplayRole).toString().contains(_filterText, Qt::CaseInsensitive);
+        };
+
+        bool matched = false;
+        if(_filterColumn >= 0 && _filterColumn < colCount) {
+            // 特定列のみ検索
+            matched = cellContains(_filterColumn);
+        }
+        else {
+            // 全列を検索
+            for(int col = 0; col < colCount && matched == false; ++col) {
+                matched = cellContains(col);
             }
+        }
+        //一致しない行は隠す。一致した行も、下の「翻訳済みの行を隠す」の判定を続けて行う
+        if(matched == false) {
+            return false;
         }
     }
 

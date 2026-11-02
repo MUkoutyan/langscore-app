@@ -370,7 +370,8 @@ void CSVEditor::translateSelectedCells()
         request.targetLang = targetLang;
         request.row = cellIndex.row();
         request.column = cellIndex.column();
-        
+        pendingTranslationCells[{request.row, request.column}] = QPersistentModelIndex(cellIndex);
+
         requests.append(std::move(request));
     }
     
@@ -396,7 +397,9 @@ void CSVEditor::translateSelectedCells()
     if (progressDialog == nullptr) {
         progressDialog = new TranslationProgressDialog(this);
         connect(progressDialog, &TranslationProgressDialog::cancelled, this, [this]() {
-            // Handle cancellation if needed
+            //残りのリクエストを送信せず、届いた結果もセルに書き込まない
+            translationManager->cancelAll();
+            pendingTranslationCells.clear();
         });
     }
     
@@ -463,9 +466,10 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     int successCount = 0;
     
     for (const auto& result : results) {
+        //要求時のセルを永続インデックスで引く。表示が変わっていても同じセルを指し、モデルが変わっていれば無効になる
+        const QPersistentModelIndex cellIndex = pendingTranslationCells.take({result.row, result.column});
         if (result.success && !result.translatedText.isEmpty()) {
-            QModelIndex cellIndex = model()->index(result.row, result.column);
-            if (cellIndex.isValid()) {
+            if (cellIndex.isValid() && cellIndex.model() == model()) {
                 CSVEditCommand::CellEdit edit;
                 edit.index = cellIndex;
                 edit.oldValue = model()->data(cellIndex, Qt::EditRole);
@@ -940,11 +944,14 @@ QString CSVEditor::getSelectedCellsAsText() const
         return a.column() < b.column();
         });
 
-    // 選択された範囲を特定
+    // 選択された範囲を特定（Ctrl+クリックなどの矩形でない選択もあるため、列は全インデックスから求める）
     int minRow = indexes.first().row();
     int maxRow = indexes.last().row();
-    int minCol = indexes.first().column();
-    int maxCol = indexes.last().column();
+    auto [minColIt, maxColIt] = std::minmax_element(indexes.begin(), indexes.end(), [](const QModelIndex& a, const QModelIndex& b) {
+        return a.column() < b.column();
+    });
+    int minCol = minColIt->column();
+    int maxCol = maxColIt->column();
 
     // 選択されたセルを行・列のマップに整理
     QMap<int, QMap<int, QString>> cellData;

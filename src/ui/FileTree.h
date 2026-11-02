@@ -152,7 +152,9 @@ private:
     QIcon warningIcon;
 
 
-    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input);
+    // pendingLength: 末尾で途切れていて、次の出力と結合する必要がある文字数
+    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input, qsizetype& pendingLength);
+    QString pendingErrorText;
     QTreeWidgetItem* findTreeItemByFileName(const QString& fileName);
     QTreeWidgetItem* findTreeItemRecursive(QTreeWidgetItem* parent, const QString& fileName);
     void clearErrorItemsRecursive(QTreeWidgetItem* parent);

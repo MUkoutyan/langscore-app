@@ -101,9 +101,10 @@ ValidationErrorInfo ValidationService::convertErrorInfo(std::vector<QString> csv
 }
 
 
-std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QString& input)
+std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QString& input, qsizetype& pendingLength)
 {
     std::vector<ValidationErrorInfo> errors;
+    pendingLength = 0;
     int pos = 0;
     const int len = input.length();
 
@@ -164,7 +165,11 @@ std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QStr
         }
 
         // 終端が見つからなければ、後続のデータを待つ必要があるので break
+        // divisi は1件を1行で出力するので、行の途中で途切れている場合のみ次の出力と結合するために残す
         if(end == -1) {
+            if(input.indexOf('\n', start) == -1) {
+                pendingLength = len - start;
+            }
             break;
         }
 
@@ -242,7 +247,11 @@ void ValidationService::addErrorText(QString text)
 {
     if(text.isEmpty()) { return; }
 
-    auto infos = processJsonBuffer(text);
+    //標準出力は任意の位置で分割されて届くため、前回途中で途切れた JSON と結合してから解析する
+    const QString input = _pendingText + text;
+    qsizetype pendingLength = 0;
+    auto infos = processJsonBuffer(input, pendingLength);
+    _pendingText = input.right(pendingLength);
     std::vector<ValidationErrorInfo> needUpdateErrorInfos;
     for(auto&& info : infos)
     {

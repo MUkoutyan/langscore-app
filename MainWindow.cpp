@@ -89,6 +89,7 @@ MainWindow::MainWindow(QWidget *parent)
     {
         const auto configFilePath = path+"_langscore/config.json";
         if(QFile::exists(configFilePath)){
+            this->initialAnalysis = false;
             this->setting->setGameProjectPath(path);
             this->openGameProject(std::move(configFilePath));
         }
@@ -104,11 +105,16 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->analyzeDialog, &AnalyzeDialog::toAnalyzeMode, this, [this](){
         initialAnalysis = true;
+        initialAnalysisProjectDir = this->setting->langscoreProjectDirectory;
     });
     connect(this->analyzeDialog, &AnalyzeDialog::toWriteMode, this, [this](QString gameProjPath)
     {
         auto projFile = this->setting->langscoreProjectDirectory+"/config.json";
         if(QFile::exists(projFile) == false){ return; }
+        //解析済みの別プロジェクトを開いた場合は、初回解析の扱い（破棄時の削除）をしない
+        if(this->setting->langscoreProjectDirectory != initialAnalysisProjectDir) {
+            this->initialAnalysis = false;
+        }
         this->openGameProject(std::move(projFile));
     });
 
@@ -156,6 +162,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::openGameProject(QString configFilePath)
 {
+    this->explicitSave = false;
     this->writeUi->clear();
 
     this->setting->load(std::move(configFilePath));
@@ -211,7 +218,9 @@ void MainWindow::closeEvent(QCloseEvent* e)
     }
     else if(button == QMessageBox::Discard)
     {
-        if(this->initialAnalysis && this->explicitSave == false){
+        //初回解析したプロジェクト以外のフォルダは決して削除しない
+        if(this->initialAnalysis && this->explicitSave == false &&
+           this->setting->langscoreProjectDirectory == initialAnalysisProjectDir){
             QDir(this->setting->langscoreProjectDirectory).removeRecursively();
         }
         e->accept();

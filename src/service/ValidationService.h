@@ -26,7 +26,9 @@ private:
 
     std::mutex _mutex;
 
-    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input);
+    // pendingLength: 末尾で途切れていて、次の出力と結合する必要がある文字数
+    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input, qsizetype& pendingLength);
+    QString _pendingText;
     void addErrorText(QString text);
 };
 }

@@ -173,23 +173,44 @@ MultiLineEditDelegate::MultiLineTextEdit::MultiLineTextEdit(QWidget* parent)
     setTabChangesFocus(true);
 }
 
+void MultiLineEditDelegate::MultiLineTextEdit::finishEditing(bool shouldMoveDown)
+{
+    if(_finished) { return; }
+    _finished = true;
+    emit editingFinished(shouldMoveDown);
+}
+
+void MultiLineEditDelegate::MultiLineTextEdit::focusOutEvent(QFocusEvent* event)
+{
+    QTextEdit::focusOutEvent(event);
+
+    //デリゲートのイベントフィルタはラッパーに付いており、フォーカスプロキシのこのウィジェットの FocusOut を受け取れない。
+    //そのため、表の外（保存ボタンなど）をクリックした場合もここで入力内容を確定する。
+    if(event->reason() == Qt::PopupFocusReason) { return; } //右クリックメニューなど
+    for(auto* w = QApplication::focusWidget(); w != nullptr; w = w->parentWidget()) {
+        if(w == this->parentWidget()) { return; } //エディタ内でのフォーカス移動
+    }
+    finishEditing(false);
+}
+
 void MultiLineEditDelegate::MultiLineTextEdit::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) 
     {
         // Ctrl+Enter または Shift+Enter で編集完了
         if (event->modifiers() & Qt::ControlModifier) {
-            emit editingFinished(false);
+            finishEditing(false);
             return;
         }
         else if(event->modifiers() & Qt::ShiftModifier) {
-            emit editingFinished(true);
+            finishEditing(true);
+            return;
         }
         // 通常のEnterは改行
         QTextEdit::keyPressEvent(event);
     } else if (event->key() == Qt::Key_Tab) {
         // Tabで編集完了
-        emit editingFinished(true);
+        finishEditing(true);
     } else {
         QTextEdit::keyPressEvent(event);
     }

@@ -142,7 +142,11 @@ void settings::load(QString path)
     if(projectType == ProjectType::None) {
         QFileInfo lsProjFile(path);
         auto parentDir = lsProjFile.absolutePath();
-        parentDir.remove("_langscore");
+        //パスの途中にある "_langscore" は残し、末尾のものだけを取り除く
+        const QString suffix = "_langscore";
+        if(parentDir.endsWith(suffix)) {
+            parentDir.chop(suffix.size());
+        }
         this->setGameProjectPath(parentDir);
         if(this->projectType == ProjectType::None) { return; }
     }
@@ -166,6 +170,9 @@ void settings::load(QString path)
     writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
     writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(true);
     writeObj.enableAddNewTextToEnd      = write[key(JsonKey::AddNewContentToEnd)].toBool(true);
+    writeObj.overwriteLangscore         = write[key(JsonKey::OverwriteLangscore)].toBool(false);
+    writeObj.overwriteLangscoreCustom   = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
+    writeObj.writeMode                  = write[key(JsonKey::WriteType)].toInt(-1);
     this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
 
     this->isShowHiddenFilesOnTree = write["IsShowHiddenFilesOnTree"].toBool();
@@ -175,12 +182,13 @@ void settings::load(QString path)
     deserializeMapInfoList(this, basicDataList);
     deserializeScripts(this, write[key(JsonKey::RPGMakerScripts)].toArray(), this->tempScriptFileDirectoryPath());
     deserializeIgnorePictures(this, write[key(JsonKey::IgnorePictures)].toArray());
-    deserializePicturesInfo(this, write["Pictures"].toArray());
 
     this->packingInputDirectory = root[key(JsonKey::PackingInputDir)].toString();
     deserializeValidate(this, root[key(JsonKey::Validate)].toObject());
 
+    //画像の表示設定は、画像一覧を構築してから反映する
     loadGraphicsFiles(this);
+    deserializePicturesInfo(this, write["Pictures"].toArray());
 }
 
 // --- Helper function definitions ---
@@ -326,11 +334,14 @@ QJsonArray serializeScripts(const settings::WriteProps& writeObj)
     QJsonArray scripts;
     for(const auto& info : writeObj.scriptInfo) 
     {
-        if(info.isIgnore() == false) { continue; }
+        //スクリプト単位・行単位の無視、または非表示のいずれかがあるスクリプトのみ保存する
+        const bool hasIgnorePoint = std::ranges::any_of(info.lines, [](const auto& point) { return point.ignore; });
+        if(info.ignore == false && hasIgnorePoint == false && info.visible) { continue; }
 
         QJsonObject script;
         script[key(JsonKey::Name)] = info.fileName;
         script[key(JsonKey::Ignore)] = info.isIgnore();
+        script["IsVisible"] = info.visible;
         QJsonArray ignorePointArray;
         for(const auto& point : info.lines) 
         {
@@ -350,7 +361,7 @@ QJsonArray serializeScripts(const settings::WriteProps& writeObj)
                 
             }
             obj[key(JsonKey::Disable)] = false;
-            script[key(JsonKey::Ignore)] = point.ignore;
+            obj[key(JsonKey::Ignore)] = point.ignore;
             ignorePointArray.append(obj);
         }
         script[key(JsonKey::IgnorePoints)] = ignorePointArray;
@@ -474,6 +485,7 @@ void deserializeBasicDataList(settings* s, const QJsonArray& basicScripts)
         try {
             auto& info = s->fetchBasicDataInfo(name);
             info.ignore = isIgnore;
+            info.visible = jsonScript["IsVisible"].toBool(true);
             if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isArray()) {
                 auto typesArray = jsonScript[key(JsonKey::ValidateTextCategory)].toArray();
                 for(const auto& valueTypesData : typesArray) {
@@ -584,6 +596,7 @@ void deserializeMapInfoList(settings* s, const QJsonArray& basicScripts)
         try {
             auto& info = s->fetchMapInfo(name);
             info.ignore = isIgnore;
+            info.visible = jsonScript["IsVisible"].toBool(true);
             files.insert(::withoutAllExtension(name));
             if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isArray()) {
                 auto typesArray = jsonScript[key(JsonKey::ValidateTextCategory)].toArray();
@@ -768,8 +781,9 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
         try {
             auto& info = s->fetchScriptInfo(fileName);
             info.ignore = jsonScript[key(JsonKey::Ignore)].toBool(false);
-            info.lines.clear();
+            info.visible = jsonScript["IsVisible"].toBool(true);
 
+            //解析結果（Scripts.lsjson）の行はそのまま残し、保存されている無視設定だけを反映する
             if(jsonScript.contains(key(JsonKey::IgnorePoints)) && jsonScript[key(JsonKey::IgnorePoints)].isArray()) {
                 auto ignorePointArray = jsonScript[key(JsonKey::IgnorePoints)].toArray();
                 for(const auto& jsonPoint : ignorePointArray) {
@@ -791,10 +805,14 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
                         rc.col = obj[key(JsonKey::Col)].toInteger();
                         pos.d = rc;
                     }
-                    // ignore, disable などのフラグ
-                    pos.ignore = obj[key(JsonKey::Ignore)].toBool(false);
-                    // 他に必要な値があればここでセット
-                    info.lines.push_back(std::move(pos));
+                    //以前の形式は無視する行だけを Ignore キーなしで保存していたため、キーが無い場合は無視扱いにする
+                    const bool ignore = obj[key(JsonKey::Ignore)].toBool(true);
+                    auto line = std::ranges::find_if(info.lines, [&pos](const auto& l) {
+                        return l.type == pos.type && l.d == pos.d;
+                    });
+                    if(line != info.lines.end()) {
+                        line->ignore = ignore;
+                    }
                 }
             }
         }

@@ -79,6 +79,11 @@ void TranslationManager::processNextRequest()
     if (service) {
         service->translateText(request);
     }
+    else {
+        //途中で API キーが削除された場合など。失敗として扱わないとバッチが完了しない
+        onTranslationError(request.requestId, tr("No configured translation service available. (no use api)"));
+        return;
+    }
     
     // Schedule next request with delay to avoid rate limiting
     if (!requestQueue.isEmpty()) {
@@ -177,6 +182,17 @@ TranslationService* TranslationManager::getPreferredService(TranslationService::
     }
     
     return nullptr;
+}
+
+void TranslationManager::cancelAll()
+{
+    requestTimer->stop();
+    requestQueue.clear();
+    //送信済みのリクエストは pendingRequests から外すことで、結果が届いても無視される
+    pendingRequests.clear();
+    batchResults.clear();
+    batchRequestCounts.clear();
+    processing = false;
 }
 
 bool TranslationManager::hasConfiguredService() const

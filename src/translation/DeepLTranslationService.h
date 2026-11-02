@@ -17,6 +17,9 @@ public:
     void translateText(const TranslationRequest& request) override;
     QStringList getSupportedLanguages() const override;
 
+    // APIキーの種類（無料版 / Pro版）に応じたエンドポイントのURL
+    static QString endpointUrl(const QString& apiKey, const QString& api = "translate");
+
 private slots:
     void onTranslationFinished();
 

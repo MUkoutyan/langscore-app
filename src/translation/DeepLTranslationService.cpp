@@ -39,8 +39,7 @@ void DeepLTranslationService::translateText(const TranslationRequest& request)
         return;
     }
 
-    // Use free API endpoint
-    QUrl url("https://api-free.deepl.com/v2/translate");
+    QUrl url(endpointUrl(apiKey));
     QNetworkRequest networkRequest(url);
     networkRequest.setRawHeader("Authorization", QString("DeepL-Auth-Key %1").arg(apiKey).toUtf8());
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -51,13 +50,16 @@ void DeepLTranslationService::translateText(const TranslationRequest& request)
     
     // Add source language if specified
     if (!request.sourceLang.isEmpty()) {
-        QString sourceLang = mapLanguageCode(request.sourceLang);
+        //source_lang は "ZH-HANT" のような地域・字体付きのコードを受け付けない
+        QString sourceLang = mapLanguageCode(request.sourceLang).section('-', 0, 0);
         if (!sourceLang.isEmpty()) {
             postData.addQueryItem("source_lang", sourceLang);
         }
     }
 
-    QNetworkReply* reply = networkManager->post(networkRequest, postData.toString(QUrl::FullyEncoded).toUtf8());
+    //QUrlQuery は "+" をエンコードしないが、form-urlencoded では "+" が空白を意味するため明示的にエンコードする
+    auto body = postData.toString(QUrl::FullyEncoded).replace("+", "%2B").toUtf8();
+    QNetworkReply* reply = networkManager->post(networkRequest, body);
     pendingRequests[reply] = request;
     
     connect(reply, &QNetworkReply::finished, this, &DeepLTranslationService::onTranslationFinished);
@@ -118,16 +120,29 @@ void DeepLTranslationService::onTranslationFinished()
     emit translationError(result.requestId, result.errorMessage);
 }
 
+QString DeepLTranslationService::endpointUrl(const QString& apiKey, const QString& api)
+{
+    //無料版のキーは ":fx" で終わる。それ以外は Pro 版のエンドポイントを使う
+    const QString host = apiKey.endsWith(":fx") ? "api-free.deepl.com" : "api.deepl.com";
+    return QString("https://%1/v2/%2").arg(host, api);
+}
+
 QString DeepLTranslationService::mapLanguageCode(const QString& langCode) const
 {
-    QString normalized = normalizeLanguageCode(langCode);
-    
+    //GetTranslationLanguageCode で変換済みの DeepL コード（"NB", "ZH-HANT" など）はそのまま使う
+    const QString upper = langCode.trimmed().toUpper();
+    if(getSupportedLanguages().contains(upper)) {
+        return upper;
+    }
+
+    QString normalized = normalizeLanguageCode(langCode).toLower();
+
     // DeepL supported languages mapping
     static const QMap<QString, QString> deeplLangCodes = {
         {"en", "EN"},
         {"ja", "JA"},
         {"zh", "ZH"},
-        {"zh-tw", "ZH"},
+        {"zh-tw", "ZH-HANT"},
         {"de", "DE"},
         {"fr", "FR"},
         {"es", "ES"},
@@ -167,7 +182,7 @@ QString DeepLTranslationService::mapLanguageCode(const QString& langCode) const
 QStringList DeepLTranslationService::getSupportedLanguages() const
 {
     return {
-        "EN", "JA", "ZH", "DE", "FR", "ES", "IT", "PT", "RU", "KO",
+        "EN", "JA", "ZH", "ZH-HANS", "ZH-HANT", "DE", "FR", "ES", "IT", "PT", "RU", "KO",
         "NL", "PL", "SV", "DA", "NB", "FI", "CS", "HU", "RO", "SK",
         "SL", "BG", "ET", "LV", "LT", "UK", "TR", "EL", "AR", "HI",
         "ID", "MS", "TH", "VI"

@@ -88,11 +88,10 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
                     auto translates = obj["translates"].toObject();
                     QVector<QString> trans;
                     trans.reserve(_languages.size());
-                    for(const auto& lang : _languages) 
+                    //言語が欠けていても列がずれないよう、_languages と同じ並び・同じ数で格納する
+                    for(const auto& lang : _languages)
                     {
-                        if(translates.contains(lang)) {
-                            trans.append(obj[lang].toString());
-                        }
+                        trans.append(translates[lang].toString());
                     }
                     origToTrans.insert(orig, trans);
                 }
@@ -517,6 +516,12 @@ QVariant ScriptCSVTableModel::headerData(int section, Qt::Orientation orientatio
             return QVariant();
         }
         }
+    }
+
+    // proxy モデルの言語列の非表示・翻訳済み行の非表示に使用する
+    if(role == DataType::IsLanguageColumn) {
+        const int li = section - Columns::LangColumnStart;
+        return 0 <= li && li < _languages.size();
     }
 
     // UserRole: proxy モデルの列フィルタリングに使用する識別子

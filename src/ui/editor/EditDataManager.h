@@ -45,6 +45,8 @@ public:
 
     bool hasUnsavedChanges(const QString& filePath) const;
     void closeSession(const QString& filePath);
+    // 全セッションを破棄する（再解析・プロジェクト切り替えで内容が古くなるため）
+    void closeAllSessions() { sessions_.clear(); }
 
 signals:
     void undoStackChanged(QUndoStack* newStack);

@@ -139,6 +139,9 @@ FileTree::~FileTree()
 
 void FileTree::clear()
 {
+    //削除される項目を画像読み込みの結果で参照しないよう、対応表も破棄する
+    this->graphicsItemMap.clear();
+    this->pendingErrorText.clear();
     this->treeWidget->clear();
 }
 
@@ -412,9 +415,8 @@ void FileTree::setupGraphicsTree()
                 auto* dirItem = new QTreeWidgetItem();
                 dirItem->setText(TreeColIndex::Name, part);
                 dirItem->setData(0, UserRole::ITEM_TYPE, TreeItemType::Pictures);
-                QFileInfo url{graphInfo.filePath};
-                auto path = url.filesystemFilePath();
-                dirItem->setData(TreeColIndex::Name, UserRole::FILE_PATH, QString::fromStdString(path.parent_path().string()));
+                //std::filesystem::path::string() は ANSI コードページに変換され日本語パスが化けるため Qt で求める
+                dirItem->setData(TreeColIndex::Name, UserRole::FILE_PATH, QDir::toNativeSeparators(QFileInfo(graphInfo.filePath).absolutePath()));
                 dirItem->setData(TreeColIndex::Name, UserRole::BASE_TEXT_ITEM, part);
                 parentItem->addChild(dirItem);
                 folderItemMap[currentPath] = dirItem;
@@ -513,7 +515,8 @@ void FileTree::itemSelected()
         if(item == topLevelItem) { return; }
         if(item->parent() == topLevelItem) { return; }
 
-        auto path = ::getFileName(item);
+        //画像の項目はファイルのフルパスを FILE_PATH に持っている（FILE_NAME は未設定）
+        auto path = item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
         if(path.isEmpty()) { return; }
         emit showGraphicsImage(path);
         emit setTabIndex(3);
@@ -763,7 +766,8 @@ void FileTree::writeToScriptListSetting(QTreeWidgetItem* item, bool ignore)
 
 void FileTree::writeToPictureListSetting(QTreeWidgetItem* item, bool ignore)
 {
-    auto filePath = ::getFileName(item);
+    //画像の項目はファイルのフルパスを FILE_PATH に持っている（FILE_NAME は未設定）
+    auto filePath = item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
     if(filePath.isEmpty()) { return; }
     QDir graphicsDir(this->setting->tempGraphicsFileDirectoryPath());
     filePath = graphicsDir.relativeFilePath(filePath);
@@ -852,7 +856,10 @@ void FileTree::updateTreeTextColor()
 
 void FileTree::onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image)
 {
-    if(!item) { return; }
+    //読み込み中にツリーが作り直されると item は削除済みになる。
+    //現在のツリーに存在する項目かを graphicsItemMap で確認してから使う
+    auto it = graphicsItemMap.constFind(filePath);
+    if(it == graphicsItemMap.cend() || it.value() != item) { return; }
     if(image.isNull() == false) {
         this->_suspendHistory = true;
         item->setIcon(column, QIcon(QPixmap::fromImage(image)));
@@ -953,7 +960,8 @@ bool FileTree::filterTreeItem(QTreeWidgetItem* item, const QString& searchText, 
 
     if(shouldShow) {
         auto visible = item->data(0, UserRole::VISIBLE);
-        if(visible.isValid() || visible.toBool() == false) {
+        //非表示に設定された項目のみ隠す（resetItemVisibility と同じ条件）
+        if(visible.isValid() && visible.toBool() == false) {
             shouldShow = false;
         }
     }
@@ -1477,7 +1485,11 @@ void FileTree::addErrorText(QString text)
         return;
     }
 
-    std::vector<ValidationErrorInfo> parsedInfos = this->processJsonBuffer(text);
+    //標準出力は任意の位置で分割されて届くため、前回途中で途切れた JSON と結合してから解析する
+    const QString input = this->pendingErrorText + text;
+    qsizetype pendingLength = 0;
+    std::vector<ValidationErrorInfo> parsedInfos = this->processJsonBuffer(input, pendingLength);
+    this->pendingErrorText = input.right(pendingLength);
 
     this->errorMutex.lock();
     for(auto&& info : parsedInfos)
@@ -1573,9 +1585,10 @@ void FileTree::updateErrorTree()
     }
 }
 
-std::vector<ValidationErrorInfo> FileTree::processJsonBuffer(const QString& input)
+std::vector<ValidationErrorInfo> FileTree::processJsonBuffer(const QString& input, qsizetype& pendingLength)
 {
     std::vector<ValidationErrorInfo> parsedErrors;
+    pendingLength = 0;
     int currentPos = 0;
     const int inputLength = input.length();
 
@@ -1637,6 +1650,10 @@ std::vector<ValidationErrorInfo> FileTree::processJsonBuffer(const QString& inpu
 
         if(endIndex == -1)
         {
+            //divisi は1件を1行で出力する。行の途中で途切れている場合は、続きの出力と結合するため残しておく
+            if(input.indexOf('\n', startIndex) == -1) {
+                pendingLength = inputLength - startIndex;
+            }
             break;
         }
 

@@ -1,5 +1,6 @@
 ﻿#include "TranslationApiSettingsDialog.h"
 #include "ui_TranslationApiSettingsDialog.h"
+#include "translation/DeepLTranslationService.h"
 #include <QMessageBox>
 #include <QTimer>
 #include <QJsonDocument>
@@ -185,7 +186,7 @@ void TranslationApiSettingsDialog::testApiConnection(const QString& service, con
     
     if (service == "deepl") {
         // Test DeepL API with usage endpoint
-        QUrl url("https://api-free.deepl.com/v2/usage");
+        QUrl url(DeepLTranslationService::endpointUrl(apiKey, "usage"));
         request.setUrl(url);
         request.setRawHeader("Authorization", QString("DeepL-Auth-Key %1").arg(apiKey).toUtf8());
         reply = _networkManager->get(request);

@@ -11,7 +11,9 @@ struct CSVEditCommand : public QUndoCommand
     };
 
     struct CellEdit {
-        QModelIndex index;
+        //並べ替え・絞り込みで行が移動しても同じセルを指すよう、永続インデックスで保持する。
+        //表示ファイルの切り替えなどでモデルが変わった場合は無効になり、Undo/Redo の対象外になる。
+        QPersistentModelIndex index;
         QVariant oldValue;
         QVariant newValue;
     };

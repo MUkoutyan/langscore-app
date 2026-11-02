@@ -200,6 +200,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 
     connect(validateButton, &QPushButton::clicked, this, [this]()
     {
+        if(this->currentModel == nullptr) { return; }
         this->currentModel->saveToFile(this->currentFileName);
         this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
     });
@@ -242,12 +243,14 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 void MainCSVTable::clear()
 {
     this->csvEditor->blockSignals(true);
-    
-    // 現在のモデルをクリア
-    if(currentModel) {
-        currentModel->clearAll();
+
+    //モデルは EditDataManager が所有しているので、参照を外すだけにする
+    if(_proxyModel) {
+        _proxyModel->setSourceModel(nullptr);
     }
-    
+    currentModel = nullptr;
+    this->validateButton->setEnabled(false);
+
     this->csvEditor->blockSignals(false);
 
     this->mainFileName->setText("");
@@ -267,26 +270,34 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     auto* mainModel = manager->getMainCSVModel(editedData);
     this->currentModel = mainModel;
     if(mainModel == nullptr) {
+        this->validateButton->setEnabled(false);
         return;
     }
 
 
     this->csvEditor->horizontalHeader()->blockSignals(true);
 
-    if(QFile::exists(editedData) == false) 
+    //モデルは EditDataManager にファイルごとに保持されている。
+    //読み込み済みのモデルを読み直すと未保存の編集が失われるため、未読み込みの場合のみ読み込む。
+    const bool needLoad = (mainModel->columnCount() == 0);
+    if(needLoad)
     {
-        // JSONファイルから読み込み
-        const auto translateFolder = this->setting->analyzeDirectoryPath();
-        const auto filePath = translateFolder + "/" + withoutExtension(fileName) + ".lsjson";
-        mainModel->loadFromJsonFile(filePath);
-    }
-    else {
-        mainModel->loadFromEditCSVFile(editedData);
+        if(QFile::exists(editedData) == false)
+        {
+            // JSONファイルから読み込み
+            const auto translateFolder = this->setting->analyzeDirectoryPath();
+            const auto filePath = translateFolder + "/" + withoutExtension(fileName) + ".lsjson";
+            mainModel->loadFromJsonFile(filePath);
+        }
+        else {
+            mainModel->loadFromEditCSVFile(editedData);
+        }
     }
 
     this->currentFileName = editedData;
+    //検証結果はファイルのベース名をキーにしている（ValidationService / FileTree）
     const auto& errors = this->runtimeData->errors;
-    if(errors.empty() || errors.find(this->currentFileName) == errors.end()) {
+    if(errors.empty() || errors.find(QFileInfo(editedData).baseName()) == errors.end()) {
         this->validateResultListButton->setEnabled(false);
     }
     else {
@@ -294,23 +305,28 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     }
     
     // プロキシモデルを初期化し、テーブルビューに設定
-    if(_proxyModel == nullptr) {
+    const bool isNewProxy = (_proxyModel == nullptr);
+    if(isNewProxy) {
         _proxyModel = new CSVEditorSortFilterProxyModel(this);
         connect(_proxyModel, &CSVEditorSortFilterProxyModel::columnVisibilityChanged,
                 this, &MainCSVTable::restoreColumnWidths);
     }
+    //proxy が参照する IsLanguageColumn で settings を使うため、setSourceModel より前に設定する
+    mainModel->setSettings(this->setting);
+    mainModel->setRuntimeData(this->runtimeData);
     _proxyModel->setSortState(0, SortOrder::None);
     _proxyModel->setSourceModel(mainModel);
     this->csvEditor->setModel(_proxyModel);
-    mainModel->setSettings(this->setting);
-    mainModel->setRuntimeData(this->runtimeData);
-    
-    // 言語列を追加
-    size_t index = 1;
-    for(auto langs = this->setting->languages; auto& lang : langs) {
-        if(lang.enable == false) { continue; }
-        mainModel->insertColumn(index, lang.languageName);
-        index++;
+
+    // 言語列を追加（読み込み直後のみ。読み込み済みのモデルには既に追加されている）
+    if(needLoad)
+    {
+        size_t index = 1;
+        for(auto langs = this->setting->languages; auto& lang : langs) {
+            if(lang.enable == false) { continue; }
+            mainModel->insertColumn(index, lang.languageName);
+            index++;
+        }
     }
     _proxyModel->loadColumnFilterFromSettings();
 
@@ -328,9 +344,15 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     });
 
 
+    //同じ proxy を使い回している間は選択モデルも同じなので、接続はファイルを開くたびではなく一度だけ行う
+    if(isNewProxy == false) {
+        this->csvEditor->horizontalHeader()->blockSignals(false);
+        return;
+    }
     auto selectionModel = this->csvEditor->selectionModel();
     connect(selectionModel, &QItemSelectionModel::selectionChanged, this, [this](const QItemSelection& selected, const QItemSelection& deselected)
     {
+        if(currentModel == nullptr) { return; }
         Q_UNUSED(deselected);
         if(selected.indexes().isEmpty()) {
             this->cellErrorLog->setVisible(false);

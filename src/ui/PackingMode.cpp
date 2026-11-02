@@ -76,8 +76,9 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
     connect(this->ui->packingSourceDirectory, &QLineEdit::textChanged, this, &PackingMode::setPackingSourceDir);
 
     connect(_invoker, &invoker::getStdOut, this->ui->logText, &InvokerLogViewer::writeText);
-    connect(_invoker, &invoker::finish, this, [this](int, QProcess::ExitStatus status)
+    connect(_invoker, &invoker::finish, this, [this](int exitCode, QProcess::ExitStatus status)
     {
+        const bool failed = (exitCode != invoker::SUCCESS || status == QProcess::ExitStatus::CrashExit);
         if(status == QProcess::ExitStatus::CrashExit){
             this->ui->logText->writeText(tr("Crashed."));
         }
@@ -92,13 +93,18 @@ PackingMode::PackingMode(ComponentBase *settings, QWidget *parent)
         }
 
         if(isValidate){
-            if(this->ui->treeWidget->topLevelItemCount() == 0){
+            if(failed == false && this->ui->treeWidget->topLevelItemCount() == 0){
                 this->dispatch(DispatchType::StatusMessage, {tr("Valid!"), 5000});
             }
         }
         else{
             this->ui->validateButton->setEnabled(true);
-            this->dispatch(DispatchType::StatusMessage, {tr("Complete Packing!"), 5000});
+            if(failed == false){
+                this->dispatch(DispatchType::StatusMessage, {tr("Complete Packing!"), 5000});
+            }
+        }
+        if(failed){
+            this->dispatch(DispatchType::StatusMessage, {tr("Failed. Please check the log."), 5000});
         }
 
         // 強制的にテーブルを更新して行の高さを調整

@@ -77,9 +77,10 @@ QString TranslationService::GetTranslationLanguageCode(TranslationService::Servi
         {"simplified chinese", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh"}}},
 
         // Chinese (Traditional)
-        {"traditional chinese", {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
-        {"zh-tw",    {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
-        {"zh_tw",    {{TranslationService::ServiceType::DeepL, "ZH"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
+        // DeepL の "ZH" は簡体字になるため、繁体字は "ZH-HANT" を指定する
+        {"traditional chinese", {{TranslationService::ServiceType::DeepL, "ZH-HANT"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
+        {"zh-tw",    {{TranslationService::ServiceType::DeepL, "ZH-HANT"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
+        {"zh_tw",    {{TranslationService::ServiceType::DeepL, "ZH-HANT"}, {TranslationService::ServiceType::GoogleTranslate, "zh-TW"}}},
 
         // German
         {"german",   {{TranslationService::ServiceType::DeepL, "DE"}, {TranslationService::ServiceType::GoogleTranslate, "de"}}},

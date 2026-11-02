@@ -25,9 +25,7 @@ bool FastCSVContainer::loadFromCsvData(const std::vector<std::vector<CellData>>&
     // データ行を設定
     data_.reserve(csvData.size() - 1);
     for (size_t i = 1; i < csvData.size(); ++i) {
-        auto row = csvData[i];
-        std::transform(row.begin(), row.end(), row.begin(), [this](const auto& field) { return unescapeCSVField(field); });
-        data_.emplace_back(row);
+        data_.emplace_back(csvData[i]);
         
         // 列数が足りない場合は空文字で埋める
         if (data_.back().size() < headers_.size()) {
@@ -40,7 +38,14 @@ bool FastCSVContainer::loadFromCsvData(const std::vector<std::vector<CellData>>&
 }
 
 bool FastCSVContainer::loadFromFile(const CellData& filePath) {
+    //CSV ファイルの値はエスケープされているので、ここで元に戻す。
+    //loadFromCsvData は JSON 由来などのエスケープされていない値も受け取るため、そちらでは戻さない。
     auto csvData = langscore::readCsv(filePath);
+    for (size_t i = 1; i < csvData.size(); ++i) {
+        for (auto& field : csvData[i]) {
+            field = unescapeCSVField(field);
+        }
+    }
     return loadFromCsvData(csvData);
 }
 

@@ -121,6 +121,9 @@ private:
     // Translation
     std::unique_ptr<TranslationManager> translationManager;
     TranslationProgressDialog* progressDialog;
+    // 翻訳要求時の (行, 列) → 書き戻し先のセル。
+    // 翻訳中に並べ替え・絞り込み・ファイル切り替えが行われても、正しいセルに書き戻す（または破棄する）ため
+    QMap<std::pair<int, int>, QPersistentModelIndex> pendingTranslationCells;
     
     QString currentFilePath;
 

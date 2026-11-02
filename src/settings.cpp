@@ -317,7 +317,7 @@ settings::MapInfo& settings::fetchMapInfo(QString _fileName)
     fileName += ".json";
     auto filePath = this->analyzeDirectoryPath() + "/" + fileName;
 
-    if(std::filesystem::exists(filePath.toStdString()) == false) {
+    if(QFileInfo::exists(filePath) == false) {
         throw "Not exists json file";
     }
 
@@ -406,13 +406,10 @@ void settings::updateLangscoreProjectPath()
 {
     //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
     //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
-    auto folderName = this->gameProjectPath.sliced(this->gameProjectPath.lastIndexOf("/")+1).toStdString();
-    auto _path = this->gameProjectPath.toStdString();
-    auto gameProjPath = std::filesystem::path(_path);
-    auto langscoreProj = gameProjPath / ".." / (folderName + "_langscore");
-    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
-    this->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});;
-    this->langscoreProjectDirectory.replace("\\", "/");
+    //std::filesystem::path に UTF-8 の std::string を渡すと ANSI コードページとして解釈され、
+    //日本語などを含むパスで例外になるため Qt でパスを組み立てる。
+    QFileInfo gameProjDir(this->gameProjectPath);
+    this->langscoreProjectDirectory = QDir::cleanPath(gameProjDir.absolutePath() + "/" + gameProjDir.fileName() + "_langscore");
 }
 
 settings::ProjectType settings::getProjectType(const QString& filePath)

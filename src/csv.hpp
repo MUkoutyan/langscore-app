@@ -2,7 +2,9 @@
 
 #include <QString>
 #include <QStringList>
-#include <fstream>
+#include <QFile>
+#include <algorithm>
+#include <vector>
 #include "text_position.h"
 
 
@@ -36,22 +38,25 @@ static std::vector<QString> parseCsvLine(QString line)
         }
         tmp.push_back(c);
     }
-    if(tmp.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
+    //末尾が空の列（"a," の2列目）も1列として扱う
+    if(line.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
 
     return cols;
 }
 
 static std::vector<std::vector<QString>> readCsv(QString path)
 {
-    std::ifstream file(path.toLocal8Bit());
-    if(file.bad()){ return {}; }
+    //std::ifstream に toLocal8Bit() のパスを渡すと ANSI コードページ外の文字を含むパスを開けないため QFile を使う
+    QFile file(path);
+    if(file.open(QIODevice::ReadOnly | QIODevice::Text) == false){ return {}; }
+
+    auto lines = QString::fromUtf8(file.readAll()).split('\n');
+    if(lines.isEmpty() == false && lines.last().isEmpty()){ lines.removeLast(); }
 
     std::vector<QString> rows;
-    std::string _line;
     QString line_buffer;
-    while(std::getline(file, _line))
+    for(const auto& line : lines)
     {
-        QString line = QString::fromStdString(_line);
         auto num_dq = std::count(line.begin(), line.end(), '\"');
 
         if(line_buffer.isEmpty() == false){
@@ -68,10 +73,11 @@ static std::vector<std::vector<QString>> readCsv(QString path)
         }
     }
 
-    bool find_dq = false;
     std::vector<std::vector<QString>> csv;
     for(auto& row : rows)
     {
+        bool find_dq = false;
+        bool reachedLineEnd = false;
         QString tmp = "";
         std::vector<QString> cols;
         for(auto c : row)
@@ -93,11 +99,13 @@ static std::vector<std::vector<QString>> readCsv(QString path)
                 find_dq = false;
                 cols.emplace_back(std::move(tmp));
                 tmp = "";
+                reachedLineEnd = true;
                 break;
             }
             tmp.push_back(c);
         }
-        if(tmp.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
+        //末尾が空の列（翻訳が未入力の列）も1列として扱う
+        if(reachedLineEnd == false && row.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
 
         csv.emplace_back(std::move(cols));
     }
