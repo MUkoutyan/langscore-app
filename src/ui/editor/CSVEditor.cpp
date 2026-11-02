@@ -741,6 +741,9 @@ void CSVEditor::paste()
 {
     QClipboard* clipboard = QGuiApplication::clipboard();
     QString text = clipboard->text();
+    //Windowsのクリップボードは改行が\r\nなので、\nにそろえてから分割する
+    text.replace("\r\n", "\n");
+
     if (!text.isEmpty()) {
         QModelIndexList indexes = getSelectedIndexes();
         if (indexes.isEmpty()) return;
