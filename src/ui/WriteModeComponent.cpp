@@ -487,9 +487,7 @@ void WriteModeComponent::changeUIColor()
 void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
 {
     auto lsProjDir = QDir(this->setting->langscoreProjectDirectory);
-    if(lsProjDir.exists("/Fonts") == false){
-        lsProjDir.mkdir("Fonts");
-    }
+    lsProjDir.mkpath("Fonts"); 
     std::vector<settings::Font> fonts;
     for(auto& path : fontPaths){
 
@@ -607,14 +605,9 @@ void WriteModeComponent::backup()
         };
     }
 
-    if(QDir(this->setting->langscoreProjectDirectory+"/backup").exists() == false){
-        QDir(this->setting->langscoreProjectDirectory).mkdir("/backup");
-    }
-    QString currentDate = QDate().currentDate().toString("yyyy-MM-dd") + "-" + QTime().currentTime().toString("HHmm");
+    QString currentDate = QDate::currentDate().toString("yyyy-MM-dd") + "-" + QTime::currentTime().toString("HHmm");
     QString backupFolderPath = this->setting->langscoreProjectDirectory+"/backup/"+currentDate;
-    if(backupDir.exists() == false){
-        backupDir.mkpath(backupFolderPath);
-    }
+    QDir().mkpath(backupFolderPath);
 
     for(auto& path : backupFiles)
     {
