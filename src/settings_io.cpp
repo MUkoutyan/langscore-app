@@ -151,6 +151,7 @@ void settings::load(QString path)
     }
 
     writeObj = WriteProps{};
+    validateObj = ValidationProps{};
 
     QJsonDocument doc = QJsonDocument::fromJson(QByteArray(file.readAll()));
     QJsonObject root = doc.object();

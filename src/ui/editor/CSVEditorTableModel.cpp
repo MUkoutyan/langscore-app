@@ -32,7 +32,6 @@ bool CSVEditorTableModel::loadFromEditCSVFile(const QString& csv_path)
     endResetModel();
     if(success) {
         currentShowFileName = langscore::getFileNameWithoutExtension(csv_path);
-        _originalData = csvContainer.dataRaw();
     }
     return success;
 }
@@ -201,30 +200,20 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
         
         if(headerData == "type") 
         {
-            if(value == "name"){
-                return tr("name");
-            }
-            else if(value == "description"){
-                return tr("description");
-            }
-            else if(value == "messageWithIcon"){
-                return tr("messageWithIcon");
-            }
-            else if(value == "battleName"){
-                return tr("battleName");
-            }
-            else if(value == "battleMessage"){
-                return tr("battleMessage");
-            }
-            else if(value == "message"){
-                return tr("message");
-            }
-            else if(value == "note"){
-                return tr("note");
-            }
-            else if(value == "other") {
-                return tr("other");
-            }
+            const auto toDisplayName = [](const QString& type) -> QString {
+                if(type == "name") { return tr("name"); }
+                if(type == "description") { return tr("description"); }
+                if(type == "messageWithIcon") { return tr("messageWithIcon"); }
+                if(type == "battleName") { return tr("battleName"); }
+                if(type == "battleMessage") { return tr("battleMessage"); }
+                if(type == "message") { return tr("message"); }
+                if(type == "note") { return tr("note"); }
+                if(type == "other") { return tr("other"); }
+                return type;
+            };
+            auto types = value.split(", ");
+            std::ranges::transform(types, types.begin(), toDisplayName);
+            return types.join(", ");
         }
         else 
         {
@@ -376,54 +365,6 @@ const std::vector<std::vector<QString>>& CSVEditorTableModel::dataRaw() const {
     return csvContainer.dataRaw();
 }
 
-void CSVEditorTableModel::applySort(int column, int order)
-{
-    if(column < 0 || column >= static_cast<int>(csvContainer.columnCount())) {
-        return;
-    }
-
-    if(order == 0) {
-        // ソート解除
-        if(!_originalData.empty()) {
-            beginResetModel();
-            csvContainer.loadFromCsvData(_originalData);
-            endResetModel();
-        }
-        _sortedColumn = -1;
-        _sortOrder = 0;
-        return;
-    }
-
-    // Build vector of row indices
-    std::vector<int> indices(static_cast<size_t>(csvContainer.rowCount()));
-    std::ranges::iota(indices, 0);
-
-    // Sort indices based on column value
-    std::ranges::stable_sort(indices, [this, column, order](int a, int b) 
-    {
-        QString va, vb;
-        csvContainer.getValue(static_cast<size_t>(a), static_cast<size_t>(column), va);
-        csvContainer.getValue(static_cast<size_t>(b), static_cast<size_t>(column), vb);
-        if(order == 1) {
-            return va < vb;
-        }
-        return va > vb;
-    });
-
-    // Rebuild data in new order
-    std::vector<std::vector<QString>> newData;
-    newData.reserve(indices.size());
-    for(int idx : indices) {
-        newData.push_back(csvContainer.dataRaw()[static_cast<size_t>(idx)]);
-    }
-
-    beginResetModel();
-    csvContainer.loadFromCsvData(newData);
-    endResetModel();
-
-    _sortedColumn = column;
-    _sortOrder = order;
-}
 
 bool CSVEditorTableModel::isLanguageColumnHidden(const QString& language) const
 {

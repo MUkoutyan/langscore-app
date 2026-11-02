@@ -255,6 +255,7 @@ void MainCSVTable::clear()
 
     this->mainFileName->setText("");
     this->mainFileWordCount->setText("");
+    this->currentFileName.clear();
 }
 
 void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
@@ -451,6 +452,7 @@ void MainCSVTable::receive(DispatchType type, const QVariantList& args)
         this->validateResultTable->setHorizontalHeaderLabels(QStringList() << tr("Row") << tr("Type") << tr("Language") << tr("Description"));
 
         std::unordered_map<QString, int> header_col;
+        if(this->currentModel == nullptr){ return; }
         auto numHeader = this->currentModel->columnCount();
         for(int i = 0; i < numHeader; ++i) {
             auto headerName = this->currentModel->headerData(i, Qt::Horizontal, Qt::UserRole).toString();

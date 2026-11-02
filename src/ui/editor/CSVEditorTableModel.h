@@ -43,9 +43,6 @@ public:
     void setSettings(std::shared_ptr<settings> setting);
     void setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting);
 
-    // Custom sorting: order = 1 (asc), -1 (desc), 0 (none = restore original)
-    void applySort(int column, int order);
-
     bool isLanguageColumnHidden(const QString& language) const;
 
     void setUseLanguageFont(bool use);
@@ -67,7 +64,6 @@ private:
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;
     std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
-    std::vector<std::vector<QString>> _originalData;
     int _sortedColumn = -1;
     int _sortOrder = 0;
 };

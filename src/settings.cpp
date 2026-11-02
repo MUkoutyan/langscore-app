@@ -71,6 +71,7 @@ void settings::setupFontList()
 {
     //フォントの設定
     QFontDatabase::removeAllApplicationFonts();
+    this->fontIndexList.clear();
 
     auto fontExtensions = QStringList() << "*.ttf" << "*.otf";
     {

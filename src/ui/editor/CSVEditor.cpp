@@ -318,6 +318,12 @@ void CSVEditor::openTranslationSettings()
 
 void CSVEditor::translateSelectedCells()
 {
+    //翻訳中に次の翻訳を始めると、表示上の行・列をキーにした管理が衝突するため受け付けない
+    if(pendingTranslationCells.isEmpty() == false) {
+        QMessageBox::information(this, tr("Translation"), tr("Translation is in progress."));
+        return;
+    }
+    
     QList<QModelIndex> emptyCells = getEmptySelectedCells();
     if (emptyCells.isEmpty()) {
         QMessageBox::information(this, tr("Translation"), 

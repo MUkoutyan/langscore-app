@@ -25,10 +25,10 @@ ValidationService::ValidationService(ComponentBase* t)
     , errorInfoIndex(0)
 {
     connect(_invoker, &invoker::getStdOut, this, &ValidationService::addErrorText);
-    connect(_invoker, &invoker::finish, this, [this](int, QProcess::ExitStatus status)
+    connect(_invoker, &invoker::finish, this, [this](int exitCode, QProcess::ExitStatus status)
     {
-        if(status == QProcess::ExitStatus::CrashExit) {
-
+        if(exitCode != invoker::SUCCESS || status == QProcess::ExitStatus::CrashExit) {
+            this->dispatch(StatusMessage, {tr("Validation failed. Please check the log."), 5000});
         }
         this->_finishInvoke = true;
         this->dispatch(NotifyFinishValidateCSV, {});
@@ -39,6 +39,7 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
 {
     if(type == DispatchType::ValidateCSV) 
     {
+        this->_pendingText.clear();
         this->runtimeData->errors.clear();
         this->runtimeData->updateList.clear();
         this->_finishInvoke = false;
@@ -54,6 +55,7 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
     }
     else if(type == DispatchType::ValidateAll)
     {
+        this->_pendingText.clear();
         this->runtimeData->errors.clear();
         this->runtimeData->updateList.clear();
         this->_finishInvoke = false;
