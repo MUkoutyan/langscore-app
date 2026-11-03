@@ -6,6 +6,7 @@
 #include "dialog/UpdatePluginDialog.h"
 #include "dialog/MessageDialog.h"
 #include "ScriptViewer.h"
+#include "ClipDetectSettingTree.h"
 #include "src/invoker.h"
 #include "../utility.hpp"
 #include "../graphics.hpp"
@@ -76,6 +77,16 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         this->scriptTable = new ScriptCSVTable(this, this->csvEditDataManager, this);
         this->addDispatch(this->scriptTable);
         this->ui->verticalLayout_8->addWidget(this->scriptTable, 1);
+
+        //見切れ検出・制御文字の設定。ログの前に置く
+        this->clipDetectSettingTree = new ClipDetectSettingTree(this->setting, this->history, this);
+        this->ui->tabWidget->insertTab(this->ui->tabWidget->indexOf(this->ui->logTab), this->clipDetectSettingTree, tr("Text Clipping Detect"));
+        //言語の有効・無効で列が変わるため、開くたびに作り直す（言語が同じなら何もしない）
+        connect(this->ui->tabWidget, &QTabWidget::currentChanged, this, [this](int index) {
+            if(this->ui->tabWidget->widget(index) == this->clipDetectSettingTree) {
+                this->clipDetectSettingTree->setup();
+            }
+        });
     }
 
     {
@@ -91,8 +102,6 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     this->ui->modeDesc->hide();
     this->ui->logText->SetSettings(this->setting);
     this->setAcceptDrops(true);
-
-    connect(this->ui->toPackingMode, &QToolButton::clicked, this, &WriteModeComponent::toNextPage);
 
     connect(this->ui->writeCSVAndPluginButton, &QPushButton::clicked, this, &WriteModeComponent::firstExportTranslateFiles);
     connect(this->ui->writeButton, &QPushButton::clicked, this, &WriteModeComponent::exportTranslateFiles);
@@ -465,6 +474,8 @@ void WriteModeComponent::setup()
 
     this->fileTree->setupTree();
     this->scriptTable->setupScriptTable();
+    //設定を読み直した後なので、古い設定を指している項目を残さないよう必ず作り直す
+    this->clipDetectSettingTree->setup(true);
 
     this->changeUIColor();
 

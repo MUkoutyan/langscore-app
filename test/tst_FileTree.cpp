@@ -8,7 +8,8 @@
 #include "FileTree.h"
 #include "EditDataManager.h"
 
-// FileTree.cpp の UserRole::VISIBLE と同じ値
+// FileTree.cpp の UserRole::FILE_NAME / VISIBLE と同じ値
+constexpr int FileNameRole = Qt::UserRole + 2;
 constexpr int VisibleRole = Qt::UserRole + 4;
 
 // runtimeData を参照するために公開する
@@ -16,6 +17,8 @@ struct TestComponent : public ComponentBase
 {
     using ComponentBase::runtimeData;
     using ComponentBase::setting;
+    using ComponentBase::addDispatch;
+    using ComponentBase::dispatch;
 };
 
 class FileTreeTest : public ::testing::Test
@@ -61,18 +64,30 @@ TEST_F(FileTreeTest, SearchShowsVisibleItems)
     EXPECT_TRUE(hiddenItem->isHidden());
 }
 
-TEST_F(FileTreeTest, ErrorJsonSplitAcrossChunks)
+TEST_F(FileTreeTest, ValidationErrorShownOnFileWithExtension)
 {
-    // divisi の標準出力が JSON の途中で分割されて届いても、エラーが失われないこと
-    const QString json = R"({"Type":0,"Summary":0,"File":"C:/data/Actors.csv","Row":3,"Language":"en","Details":""})";
-    const auto half = json.size() / 2;
-    ASSERT_TRUE(QMetaObject::invokeMethod(tree.get(), "addErrorText", Q_ARG(QString, json.left(half))));
-    ASSERT_TRUE(QMetaObject::invokeMethod(tree.get(), "addErrorText", Q_ARG(QString, json.mid(half))));
+    // 検証結果は拡張子なしの名前（Actors）で届くが、拡張子付きの項目（Actors.json）に表示されること。
+    // 次の検証を始めたら、前回の表示は消えること
+    auto* treeWidget = tree->findChild<QTreeWidget*>();
+    ASSERT_NE(treeWidget, nullptr);
+    auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
+    auto* actors = new QTreeWidgetItem(top, {"Actors"});
+    actors->setData(0, FileNameRole, "Actors.json");
 
-    const auto& errors = component->runtimeData->errors;
-    ASSERT_TRUE(errors.contains("Actors"));
-    ASSERT_EQ(errors.at("Actors").size(), size_t{1});
-    EXPECT_EQ(errors.at("Actors")[0].row, std::int64_t{3});
+    ValidationErrorInfo info;
+    info.type = ValidationErrorInfo::Error;
+    info.summary = ValidationErrorInfo::EmptyCol;
+    info.row = 3;
+    info.language = "en";
+    component->runtimeData->errors["Actors"].push_back(info);
+    component->runtimeData->updateList["Actors"] = true;
+
+    component->addDispatch(tree.get());
+    component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
+    EXPECT_EQ(actors->childCount(), 1) << "Actors.json の項目に検証結果が表示されていません";
+
+    component->dispatch(ComponentBase::ValidateCSV, {});
+    EXPECT_EQ(actors->childCount(), 0) << "次の検証を始めても前回の検証結果が残っています";
 }
 
 TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat)

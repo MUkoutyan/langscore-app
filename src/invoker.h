@@ -35,6 +35,7 @@ signals:
 
 private:
     void doProcess(QStringList option);
+    QStringList withPacking(QStringList option) const;
     bool sync;
     QStringList passOption;
 };

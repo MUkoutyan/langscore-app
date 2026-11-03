@@ -145,16 +145,11 @@ private:
 
 
     std::unordered_map<QString, QTreeWidgetItem*> treeTopItemList;
-    size_t errorInfoIndex;
-
     std::mutex errorMutex;
     QIcon attentionIcon;
     QIcon warningIcon;
 
 
-    // pendingLength: 末尾で途切れていて、次の出力と結合する必要がある文字数
-    std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input, qsizetype& pendingLength);
-    QString pendingErrorText;
     QTreeWidgetItem* findTreeItemByFileName(const QString& fileName);
     QTreeWidgetItem* findTreeItemRecursive(QTreeWidgetItem* parent, const QString& fileName);
     void clearErrorItemsRecursive(QTreeWidgetItem* parent);
@@ -164,8 +159,6 @@ private:
     void updateTreeVisibilityScript(QTreeWidgetItem* parentItem);
     void updateTreeVisibilityPictures(QTreeWidgetItem* parentItem);
 
-    //キーはファイルパス
-    ValidationErrorInfo convertErrorInfo(std::vector<QString> csvText);
 
 private slots:
     void onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image);
@@ -174,6 +167,5 @@ private slots:
     void toggleShowHiddenFiles(bool isChecked);
     
     //検証で使用するメソッド
-    void addErrorText(QString text);
     void updateErrorTree();
 };

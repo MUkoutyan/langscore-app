@@ -17,6 +17,8 @@ public:
 
     ValidationErrorInfo convertErrorInfo(std::vector<QString> csvText);
 
+    //divisi の標準出力を受け取り、検証結果に加える
+    void addErrorText(QString text);
 
 private:
 
@@ -29,6 +31,5 @@ private:
     // pendingLength: 末尾で途切れていて、次の出力と結合する必要がある文字数
     std::vector<ValidationErrorInfo> processJsonBuffer(const QString& input, qsizetype& pendingLength);
     QString _pendingText;
-    void addErrorText(QString text);
 };
 }

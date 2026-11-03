@@ -3,7 +3,6 @@
 #include "./src/ui/FormTaskBar.h"
 #include "./src/ui/dialog/AnalyzeDialog.h"
 #include "./src/ui/WriteModeComponent.h"
-#include "./src/ui/PackingMode.h"
 #include "./src/invoker.h"
 
 #include <QFile>
@@ -26,7 +25,6 @@ MainWindow::MainWindow(QWidget *parent)
     , taskBar(new FormTaskBar(this->history, this))
     , analyzeDialog(new AnalyzeDialog(this, this))
     , writeUi(new WriteModeComponent(this, this))
-    , packingUi(new PackingMode(this, this))
     , validationService(new ValidationService(this))
     , undoView(nullptr)
     , initialAnalysis(false)
@@ -38,7 +36,6 @@ MainWindow::MainWindow(QWidget *parent)
     this->dispatchComponentList->emplace_back(this);
 
     this->ui->mainStackedWidget->removeWidget(this->ui->writeMode);
-    this->ui->mainStackedWidget->removeWidget(this->ui->packingMode);
     this->ui->verticalLayout->insertWidget(0, taskBar);
     this->ui->verticalLayout->insertWidget(1, writeUi);
     this->ui->verticalLayout->setStretch(1,1);
@@ -50,18 +47,9 @@ MainWindow::MainWindow(QWidget *parent)
     writeUi->setGraphicsEffect(new QGraphicsBlurEffect);
 
     this->ui->mainStackedWidget->addWidget(this->writeUi);
-    this->ui->mainStackedWidget->addWidget(this->packingUi);
 
     this->addDispatch(validationService);
 
-
-    connect(this->writeUi, &WriteModeComponent::toNextPage, this, [this](){
-        this->ui->mainStackedWidget->setCurrentWidget(this->packingUi);
-    });
-
-    connect(this->packingUi, &PackingMode::toPrevPage, this, [this](){
-        this->ui->mainStackedWidget->setCurrentWidget(this->writeUi);
-    });
 
     connect(this->taskBar, &FormTaskBar::showUndoView, this, &MainWindow::createUndoView);
 
@@ -104,6 +92,8 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
     connect(this->taskBar, &FormTaskBar::validationAll, this, [this]() {
+        //editing の CSV を検証するため、編集中の内容を先に保存する
+        this->dispatch(SaveProject, {});
         this->dispatch(ValidateAll, {});
     });
     //connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);

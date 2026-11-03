@@ -17,7 +17,6 @@ QT_END_NAMESPACE
 
 class WriteModeComponent;
 class AnalyzeDialog;
-class PackingMode;
 class invoker;
 class MainWindow : public FramelessWindow, public ComponentBase
 {
@@ -34,7 +33,6 @@ private:
     FormTaskBar* taskBar;
     AnalyzeDialog* analyzeDialog;
     WriteModeComponent* writeUi;
-    PackingMode* packingUi;
     langscore::ValidationService* validationService;
     QUndoView* undoView;
 

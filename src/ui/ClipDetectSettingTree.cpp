@@ -599,7 +599,7 @@ QVariant ClipDetectSettingTreeModel::headerData(int section, Qt::Orientation ori
 }
 
 
-void ClipDetectSettingTreeModel::setupClipDetectTree()
+void ClipDetectSettingTreeModel::setupClipDetectTree(bool force)
 {
     QStringList currentEnableLangNames;
     for(auto& langs : this->setting->languages) {
@@ -607,7 +607,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
             currentEnableLangNames.emplace_back(langs.languageName);
         }
     }
-    if(enableLangNames == currentEnableLangNames) {
+    if(force == false && enableLangNames == currentEnableLangNames) {
         return;
     }
     enableLangNames = std::move(currentEnableLangNames);
@@ -684,6 +684,14 @@ void ClipDetectSettingTreeModel::setupClipDetectTree()
     }
 
     this->beginResetModel();
+    //force は Undo 履歴を破棄した後なので、古い項目を残す必要は無い。
+    //ponytail: 言語を変えるたびに古いツリーが残る。履歴の破棄時に消えるので量は小さい
+    if(force) {
+        retiredRootItems.clear();
+    }
+    else if(rootItem) {
+        retiredRootItems.emplace_back(std::move(rootItem));
+    }
     rootItem.reset(new TreeNode());
     // Batchという親アイテムを作成
     auto batchTopItem = std::make_unique<TreeNode>();
@@ -1032,9 +1040,9 @@ ClipDetectSettingTree::ClipDetectSettingTree(std::shared_ptr<settings> setting, 
     connect(history, &QUndoStack::indexChanged, this, [this](int) { this->update(); });
 }
 
-void ClipDetectSettingTree::setup()
+void ClipDetectSettingTree::setup(bool force)
 {
-    this->model->setupClipDetectTree();
+    this->model->setupClipDetectTree(force);
 
     this->setColumnWidth(0, 200);
     auto numColumn = this->model->columnCount();

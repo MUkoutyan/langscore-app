@@ -21,6 +21,7 @@ class WriteModeComponent;
 }
 
 class ScriptViewer;
+class ClipDetectSettingTree;
 class LanguageSelectComponent;
 class invoker;
 class WriteModeComponent : public QWidget, public ComponentBase
@@ -32,9 +33,6 @@ public:
 
     void show();
     void clear();
-
-signals:
-    void toNextPage();
 
 public slots:
     void treeItemSelected();
@@ -103,5 +101,6 @@ private:
     FileTree* fileTree;
     MainCSVTable* mainTable;
     ScriptCSVTable* scriptTable;
+    ClipDetectSettingTree* clipDetectSettingTree;
 };
 

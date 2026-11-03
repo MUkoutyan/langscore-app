@@ -202,6 +202,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     {
         if(this->currentModel == nullptr) { return; }
         this->currentModel->saveToFile(this->currentFileName);
+        //終わるまで押せないようにする（NotifyFinishValidateCSV で戻す）
+        this->validateButton->setEnabled(false);
         this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
     });
 
@@ -434,6 +436,7 @@ void MainCSVTable::receive(DispatchType type, const QVariantList& args)
     }
     else if(type == DispatchType::NotifyFinishValidateCSV)
     {
+        this->validateButton->setEnabled(this->currentModel != nullptr);
         const auto& errors = this->runtimeData->errors;
         if(errors.empty()) {
             this->validateResultListButton->setEnabled(false);

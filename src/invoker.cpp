@@ -24,13 +24,23 @@ void invoker::reanalysis(bool sync)
 void invoker::exportFirstTime(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--exportCSV", "--updatePlugin"});
+    return doProcess(withPacking({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--exportCSV", "--updatePlugin"}));
 }
 
 void invoker::exportCSV(bool sync)
 {
     this->sync = sync;
-    return doProcess({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--exportCSV"});
+    return doProcess(withPacking({"-c", "\""+this->setting->langscoreProjectDirectory+"/config.json\"", "--exportCSV"}));
+}
+
+//VXAce は書き出した CSV を Data/Translate にまとめないとゲームで使えないため、書き出しに続けてパッキングする。
+//divisi は --exportCSV の後に --packing を実行する
+QStringList invoker::withPacking(QStringList option) const
+{
+    if(this->setting->projectType == settings::VXAce) {
+        option.append("--packing");
+    }
+    return option;
 }
 
 void invoker::updatePlugin(bool sync)

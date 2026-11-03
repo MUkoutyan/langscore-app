@@ -40,25 +40,6 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QToolButton" name="toPackingMode">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>32</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>PackingMode</string>
-       </property>
-       <property name="toolButtonStyle">
-        <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
-       </property>
-       <property name="arrowType">
-        <enum>Qt::ArrowType::RightArrow</enum>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item>

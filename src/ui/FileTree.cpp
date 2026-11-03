@@ -141,7 +141,6 @@ void FileTree::clear()
 {
     //削除される項目を画像読み込みの結果で参照しないよう、対応表も破棄する
     this->graphicsItemMap.clear();
-    this->pendingErrorText.clear();
     this->treeWidget->clear();
 }
 
@@ -1080,7 +1079,12 @@ void FileTree::updateTreeItemText()
 
 void FileTree::receive(DispatchType type, const QVariantList& args)
 {
-    if(type == DispatchType::NotifyFinishValidateCSV)
+    if(type == DispatchType::ValidateCSV || type == DispatchType::ValidateAll)
+    {
+        //前回の検証結果の表示を消す
+        this->clearErrors();
+    }
+    else if(type == DispatchType::NotifyFinishValidateCSV)
     {
         this->updateErrorTree();
     }
@@ -1390,7 +1394,6 @@ void FileTree::clearErrors()
     std::lock_guard<std::mutex> locker(this->errorMutex);
     this->runtimeData->errors.clear();
     this->runtimeData->updateList.clear();
-    this->errorInfoIndex = 0;
 
     // 既存のツリーアイテムからエラー表示（子アイテムとアイコン）を削除
     const int topLevelCount = this->treeWidget->topLevelItemCount();
@@ -1450,8 +1453,8 @@ QTreeWidgetItem* FileTree::findTreeItemRecursive(QTreeWidgetItem* parent, const 
 
         QString itemFileName = child->data(TreeColIndex::Name, UserRole::FILE_NAME).toString();
 
-        // ファイル名が完全に一致するか判定する
-        if(itemFileName == fileName)
+        //検証結果の鍵は拡張子なしの名前（Actors）、項目は拡張子付き（Actors.json）なので、拡張子を除いて比べる
+        if(langscore::withoutAllExtension(itemFileName) == fileName)
         {
             return child;
         }
@@ -1466,33 +1469,6 @@ QTreeWidgetItem* FileTree::findTreeItemRecursive(QTreeWidgetItem* parent, const 
         }
     }
     return nullptr;
-}
-
-void FileTree::addErrorText(QString text)
-{
-    if(text.isEmpty() == true)
-    {
-        return;
-    }
-
-    //標準出力は任意の位置で分割されて届くため、前回途中で途切れた JSON と結合してから解析する
-    const QString input = this->pendingErrorText + text;
-    qsizetype pendingLength = 0;
-    std::vector<ValidationErrorInfo> parsedInfos = this->processJsonBuffer(input, pendingLength);
-    this->pendingErrorText = input.right(pendingLength);
-
-    this->errorMutex.lock();
-    for(auto&& info : parsedInfos)
-    {
-        QFileInfo fileInfo(info.filePath);
-        QString fileName = fileInfo.baseName();
-
-        this->runtimeData->errors[fileName].emplace_back(std::move(info));
-        this->runtimeData->updateList[fileName] = true;
-    }
-    this->errorMutex.unlock();
-
-    this->update();
 }
 
 void FileTree::updateErrorTree()
@@ -1575,149 +1551,3 @@ void FileTree::updateErrorTree()
     }
 }
 
-std::vector<ValidationErrorInfo> FileTree::processJsonBuffer(const QString& input, qsizetype& pendingLength)
-{
-    std::vector<ValidationErrorInfo> parsedErrors;
-    pendingLength = 0;
-    int currentPos = 0;
-    const int inputLength = input.length();
-
-    while(currentPos < inputLength)
-    {
-        int startIndex = input.indexOf('{', currentPos);
-        if(startIndex == -1)
-        {
-            break;
-        }
-
-        int depth = 0;
-        bool inString = false;
-        bool isEscaped = false;
-        int endIndex = -1;
-
-        for(int i = startIndex; i < inputLength; ++i)
-        {
-            QChar character = input.at(i);
-            if(inString == true)
-            {
-                if(isEscaped == true)
-                {
-                    isEscaped = false;
-                }
-                else
-                {
-                    if(character == '\\')
-                    {
-                        isEscaped = true;
-                    }
-                    else if(character == '"')
-                    {
-                        inString = false;
-                    }
-                }
-            }
-            else
-            {
-                if(character == '"')
-                {
-                    inString = true;
-                }
-                else if(character == '{')
-                {
-                    ++depth;
-                }
-                else if(character == '}')
-                {
-                    --depth;
-                    if(depth == 0)
-                    {
-                        endIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if(endIndex == -1)
-        {
-            //divisi は1件を1行で出力する。行の途中で途切れている場合は、続きの出力と結合するため残しておく
-            if(input.indexOf('\n', startIndex) == -1) {
-                pendingLength = inputLength - startIndex;
-            }
-            break;
-        }
-
-        QString jsonStr = input.mid(startIndex, endIndex - startIndex + 1).trimmed();
-
-        QJsonParseError parseError;
-        QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
-        if(parseError.error != QJsonParseError::NoError)
-        {
-            qWarning() << "JSON parse error:" << parseError.errorString() << "in:" << jsonStr;
-        }
-        else if(jsonDocument.isObject() == false)
-        {
-            qWarning() << "JSON is not an object:" << jsonStr;
-        }
-        else
-        {
-            QJsonObject jsonObject = jsonDocument.object();
-            ValidationErrorInfo errorInfo;
-
-            this->errorInfoIndex = this->errorInfoIndex + 1;
-            errorInfo.id = this->errorInfoIndex;
-
-            if(jsonObject.contains("Type") == true)
-            {
-                int typeValue = jsonObject.value("Type").toInt();
-                if(ValidationErrorInfo::Error <= typeValue && typeValue < ValidationErrorInfo::Invalid)
-                {
-                    errorInfo.type = static_cast<ValidationErrorInfo::ErrorType>(typeValue);
-                }
-                else
-                {
-                    errorInfo.type = ValidationErrorInfo::Invalid;
-                }
-            }
-
-            if(jsonObject.contains("Summary") == true)
-            {
-                int summaryValue = jsonObject.value("Summary").toInt();
-                if(ValidationErrorInfo::None < summaryValue && summaryValue < ValidationErrorInfo::Max)
-                {
-                    errorInfo.summary = static_cast<ValidationErrorInfo::ErrorSummary>(summaryValue);
-                }
-                else
-                {
-                    errorInfo.summary = ValidationErrorInfo::None;
-                }
-            }
-            if(jsonObject.contains("File") == true)
-            {
-                errorInfo.filePath = jsonObject.value("File").toString();
-            }
-            if(jsonObject.contains("Row") == true)
-            {
-                errorInfo.row = static_cast<size_t>(jsonObject.value("Row").toInteger());
-            }
-            if(jsonObject.contains("Width") == true)
-            {
-                errorInfo.width = jsonObject.value("Width").toInt();
-            }
-            if(jsonObject.contains("Language") == true)
-            {
-                errorInfo.language = jsonObject.value("Language").toString();
-            }
-            if(jsonObject.contains("Details") == true)
-            {
-                errorInfo.detail = jsonObject.value("Details").toString();
-            }
-
-            parsedErrors.emplace_back(std::move(errorInfo));
-        }
-
-        currentPos = endIndex + 1;
-    }
-
-    return parsedErrors;
-}

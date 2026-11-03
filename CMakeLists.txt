@@ -108,9 +108,6 @@ set(PROJECT_SOURCES
     src/ui/WriteModeComponent.ui
     src/ui/LanguageSelectComponent.h
     src/ui/LanguageSelectComponent.cpp
-    src/ui/PackingMode.h
-    src/ui/PackingMode.cpp
-    src/ui/PackingMode.ui
     src/ui/ScriptViewer.h
     src/ui/ScriptViewer.cpp
     src/ui/FramelessWindow.cpp

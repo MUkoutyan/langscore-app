@@ -22,6 +22,7 @@ ValidationService::ValidationService(ComponentBase* t)
     : ComponentBase(t)
     , QObject()
     , _invoker(new invoker(this))
+    , _finishInvoke(true)
     , errorInfoIndex(0)
 {
     connect(_invoker, &invoker::getStdOut, this, &ValidationService::addErrorText);
@@ -37,31 +38,31 @@ ValidationService::ValidationService(ComponentBase* t)
 
 void ValidationService::receive(DispatchType type, const QVariantList& args)
 {
-    if(type == DispatchType::ValidateCSV) 
-    {
-        this->_pendingText.clear();
-        this->runtimeData->errors.clear();
-        this->runtimeData->updateList.clear();
-        this->_finishInvoke = false;
+    if(type != DispatchType::ValidateCSV && type != DispatchType::ValidateAll) { return; }
 
-        QStringList checkFileList;
+    //実行中に次の検証を始めると、前の検証の出力が結果に混ざるため受け付けない
+    if(this->_finishInvoke == false) { return; }
+
+    QStringList checkFileList;
+    if(type == DispatchType::ValidateCSV) {
         for(const auto& var : args) {
             checkFileList.append(var.toString());
         }
-        this->setting->validateObj.csvNameList = checkFileList;
-        this->setting->saveForProject();
-        _invoker->validate();
-        this->setting->validateObj.csvNameList.clear();
     }
-    else if(type == DispatchType::ValidateAll)
-    {
-        this->_pendingText.clear();
-        this->runtimeData->errors.clear();
-        this->runtimeData->updateList.clear();
-        this->_finishInvoke = false;
-        this->setting->saveForProject();
-        _invoker->validate();
+    else {
+        //編集表と行がそろうよう、書き出し先ではなく editing の CSV を検証する
+        checkFileList.append(this->setting->langscoreProjectDirectory + "/editing");
     }
+
+    this->_pendingText.clear();
+    this->runtimeData->errors.clear();
+    this->runtimeData->updateList.clear();
+    this->_finishInvoke = false;
+
+    this->setting->validateObj.csvNameList = checkFileList;
+    this->setting->saveForProject();
+    _invoker->validate();
+    this->setting->validateObj.csvNameList.clear();
 }
 
 ValidationErrorInfo ValidationService::convertErrorInfo(std::vector<QString> csvText)
