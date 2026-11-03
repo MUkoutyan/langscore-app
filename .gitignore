@@ -92,3 +92,4 @@ build/*
 test/.vs
 test/out
 out
+Docs

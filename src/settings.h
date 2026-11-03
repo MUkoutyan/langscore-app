@@ -210,6 +210,7 @@ public:
 
     void updateLangscoreProjectPath();
 
+    QString toIgnorePicturePath(const QString& pictureFilePath) const;
 
     Font getDetafultFont() const;
 

@@ -361,7 +361,7 @@ QJsonArray serializeScripts(const settings::WriteProps& writeObj)
                 
             }
             obj[key(JsonKey::Disable)] = false;
-            obj[key(JsonKey::Ignore)] = point.ignore;
+            //divisi側ではIgnoreがtrueの項目は無視対象から外すため、Ignoreは書かない。
             ignorePointArray.append(obj);
         }
         script[key(JsonKey::IgnorePoints)] = ignorePointArray;
@@ -903,9 +903,16 @@ void deserializePicturesInfo(settings* s, const QJsonArray& jsonIgnorePictures)
     }
 }
 
-void deserializeIgnorePictures(settings* s, const QJsonArray& jsonIgnorePictures) {
+void deserializeIgnorePictures(settings* s, const QJsonArray& jsonIgnorePictures) 
+{
+    const QDir graphicsDir(s->tempGraphicsFileDirectoryPath());
     for(auto jsonPath : jsonIgnorePictures) {
-        s->writeObj.ignorePicturePath.emplace_back(jsonPath.toString());
+        auto path = jsonPath.toString();
+        //旧形式は画像フォルダからの相対パスで、拡張子が付いている
+        if(QFileInfo(path).suffix().isEmpty() == false) {
+            path = s->toIgnorePicturePath(graphicsDir.absoluteFilePath(path));
+        }
+        s->writeObj.ignorePicturePath.emplace_back(path);
     }
 }
 

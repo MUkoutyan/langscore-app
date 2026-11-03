@@ -44,7 +44,7 @@ TEST_F(CSVEditorTableModelTest, LoadJsonKeepsQuotes)
     EXPECT_EQ(model.index(1, 0).data().toString(), QString("a\"\"b"));
 }
 
-// RED: bugfix-proposals.md の不具合。修正後に通る
+// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(CSVEditorTableModelTest, SetDataRejectsReadOnlyColumn) // [1]
 {
     // 編集できない original・type 列は、setData で書き換えられないこと

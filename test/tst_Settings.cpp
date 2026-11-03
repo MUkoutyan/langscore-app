@@ -1,8 +1,11 @@
-#include "test_common.h"
+﻿#include "test_common.h"
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include "settings.h"
 
 // analyze/Scripts.lsjson に Plugin.js の2行を用意した MZ プロジェクトを読み込む
@@ -361,7 +364,7 @@ TEST_F(SettingsTest, PictureVisibleRoundTrip)
     EXPECT_FALSE(picture->visible);
 }
 
-// RED: bugfix-proposals.md の不具合。修正後に通る
+// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(SettingsTest, ScriptIgnoreAllLinesCanBeUnignored) // [5]
 {
     // 全行を個別に無視して保存しても、読み込み後にスクリプト全体の無視にならないこと
@@ -414,8 +417,8 @@ TEST_F(SettingsTest, IgnorePictureSameNameInOtherFolder) // [8]
     WriteFile(dir + "/img/characters/Actor1.png", "dummy");
     settings s;
     s.setGameProjectPath(dir);
-    //FileTree::writeToPictureListSetting と同じく、画像フォルダからの相対パスで保存する
-    s.writeObj.ignorePicturePath = {"faces/Actor1.png"};
+    //divisi と同じ形式（ゲームフォルダからの相対パス・拡張子なし）で保存する [19]
+    s.writeObj.ignorePicturePath = {"img/faces/Actor1"};
     auto configPath = WriteConfig(s);
 
     settings loaded;
@@ -464,4 +467,31 @@ TEST_F(SettingsTest, SetupFontListTwiceNoDuplicate) // [17]
     ASSERT_LT(0u, firstCount);
     s.setupFontList();
     EXPECT_EQ(s.fontIndexList.size(), firstCount);
+}
+
+TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi) // [18]
+{
+    // 無視した行は、divisi が無視対象として扱う形式（Ignore キーが無いか false）で保存されること
+    //divisi は Ignore が true の項目を読み飛ばす（javascriptreader.hpp / rubyreader.hpp の applyIgnoreScriptsAndSwapLineInfo）
+    auto dir = MakeProject("Game", "Game.rmmzproject");
+    settings s;
+    s.setGameProjectPath(dir);
+    WriteFile(s.analyzeDirectoryPath() + "/Scripts.lsjson", ScriptsJson);
+    auto configPath = WriteConfig(s);
+
+    settings loaded;
+    loaded.load(configPath);
+    auto* script = FindScript(loaded, "Plugin.js");
+    ASSERT_NE(script, nullptr);
+    ASSERT_NE(FindLine(*script, 1), nullptr);
+    FindLine(*script, 1)->ignore = true;
+
+    const auto root = QJsonDocument::fromJson(loaded.createJson()).object();
+    const auto scripts = root["Write"].toObject()["RPGMakerScripts"].toArray();
+    ASSERT_EQ(scripts.size(), 1);
+    const auto points = scripts[0].toObject()["IgnorePoints"].toArray();
+    ASSERT_EQ(points.size(), 1);
+    const auto point = points[0].toObject();
+    EXPECT_EQ(point["Row"].toInteger(), 1);
+    EXPECT_FALSE(point["Ignore"].toBool(false));
 }

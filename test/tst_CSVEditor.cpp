@@ -53,7 +53,7 @@ protected:
     }
 };
 
-// RED: bugfix-proposals.md の不具合。修正後に通る
+// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(CSVEditorTest, PasteWindowsLineEnding) // [3]
 {
     // Windows のクリップボード（改行が \r\n）から貼り付けても、セルの末尾に \r が残らないこと

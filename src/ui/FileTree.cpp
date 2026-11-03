@@ -760,6 +760,7 @@ void FileTree::writeToPictureListSetting(QTreeWidgetItem* item, bool ignore)
     //画像の項目はファイルのフルパスを FILE_PATH に持っている（FILE_NAME は未設定）
     auto filePath = item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
     if(filePath.isEmpty()) { return; }
+    filePath = this->setting->toIgnorePicturePath(filePath);
     QDir graphicsDir(this->setting->tempGraphicsFileDirectoryPath());
     filePath = graphicsDir.relativeFilePath(filePath);
     auto& picturePathList = this->setting->writeObj.ignorePicturePath;

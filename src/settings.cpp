@@ -419,6 +419,14 @@ void settings::updateLangscoreProjectPath()
     this->langscoreProjectDirectory = QDir::cleanPath(gameProjDir.absolutePath() + "/" + gameProjDir.fileName() + "_langscore");
 }
 
+//divisiが除外画像の判定に使う形式にする
+//ゲームフォルダからの相対パス・拡張子なし・区切り文字は /
+QString settings::toIgnorePicturePath(const QString& pictureFilePath) const
+{
+    QFileInfo info(pictureFilePath);
+    return QDir(this->gameProjectPath).relativeFilePath(info.absolutePath() + "/" + info.completeBaseName());
+}
+
 settings::ProjectType settings::getProjectType(const QString& filePath)
 {
     QFileInfo info(filePath);

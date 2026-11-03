@@ -54,9 +54,14 @@ add_custom_command(TARGET langscore_tests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:langscore_tests> $<TARGET_FILE_DIR:langscore_tests>
     COMMAND_EXPAND_LISTS
 )
+# 更新処理のテストで divisi.exe の代わりに使う、何もせずに成功する実行ファイル（tst_ProjectUpdate.cpp）
+add_executable(langscore_fake_divisi fake_divisi.cpp)
+add_dependencies(langscore_tests langscore_fake_divisi)
+
 # コピーした DLL からは Qt のプラグインを探せないため、場所を main で設定する（test_main.cpp）
 target_compile_definitions(langscore_tests PRIVATE
     LANGSCORE_QT_PLUGIN_DIR="${QT6_INSTALL_PREFIX}/${QT6_INSTALL_PLUGINS}"
+    "LANGSCORE_FAKE_DIVISI_PATH=\"$<TARGET_FILE:langscore_fake_divisi>\""
 )
 
 # テストを1件ずつ CTest に登録し、Visual Studio のテストエクスプローラーに表示できるようにする
@@ -67,7 +72,13 @@ gtest_discover_tests(langscore_tests
     PROPERTIES RESOURCE_LOCK app_settings_ini
     DISCOVERY_TIMEOUT 60
 )
+# Invoker のテストは exe の隣に divisi.exe が無いことを前提にし、更新処理のテストは偽の divisi.exe を置くため、同時に動かさない
 gtest_discover_tests(langscore_tests
-    TEST_FILTER "-DeepLTranslationServiceTest.*"
+    TEST_FILTER "Invoker.*:ProjectUpdateTest.*"
+    PROPERTIES RESOURCE_LOCK fake_divisi_exe
+    DISCOVERY_TIMEOUT 60
+)
+gtest_discover_tests(langscore_tests
+    TEST_FILTER "-DeepLTranslationServiceTest.*:Invoker.*:ProjectUpdateTest.*"
     DISCOVERY_TIMEOUT 60
 )
