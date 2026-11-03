@@ -80,7 +80,6 @@ private:
 
 
     void setup();
-    void setupTree();
 
     void backup();
 

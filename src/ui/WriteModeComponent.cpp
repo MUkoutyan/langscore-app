@@ -99,7 +99,6 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
         }
     }
 
-    this->ui->modeDesc->hide();
     this->ui->logText->SetSettings(this->setting);
     this->setAcceptDrops(true);
 
