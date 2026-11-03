@@ -44,8 +44,7 @@ TEST_F(CSVEditorTableModelTest, LoadJsonKeepsQuotes)
     EXPECT_EQ(model.index(1, 0).data().toString(), QString("a\"\"b"));
 }
 
-// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
-TEST_F(CSVEditorTableModelTest, SetDataRejectsReadOnlyColumn) // [1]
+TEST_F(CSVEditorTableModelTest, SetDataRejectsReadOnlyColumn)
 {
     // 編集できない original・type 列は、setData で書き換えられないこと
     langscore::CSVEditorTableModel model;
@@ -61,7 +60,7 @@ TEST_F(CSVEditorTableModelTest, SetDataRejectsReadOnlyColumn) // [1]
     EXPECT_EQ(model.getCell(0, 1).value(), QString("Hi"));
 }
 
-TEST_F(CSVEditorTableModelTest, TypeColumnWithMultipleTypes) // [14]
+TEST_F(CSVEditorTableModelTest, TypeColumnWithMultipleTypes)
 {
     // 種類が複数ある行や未知の種類の行でも、Type 列が空欄にならないこと
     langscore::CSVEditorTableModel model;

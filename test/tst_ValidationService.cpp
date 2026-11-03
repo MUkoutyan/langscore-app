@@ -13,8 +13,8 @@ struct ValidationTestComponent : public ComponentBase
     using ComponentBase::setting;
 };
 
-// 仕様の確認（Docs/bugfix-proposals.md [21]）。divisi は ValidateCSVNameList に指定されたファイル・フォルダの CSV を検証する
-TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath) // [21]
+// 仕様の確認。divisi は ValidateCSVNameList に指定されたファイル・フォルダの CSV を検証する
+TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
 {
     // 1ファイルだけ検証するとき、ValidateCSVNameList には editing フォルダの CSV のフルパスが書かれること
     QTemporaryDir tempDir;

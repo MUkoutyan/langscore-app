@@ -388,6 +388,52 @@ bool CSVEditorTableModel::isLanguageColumnHidden(const QString& language) const
     return false;
 }
 
+//editing に保存した CSV の翻訳を、原文が一致する行へ戻す。
+//今の表に無い言語の列（無効にした言語）は、翻訳を失わないよう列ごと足す
+bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
+{
+    FastCSVContainer saved;
+    if(saved.loadFromFile(csvPath) == false) { return false; }
+
+    const auto& savedHeaders = saved.headers();
+    const auto savedOriginalColumn = savedHeaders.indexOf("original");
+    if(savedOriginalColumn < 0) { return false; }
+
+    //原文から、保存した CSV の行を引けるようにする
+    QHash<QString, size_t> savedRowOfOriginal;
+    for(size_t row = 0; row < saved.rowCount(); ++row) {
+        savedRowOfOriginal.insert(saved[row][static_cast<size_t>(savedOriginalColumn)], row);
+    }
+
+    const auto originalColumn = static_cast<size_t>(csvContainer.headers().indexOf("original"));
+
+    beginResetModel();
+    for(qsizetype savedColumn = 0; savedColumn < savedHeaders.size(); ++savedColumn)
+    {
+        const auto& language = savedHeaders[savedColumn];
+        if(language == "original" || language == "type") { continue; }
+
+        //無効にした言語の列は今の表に無いので、type 列の前に足す
+        if(csvContainer.headers().contains(language) == false)
+        {
+            const auto typeColumn = csvContainer.headers().indexOf("type");
+            const auto insertIndex = typeColumn < 0 ? csvContainer.columnCount() : static_cast<size_t>(typeColumn);
+            csvContainer.insertColumn(insertIndex, language, "");
+        }
+        const auto column = static_cast<size_t>(csvContainer.headers().indexOf(language));
+
+        for(size_t row = 0; row < csvContainer.rowCount(); ++row)
+        {
+            const auto savedRow = savedRowOfOriginal.constFind(csvContainer[row][originalColumn]);
+            if(savedRow == savedRowOfOriginal.cend()) { continue; }
+            csvContainer[row][column] = saved[savedRow.value()][static_cast<size_t>(savedColumn)];
+        }
+    }
+    endResetModel();
+    return true;
+}
+
+
 void CSVEditorTableModel::setUseLanguageFont(bool use) {
     this->useLanguageFont = use;
 }

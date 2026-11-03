@@ -83,7 +83,7 @@ namespace {
                 info.folder = relativeFolder;
 
                 //除外リストには画像フォルダからの相対パスが入っている（FileTree::writeToPictureListSetting）
-                const auto relativePath = graphicsFolder.relativeFilePath(pict.absoluteFilePath());
+                const auto relativePath = setting->toIgnorePicturePath(pict.absoluteFilePath());
                 auto& pixtureList = setting->writeObj.ignorePicturePath;
                 if(std::ranges::find(pixtureList, relativePath) != pixtureList.end()) {
                     info.ignore = true;

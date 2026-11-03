@@ -58,6 +58,9 @@ private slots:
     void onSetTabIndex(int index);
 
 private:
+#if defined(LANGSCORE_GUIAPP_TEST)
+    friend class LangscoreAppTest;
+#endif
 
     enum InvokeType {
         None,
@@ -92,10 +95,7 @@ private:
     void dropEvent(QDropEvent* event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
 
-
-#if defined(LANGSCORE_GUIAPP_TEST)
-    friend class LangscoreAppTest;
-#endif
+    bool confirmOverwriteReadOnlyPlugins();
 
     void changeUIColor();
 

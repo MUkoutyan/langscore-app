@@ -281,16 +281,13 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
     //モデルは EditDataManager にファイルごとに保持されている。
     //読み込み済みのモデルを読み直すと未保存の編集が失われるため、未読み込みの場合のみ読み込む。
     const bool needLoad = (mainModel->columnCount() == 0);
+    bool loadedFromAnalyzeResult = false;
     if(needLoad)
     {
-        if(QFile::exists(editedData) == false)
-        {
-            // JSONファイルから読み込み
-            const auto translateFolder = this->setting->analyzeDirectoryPath();
-            const auto filePath = translateFolder + "/" + withoutExtension(fileName) + ".lsjson";
-            mainModel->loadFromJsonFile(filePath);
-        }
-        else {
+        //行は常に最新の解析結果から作る
+        const auto translateFolder = this->setting->analyzeDirectoryPath();
+        loadedFromAnalyzeResult = mainModel->loadFromJsonFile(translateFolder + "/" + withoutExtension(fileName) + ".lsjson");
+        if(loadedFromAnalyzeResult == false && QFile::exists(editedData)) {
             mainModel->loadFromEditCSVFile(editedData);
         }
     }
@@ -328,6 +325,11 @@ void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
             if(lang.enable == false) { continue; }
             mainModel->insertColumn(index, lang.languageName);
             index++;
+        }
+
+        //editing側に保存した翻訳を適用する
+        if(loadedFromAnalyzeResult && QFile::exists(editedData)) {
+            mainModel->mergeTranslationsFromCsv(editedData);
         }
     }
     _proxyModel->loadColumnFilterFromSettings();

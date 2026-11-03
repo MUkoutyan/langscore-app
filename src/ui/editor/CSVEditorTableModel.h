@@ -47,6 +47,8 @@ public:
 
     void setUseLanguageFont(bool use);
 
+    bool mergeTranslationsFromCsv(const QString& csvPath);
+
     QString getCurrentShowFileName() const {
         return currentShowFileName;
     }

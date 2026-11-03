@@ -111,8 +111,7 @@ TEST_F(ScriptCSVTableModelTest, IsLanguageColumn)
     EXPECT_TRUE(model.headerData(Columns::LangColumnStart, Qt::Horizontal, DataType::IsLanguageColumn).toBool());
 }
 
-// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
-TEST_F(ScriptCSVTableModelTest, SaveKeepsDisabledLanguage) // [4]
+TEST_F(ScriptCSVTableModelTest, SaveKeepsDisabledLanguage)
 {
     // 無効にした言語の翻訳が、保存で Scripts.lsjson から消えないこと
     WriteEditJson(R"([{"original": "Hello", "file": "Plugin.js", "row": 1, "col": 2,

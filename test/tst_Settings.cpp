@@ -364,8 +364,7 @@ TEST_F(SettingsTest, PictureVisibleRoundTrip)
     EXPECT_FALSE(picture->visible);
 }
 
-// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
-TEST_F(SettingsTest, ScriptIgnoreAllLinesCanBeUnignored) // [5]
+TEST_F(SettingsTest, ScriptIgnoreAllLinesCanBeUnignored)
 {
     // 全行を個別に無視して保存しても、読み込み後にスクリプト全体の無視にならないこと
     auto dir = MakeProject("Game", "Game.rmmzproject");
@@ -393,7 +392,7 @@ TEST_F(SettingsTest, ScriptIgnoreAllLinesCanBeUnignored) // [5]
     EXPECT_FALSE(script->isIgnore());
 }
 
-TEST_F(SettingsTest, ValidationDataRefForMap) // [6]
+TEST_F(SettingsTest, ValidationDataRefForMap)
 {
     // マップの検証設定は mapDataInfo の各要素を参照し、マップどうしで共有されないこと
     settings s;
@@ -409,7 +408,8 @@ TEST_F(SettingsTest, ValidationDataRefForMap) // [6]
     EXPECT_EQ(&ref2, &s.writeObj.mapDataInfo[1].validateInfo);
 }
 
-TEST_F(SettingsTest, IgnorePictureSameNameInOtherFolder) // [8]
+// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
+TEST_F(SettingsTest, IgnorePictureSameNameInOtherFolder) // [1]
 {
     // 除外した画像と同じ名前でも、別のフォルダにある画像は除外されないこと
     auto dir = MakeProject("Game", "Game.rmmzproject");
@@ -417,7 +417,7 @@ TEST_F(SettingsTest, IgnorePictureSameNameInOtherFolder) // [8]
     WriteFile(dir + "/img/characters/Actor1.png", "dummy");
     settings s;
     s.setGameProjectPath(dir);
-    //divisi と同じ形式（ゲームフォルダからの相対パス・拡張子なし）で保存する [19]
+    //divisi と同じ形式（ゲームフォルダからの相対パス・拡張子なし）で保存する
     s.writeObj.ignorePicturePath = {"img/faces/Actor1"};
     auto configPath = WriteConfig(s);
 
@@ -438,7 +438,7 @@ TEST_F(SettingsTest, IgnorePictureSameNameInOtherFolder) // [8]
     EXPECT_FALSE(character->ignore);
 }
 
-TEST_F(SettingsTest, LoadTwiceKeepsControlCharList) // [13]
+TEST_F(SettingsTest, LoadTwiceKeepsControlCharList)
 {
     // 同じ設定を読み込み直しても、制御文字リストが重複しないこと
     auto dir = MakeProject("Game", "Game.rmmzproject");
@@ -453,7 +453,7 @@ TEST_F(SettingsTest, LoadTwiceKeepsControlCharList) // [13]
     EXPECT_EQ(loaded.validateObj.controlCharList, QStringList{"\\C"});
 }
 
-TEST_F(SettingsTest, SetupFontListTwiceNoDuplicate) // [17]
+TEST_F(SettingsTest, SetupFontListTwiceNoDuplicate)
 {
     // フォント一覧を作り直しても、同じフォントが重複して登録されないこと
     auto dir = MakeProject("Game", "Game.rmmzproject");
@@ -469,7 +469,7 @@ TEST_F(SettingsTest, SetupFontListTwiceNoDuplicate) // [17]
     EXPECT_EQ(s.fontIndexList.size(), firstCount);
 }
 
-TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi) // [18]
+TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi)
 {
     // 無視した行は、divisi が無視対象として扱う形式（Ignore キーが無いか false）で保存されること
     //divisi は Ignore が true の項目を読み飛ばす（javascriptreader.hpp / rubyreader.hpp の applyIgnoreScriptsAndSwapLineInfo）

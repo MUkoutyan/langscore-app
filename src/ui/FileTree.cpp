@@ -761,8 +761,6 @@ void FileTree::writeToPictureListSetting(QTreeWidgetItem* item, bool ignore)
     auto filePath = item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
     if(filePath.isEmpty()) { return; }
     filePath = this->setting->toIgnorePicturePath(filePath);
-    QDir graphicsDir(this->setting->tempGraphicsFileDirectoryPath());
-    filePath = graphicsDir.relativeFilePath(filePath);
     auto& picturePathList = this->setting->writeObj.ignorePicturePath;
     auto result = std::find_if(picturePathList.cbegin(), picturePathList.cend(), [&filePath](const auto& path) {
         return path == filePath;

@@ -53,8 +53,7 @@ protected:
     }
 };
 
-// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
-TEST_F(CSVEditorTest, PasteWindowsLineEnding) // [3]
+TEST_F(CSVEditorTest, PasteWindowsLineEnding)
 {
     // Windows のクリップボード（改行が \r\n）から貼り付けても、セルの末尾に \r が残らないこと
     QGuiApplication::clipboard()->setText("Hi\r\nYo\r\n");
@@ -64,7 +63,7 @@ TEST_F(CSVEditorTest, PasteWindowsLineEnding) // [3]
     EXPECT_EQ(model->getCell(1, 1).value(), QString("Yo"));
 }
 
-TEST_F(CSVEditorTest, PasteSkipsReadOnlyColumn) // [1]
+TEST_F(CSVEditorTest, PasteSkipsReadOnlyColumn)
 {
     // 言語列から右へはみ出して貼り付けても、編集できない type 列は書き換わらないこと
     QGuiApplication::clipboard()->setText("Hi,Changed");
@@ -74,7 +73,7 @@ TEST_F(CSVEditorTest, PasteSkipsReadOnlyColumn) // [1]
     EXPECT_EQ(model->getCell(0, 2).value(), QString("name"));
 }
 
-TEST_F(CSVEditorTest, ClearSkipsOriginalColumn) // [1]
+TEST_F(CSVEditorTest, ClearSkipsOriginalColumn)
 {
     // original 列と言語列をまとめて選んで削除しても、original 列は消えないこと
     //CSVEditor::setText は this を捕まえた singleShot を登録するため、テストではモデルへ直接書き込む

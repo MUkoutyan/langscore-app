@@ -75,8 +75,7 @@ TEST_F(FileTreeTest, ErrorJsonSplitAcrossChunks)
     EXPECT_EQ(errors.at("Actors")[0].row, std::int64_t{3});
 }
 
-// RED: Docs/bugfix-proposals.md の不具合。修正後に通る
-TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat) // [19]
+TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat)
 {
     // 画像のチェックを外すと、divisi が比較する形式（ゲームフォルダからの相対パス・拡張子なし）で除外リストに入ること
     QTemporaryDir tempDir;

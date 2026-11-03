@@ -21,6 +21,7 @@
 #include <QDebug>
 #include <QActionGroup>
 #include <QMimeData>
+#include <QMessageBox>
 #include <QScrollBar>
 #include <QGraphicsBlurEffect>
 #include <QJsonDocument>
@@ -146,6 +147,8 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
 
         if(invokeType == InvokeType::Reanalisys){
             this->clear();
+            //解析フォルダの内容が変わったため、ファイル一覧などを読み直す
+            this->setting->load(this->setting->langscoreProjectDirectory + "/config.json");
             this->setup();
             this->dispatch(StatusMessage, {tr(" Complete."), 3000});
         }
@@ -297,6 +300,11 @@ void WriteModeComponent::exportPlugin()
         return;
     }
 
+    if(this->confirmOverwriteReadOnlyPlugins() == false) {
+        this->changeEnabledUIState(true);
+        return;
+    }
+
     //アプリ再起動後など、このセッションで書き出しをしていない場合は保存済みの出力先をそのまま使う
     if(lastWritePath.isEmpty() == false) {
         QDir lsProjDir(this->setting->langscoreProjectDirectory);
@@ -372,6 +380,11 @@ void WriteModeComponent::firstExportTranslateFiles()
     this->dispatch(DisableBlur, {});
     //this->setGraphicsEffect(nullptr);
     if(execCode == QDialog::Rejected){
+        this->changeEnabledUIState(true);
+        return;
+    }
+
+    if(this->confirmOverwriteReadOnlyPlugins() == false) {
         this->changeEnabledUIState(true);
         return;
     }
@@ -473,6 +486,29 @@ void WriteModeComponent::setup()
 
     this->update();
 }
+
+//上書きされる読み取り専用のプラグインがあれば、上書きしてよいかを確認する。
+//中止した場合は false を返す
+bool WriteModeComponent::confirmOverwriteReadOnlyPlugins()
+{
+    if(this->setting->projectType == settings::VXAce) { return true; }
+    if(this->setting->writeObj.overwriteLangscore == false) { return true; }
+
+    QStringList readOnlyFiles;
+    for(const auto& name : {QString("Langscore.js"), QString("Langscore_ObserverBridge.js")}) {
+        QFileInfo info(this->setting->gameProjectPath + "/js/plugins/" + name);
+        if(info.exists() && info.isWritable() == false) {
+            readOnlyFiles.append(QDir::toNativeSeparators(info.absoluteFilePath()));
+        }
+    }
+    if(readOnlyFiles.isEmpty()) { return true; }
+
+    //次のファイルは読み取り専用です。上書きしますか？
+    const auto answer = QMessageBox::question(this, tr("Overwrite read-only files"),
+        tr("The following files are read-only. Do you want to overwrite them?") + "\n\n" + readOnlyFiles.join("\n"));
+    return answer == QMessageBox::Yes;
+}
+
 
 
 void WriteModeComponent::changeUIColor()
