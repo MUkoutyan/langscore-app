@@ -11,6 +11,7 @@
 #include "../utility.hpp"
 #include "../graphics.hpp"
 #include "../csv.hpp"
+#include "../service/EditingTranslationExporter.h"
 #include <icu.h>
 
 #include <QTimer>
@@ -160,15 +161,19 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             this->setup();
             this->dispatch(StatusMessage, {tr(" Complete."), 3000});
         }
-        else if(invokeType == InvokeType::ExportFirstTime || invokeType == InvokeType::ExportCSV || invokeType == InvokeType::Reanalisys){
-            QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
-            this->setting->isFirstExported = true;
-
-            this->ui->writeCSVAndPluginButton->setVisible(false);
-            this->ui->updatePluginButton->setVisible(true);
-            this->ui->writeButton->setVisible(true);
-
-            this->dispatch(SaveProject,{});
+        else if(invokeType == InvokeType::ExportFirstTime || invokeType == InvokeType::ExportCSV){
+            this->applyEditingTranslationsToExport();
+            //VXAce は翻訳を反映したCSVをパッキングしないとゲームで使えない
+            if(this->setting->projectType == settings::VXAce) {
+                this->changeEnabledUIState(false);
+                invokeType = InvokeType::PackingAfterExport;
+                this->_invoker->packing();
+                return;
+            }
+            this->finishExport();
+        }
+        else if(invokeType == InvokeType::PackingAfterExport){
+            this->finishExport();
         }
         invokeType = InvokeType::None;
     });
@@ -202,7 +207,9 @@ QTreeView::item {
     //connect(scriptTreeManager, &FileTree::scriptTableSelectRow, this, &WriteModeComponent::onScriptTableSelectRow);
     connect(fileTree, &FileTree::showGraphicsImage, this, &WriteModeComponent::onShowGraphicsImage);
     connect(fileTree, &FileTree::showMainFile, this, &WriteModeComponent::onShowMainFile);
-    connect(fileTree, &FileTree::showScriptFile, this, &WriteModeComponent::onShowScriptFile);
+    connect(fileTree, &FileTree::selectMainError, this->mainTable, &MainCSVTable::selectError);
+    connect(this->mainTable, &MainCSVTable::fileProgressChanged, fileTree, &FileTree::setFileProgress);
+connect(fileTree, &FileTree::showScriptFile, this, &WriteModeComponent::onShowScriptFile);
     connect(fileTree, &FileTree::setScriptFileNameLabel, this, &WriteModeComponent::onSetScriptFileNameLabel);
     connect(fileTree, &FileTree::highlightScriptText, this, &WriteModeComponent::onHighlightScriptText);
     connect(fileTree, &FileTree::setTabIndex, this, &WriteModeComponent::onSetTabIndex);
@@ -259,6 +266,12 @@ void WriteModeComponent::clear()
     this->languageButtons.clear();
 
     this->update();
+}
+
+//全検証の前に、まだ開いていないファイルもアプリ側エディターに保存されるよう読み込む
+void WriteModeComponent::loadAllMainFiles()
+{
+    this->mainTable->loadAllMainFiles();
 }
 
 void WriteModeComponent::treeItemSelected()
@@ -472,6 +485,7 @@ void WriteModeComponent::setup()
     }
 
     this->fileTree->setupTree();
+    this->mainTable->notifyAllFileProgress();
     this->scriptTable->setupScriptTable();
     //設定を読み直した後なので、古い設定を指している項目を残さないよう必ず作り直す
     this->clipDetectSettingTree->setup(true);
@@ -495,6 +509,26 @@ void WriteModeComponent::setup()
     }
 
     this->update();
+}
+
+//divisiでアプリ側エディターのCSVを認識するため、エディター内の翻訳をCSVに反映する
+void WriteModeComponent::applyEditingTranslationsToExport()
+{
+    const auto updatedFiles = langscore::ApplyEditingTranslations(*this->setting);
+    //編集した翻訳を %1 個のファイルに反映しました。
+    this->ui->logText->writeText("\n" + tr("Applied the edited translations to %1 files.").arg(updatedFiles.size()) + "\n");
+}
+
+void WriteModeComponent::finishExport()
+{
+    QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
+    this->setting->isFirstExported = true;
+
+    this->ui->writeCSVAndPluginButton->setVisible(false);
+    this->ui->updatePluginButton->setVisible(true);
+    this->ui->writeButton->setVisible(true);
+
+    this->dispatch(SaveProject,{});
 }
 
 //上書きされる読み取り専用のプラグインがあれば、上書きしてよいかを確認する。

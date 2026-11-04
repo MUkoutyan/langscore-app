@@ -30,18 +30,24 @@ class MultiLineEditDelegate::MultiLineTextEdit : public QTextEdit {
     Q_OBJECT
 
 public:
+    //編集を確定した後に移るセル
+    enum class MoveTo { None, Down, Right };
+
     explicit MultiLineTextEdit(QWidget* parent = nullptr);
 
 protected:
+    bool event(QEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
     void focusOutEvent(QFocusEvent* event) override;
 
 private:
     // 編集終了を1度だけ通知する（確定でエディタを閉じる際の FocusOut で二重に通知しないため）
-    void finishEditing(bool shouldMoveDown);
+    void finishEditing(MoveTo moveTo);
     bool _finished = false;
 
 signals:
-    // 編集終了のヒント（次のセルへ行くか等）を渡せるように変更
-    void editingFinished(bool shouldMoveDown);
+    // 編集終了と、次に移るセルを通知する
+    void editingFinished(MultiLineEditDelegate::MultiLineTextEdit::MoveTo moveTo);
+    // 入力を取り消して閉じる（Esc）
+    void editingCanceled();
 };

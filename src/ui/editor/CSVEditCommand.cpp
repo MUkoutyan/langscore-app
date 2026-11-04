@@ -1,4 +1,5 @@
 #include "CSVEditCommand.h"
+#include <algorithm>
 
 
 // CSVEditCommand implementation
@@ -24,4 +25,9 @@ void CSVEditCommand::applyCellEdits(bool isUndo) {
 
     parent->_suppressUndoTracking = false;
     parent->_isModified = true;
+
+    const auto firstValid = std::ranges::find_if(edits, [](const auto& edit) { return edit.index.isValid(); });
+    if(firstValid != edits.end()) {
+        parent->cellEditsApplied(firstValid->index);
+    }
 }

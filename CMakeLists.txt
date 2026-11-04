@@ -135,6 +135,8 @@ set(PROJECT_SOURCES
     src/service/ValidationErrorInfo.h
     src/service/LanguageNames.h
     src/service/LanguageNames.cpp
+    src/service/EditingTranslationExporter.h
+    src/service/EditingTranslationExporter.cpp
 )
 
 include_directories(

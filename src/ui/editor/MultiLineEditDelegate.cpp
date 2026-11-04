@@ -40,7 +40,7 @@ public:
         textEdit->setFrameStyle(QFrame::NoFrame);
 
         // ガイドラベルの作成
-        auto* guideLabel = new QLabel("Ctrl+Enter:Confirm. Tab or Shift+Enter:Confirm and move next.", this);
+        auto* guideLabel = new QLabel(tr("Ctrl+Enter: Confirm  Shift+Enter: Confirm and move down  Tab: Confirm and move right  Esc: Cancel"), this);
         guideLabel->setStyleSheet("color: white; font-size: 8pt; background-color: #505050;");
         guideLabel->setAlignment(Qt::AlignRight);
         // ラベルがエディタを圧迫しないよう高さを固定
@@ -52,17 +52,21 @@ public:
         this->setFocusProxy(textEdit);
 
 
-        connect(textEdit, &MultiLineEditDelegate::MultiLineTextEdit::editingFinished, [delegate, this](bool shouldMoveDown) 
+        connect(textEdit, &MultiLineEditDelegate::MultiLineTextEdit::editingFinished, [delegate, this](MultiLineEditDelegate::MultiLineTextEdit::MoveTo moveTo)
         {
             emit delegate->commitData(this);
             emit delegate->closeEditor(this);
 
-            if(shouldMoveDown == true) 
+            if(moveTo == MultiLineEditDelegate::MultiLineTextEdit::MoveTo::None) { return; }
+            if(auto editor = getCSVEditor(this))
             {
-                if(auto editor = getCSVEditor(this)) {
-                    editor->selectAndEditNextCell();
-                }
+                const bool moveDown = (moveTo == MultiLineEditDelegate::MultiLineTextEdit::MoveTo::Down);
+                editor->selectAndEditNextCell(moveDown ? 1 : 0, moveDown ? 0 : 1);
             }
+        });
+
+        connect(textEdit, &MultiLineEditDelegate::MultiLineTextEdit::editingCanceled, [delegate, this]() {
+            emit delegate->closeEditor(this, QAbstractItemDelegate::RevertModelCache);
         });
     }
 
@@ -99,6 +103,8 @@ void MultiLineEditDelegate::setEditorData(QWidget* _editor, const QModelIndex& i
         }
         
         textEdit->setPlainText(text);
+        //続きを書き足せるよう、カーソルを末尾に置く
+        textEdit->moveCursor(QTextCursor::End);
     }
 }
 
@@ -176,11 +182,26 @@ MultiLineEditDelegate::MultiLineTextEdit::MultiLineTextEdit(QWidget* parent)
     setTabChangesFocus(true);
 }
 
-void MultiLineEditDelegate::MultiLineTextEdit::finishEditing(bool shouldMoveDown)
+void MultiLineEditDelegate::MultiLineTextEdit::finishEditing(MoveTo moveTo)
 {
     if(_finished) { return; }
     _finished = true;
-    emit editingFinished(shouldMoveDown);
+    emit editingFinished(moveTo);
+}
+
+bool MultiLineEditDelegate::MultiLineTextEdit::event(QEvent* event)
+{
+    //Tab は QWidget::event がフォーカス移動に使い keyPressEvent まで届かないため、ここで受け取る
+    if(event->type() == QEvent::KeyPress)
+    {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if(keyEvent->key() == Qt::Key_Tab && keyEvent->modifiers() == Qt::NoModifier)
+        {
+            finishEditing(MoveTo::Right);
+            return true;
+        }
+    }
+    return QTextEdit::event(event);
 }
 
 void MultiLineEditDelegate::MultiLineTextEdit::focusOutEvent(QFocusEvent* event)
@@ -193,7 +214,7 @@ void MultiLineEditDelegate::MultiLineTextEdit::focusOutEvent(QFocusEvent* event)
     for(auto* w = QApplication::focusWidget(); w != nullptr; w = w->parentWidget()) {
         if(w == this->parentWidget()) { return; } //エディタ内でのフォーカス移動
     }
-    finishEditing(false);
+    finishEditing(MoveTo::None);
 }
 
 void MultiLineEditDelegate::MultiLineTextEdit::keyPressEvent(QKeyEvent* event)
@@ -202,18 +223,19 @@ void MultiLineEditDelegate::MultiLineTextEdit::keyPressEvent(QKeyEvent* event)
     {
         // Ctrl+Enter または Shift+Enter で編集完了
         if (event->modifiers() & Qt::ControlModifier) {
-            finishEditing(false);
+            finishEditing(MoveTo::None);
             return;
         }
         else if(event->modifiers() & Qt::ShiftModifier) {
-            finishEditing(true);
+            finishEditing(MoveTo::Down);
             return;
         }
         // 通常のEnterは改行
         QTextEdit::keyPressEvent(event);
-    } else if (event->key() == Qt::Key_Tab) {
-        // Tabで編集完了
-        finishEditing(true);
+    } else if(event->key() == Qt::Key_Escape) {
+        //閉じる際の FocusOut で確定しないよう、終了済みにしてから通知する
+        _finished = true;
+        emit editingCanceled();
     } else {
         QTextEdit::keyPressEvent(event);
     }

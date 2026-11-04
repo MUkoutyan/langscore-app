@@ -44,11 +44,13 @@ static std::vector<QString> parseCsvLine(QString line)
     return cols;
 }
 
+//値はクォートを含んだまま返す。セル内の改行（\r\n / \n）はファイルの内容のまま残す
 static std::vector<std::vector<QString>> readCsv(QString path)
 {
-    //std::ifstream に toLocal8Bit() のパスを渡すと ANSI コードページ外の文字を含むパスを開けないため QFile を使う
+    //std::ifstream に toLocal8Bit() のパスを渡すと ANSI コードページ外の文字を含むパスを開けないため QFile を使う。
+    //Text モードはセル内の \r も消してしまうため、バイナリで読む
     QFile file(path);
-    if(file.open(QIODevice::ReadOnly | QIODevice::Text) == false){ return {}; }
+    if(file.open(QIODevice::ReadOnly) == false){ return {}; }
 
     auto lines = QString::fromUtf8(file.readAll()).split('\n');
     if(lines.isEmpty() == false && lines.last().isEmpty()){ lines.removeLast(); }
@@ -65,6 +67,8 @@ static std::vector<std::vector<QString>> readCsv(QString path)
 
         if(num_dq % 2 == 0){
             line_buffer += line;
+            //行の区切りが \r\n のファイルの \r（セル内ではないもの）
+            if(line_buffer.endsWith('\r')){ line_buffer.chop(1); }
             rows.emplace_back(std::move(line_buffer));
             line_buffer = "";
         }

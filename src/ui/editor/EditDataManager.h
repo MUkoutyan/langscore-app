@@ -39,11 +39,15 @@ public:
     QAbstractTableModel* getOrCreateModel(const QString& filePath, ModelType type = ModelType::MainCSV);
     MainCSVTableModel* getMainCSVModel(const QString& filePath);
     ScriptCSVTableModel* getScriptCSVModel(const QString& filePath);
+    //読み込み済みのモデルを返す。無ければ作らずに nullptr を返す
+    MainCSVTableModel* findMainCSVModel(const QString& filePath) const;
 
     bool saveModel(const QString& filePath);
     bool saveAllModels(const QString& editingDirectory);
 
     bool hasUnsavedChanges(const QString& filePath) const;
+    //検証が終わったときに呼ぶ。検証の後に編集したセルの記録を、開いたすべてのファイルで消す
+    void clearEditedSinceValidation();
     void closeSession(const QString& filePath);
     // 全セッションを破棄する（再解析・プロジェクト切り替えで内容が古くなるため）
     void closeAllSessions() { sessions_.clear(); }

@@ -50,7 +50,8 @@ public:
 
     bool isModified() const { return _isModified; }
 
-    void selectAndEditNextCell();
+    //今のセルから行・列方向に進んだ、次の編集できるセルを編集する
+    void selectAndEditNextCell(int rowStep, int columnStep);
     void hideLanguageColumns();
     bool isLanguageColumnHidden(const QString& language) const;
     void loadColumnFilterSettings();
@@ -60,12 +61,14 @@ protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
 
     bool isEditableIndex(const QModelIndex& index);
+    void cellEditsApplied(const QModelIndex& firstIndex) override;
 
 private slots:
     void onCustomContextMenuRequested(const QPoint& pos);
     void onModelDataChanged();
     void openTranslationSettings();
     void translateSelectedCells();
+    void retranslateSelectedCells();
     void onBatchTranslationCompleted(int batchId, const QList<TranslationManager::BatchTranslationResult>& results);
     void onBatchTranslationError(int batchId, const QString& errorMessage);
     void onTranslationProgress(int batchId, int completed, int total);
@@ -83,6 +86,8 @@ private:
     // Translation helper methods
     bool hasConfiguredTranslationService() const;
     QList<QModelIndex> getEmptySelectedCells() const;
+    QList<QModelIndex> getTranslatableSelectedCells(bool includeTranslated) const;
+    void translateCells(const QList<QModelIndex>& targetCells);
     QString getOriginalTextForRow(int row) const;
     QString getTargetLanguageForColumn(int column, TranslationService::ServiceType serviceType = TranslationService::ServiceType::DeepL) const;
     int findOriginalColumn() const;
@@ -111,6 +116,9 @@ private:
     QAction* selectAllAction;
     QAction* translationSettingsAction;
     QAction* translateAction;
+    QAction* retranslateAction;
+    QAction* undoAction;
+    QAction* redoAction;
     QAction* hideLanguageColumnsAction;
     QAction* showAllColumnsAction;
     
@@ -118,13 +126,12 @@ private:
     QMenu* contextMenu;
     QMenu* translationMenu;
     QMenu* columnVisibilityMenu;
-    QAction* filterSettingsAction;
     
     // Translation
     std::unique_ptr<TranslationManager> translationManager;
     TranslationProgressDialog* progressDialog;
-    // 翻訳要求時の (行, 列) → 書き戻し先のセル。
-    // 翻訳中に並べ替え・絞り込み・ファイル切り替えが行われても、正しいセルに書き戻す（または破棄する）ため
+    // 翻訳要求時の (行, 列) → 書き込み先のセル。
+    // 翻訳中に並べ替え・絞り込み・ファイル切り替えが行われても、正しいセルに書き込む（または破棄する）ため
     QMap<std::pair<int, int>, QPersistentModelIndex> pendingTranslationCells;
     
     QString currentFilePath;

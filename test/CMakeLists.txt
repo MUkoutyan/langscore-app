@@ -62,6 +62,9 @@ add_dependencies(langscore_tests langscore_fake_divisi)
 target_compile_definitions(langscore_tests PRIVATE
     LANGSCORE_QT_PLUGIN_DIR="${QT6_INSTALL_PREFIX}/${QT6_INSTALL_PLUGINS}"
     "LANGSCORE_FAKE_DIVISI_PATH=\"$<TARGET_FILE:langscore_fake_divisi>\""
+    # 日本語パスの確認（tst_DivisiJapanesePath.cpp）で、アプリと一緒に置かれる実際の divisi.exe とテスト用のゲームを使う
+    "LANGSCORE_DIVISI_PATH=\"$<TARGET_FILE_DIR:langscore-app>/bin/divisi.exe\""
+    LANGSCORE_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 # テストを1件ずつ CTest に登録し、Visual Studio のテストエクスプローラーに表示できるようにする

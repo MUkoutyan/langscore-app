@@ -12,11 +12,15 @@
 #include "MainCSVTable.h"
 #include "EditDataManager.h"
 #include "MainCSVTableModel.h"
+#include <QAbstractProxyModel>
+#include <QItemSelectionModel>
+#include "CSVEditor.h"
 
 // setting を参照するために公開する
 struct ProjectUpdateTestComponent : public ComponentBase
 {
     using ComponentBase::setting;
+    using ComponentBase::runtimeData;
 };
 
 namespace
@@ -114,7 +118,7 @@ TEST(ProjectUpdateTest, UpdateReloadsFileList) // [2]
 
 //-------------------------------------------------------------------
 // [3] 一度開いたファイルの表を、更新後の解析結果（lsjson）から作り直すこと
-// 行は lsjson から作り、editing に保存した CSV からは翻訳だけを原文で突き合わせて戻す。
+// 行は lsjson から作り、editing に保存したCSVからは翻訳だけを原文で比較して戻す。
 //-------------------------------------------------------------------
 namespace
 {
@@ -189,7 +193,7 @@ namespace
 // RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(EditedCsvReloadTest, IncludesNewTexts) // [3]
 {
-    // editing に保存した CSV があっても、更新で増えた文章が表に出て、保存した翻訳は残ること
+    // editing に保存したCSVがあっても、更新で増えた文章が表に出て、保存した翻訳は残ること
     WriteAnalyzeResult(R"([
         {"original": "A", "type": ["name"]},
         {"original": "B", "type": ["name"]}
@@ -209,7 +213,7 @@ TEST_F(EditedCsvReloadTest, IncludesNewTexts) // [3]
 // RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(EditedCsvReloadTest, RemovedTextIsDropped) // [3]
 {
-    // ゲームから削除した文章は、editing の CSV に翻訳があっても表に残らないこと
+    // ゲームから削除した文章は、editing のCSVに翻訳があっても表に残らないこと
     WriteAnalyzeResult(R"([
         {"original": "A", "type": ["name"]}
     ])");
@@ -227,7 +231,7 @@ TEST_F(EditedCsvReloadTest, RemovedTextIsDropped) // [3]
 // RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(EditedCsvReloadTest, TranslationMatchedByOriginal) // [3]
 {
-    // 解析結果と editing の CSV で行の並びが違っても、翻訳は原文が同じ行に戻ること
+    // 解析結果と editing のCSVで行の並びが違っても、翻訳は原文が同じ行に戻ること
     WriteAnalyzeResult(R"([
         {"original": "B", "type": ["name"]},
         {"original": "A", "type": ["name"]}
@@ -247,7 +251,7 @@ TEST_F(EditedCsvReloadTest, TranslationMatchedByOriginal) // [3]
 TEST_F(EditedCsvReloadTest, SavedTranslationSurvivesReopen) // [3]
 {
     // アプリで翻訳して保存したファイルを開き直しても、翻訳が残ること。
-    // 原文には CSV でエスケープが必要な文字（, " 改行）を含める
+    // 原文にはCSVでエスケープが必要な文字（, " 改行）を含める
     const QString original = "a,\"b\"\nc";
     WriteAnalyzeResult(R"([
         {"original": "a,\"b\"\nc", "type": ["message"]}
@@ -276,7 +280,7 @@ TEST_F(EditedCsvReloadTest, SavedTranslationSurvivesReopen) // [3]
 // RED: Docs/bugfix-proposals.md の不具合。修正後に通る
 TEST_F(EditedCsvReloadTest, DisabledLanguageIsKeptOnSave) // [3]
 {
-    // 無効にした言語の翻訳も、開いて保存したときに editing の CSV から消えないこと
+    // 無効にした言語の翻訳も、開いて保存したときに editing のCSVから消えないこと
     SetLanguages(*component.setting, {{"en", true}, {"fr", false}});
     WriteAnalyzeResult(R"([
         {"original": "A", "type": ["name"]}
@@ -293,4 +297,134 @@ TEST_F(EditedCsvReloadTest, DisabledLanguageIsKeptOnSave) // [3]
     langscore::CSVEditorTableModel saved(editingCsv);
     EXPECT_EQ(FindCell(saved, "A", "fr"), QString("Bonjour")) << "無効にした言語の翻訳が保存で失われています";
     EXPECT_EQ(FindCell(saved, "A", "en"), QString("Hello"));
+}
+
+// 不具合の再発防止
+TEST_F(EditedCsvReloadTest, LoadAllMainFilesWritesUnopenedFiles)
+{
+    // 全検証の前に、一度も開いていないファイルも editing に保存されること（divisi は editing のCSVだけを検証する）
+    component.setting->fetchBasicDataInfo("Armors");
+    WriteTextFile(component.setting->analyzeDirectoryPath() + "/Armors.lsjson", R"([
+        {"original": "Sword", "type": ["name"]}
+    ])");
+
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    table.loadAllMainFiles();
+    ASSERT_TRUE(manager->saveAllModels(component.setting->langscoreProjectDirectory + "/editing"));
+
+    const auto armorsCsv = component.setting->langscoreProjectDirectory + "/editing/Armors.csv";
+    ASSERT_TRUE(QFile::exists(armorsCsv)) << "開いていない Armors が editing に保存されていません";
+    langscore::CSVEditorTableModel saved(armorsCsv);
+    EXPECT_TRUE(FindRow(saved, "Sword").has_value());
+    EXPECT_TRUE(FindColumn(saved, "en").has_value()) << "言語列がありません";
+}
+
+TEST_F(EditedCsvReloadTest, SelectErrorSelectsItsCell)
+{
+    // 検証結果を指定すると、その行・言語のセルが選択されること
+    WriteAnalyzeResult(R"([
+        {"original": "A", "type": ["name"]},
+        {"original": "B", "type": ["name"]}
+    ])");
+
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    auto* model = OpenActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+
+    //CSV の 2 行目（ヘッダーの次の次）= 原文 B の行の en 列
+    ValidationErrorInfo info;
+    info.type = ValidationErrorInfo::Warning;
+    info.summary = ValidationErrorInfo::EmptyCol;
+    info.row = 2;
+    info.language = "en";
+    info.id = 7;
+    component.runtimeData->errors["Actors"].push_back(info);
+
+    table.selectError(7);
+    QCoreApplication::processEvents();
+
+    //検証結果の一覧（QTableWidget）と取り違えないよう、編集表の型で探す
+    auto* view = table.findChild<CSVEditor*>();
+    ASSERT_NE(view, nullptr);
+    const auto selected = view->selectionModel()->selectedIndexes();
+    ASSERT_EQ(selected.size(), 1);
+    const auto* proxy = qobject_cast<const QAbstractProxyModel*>(view->model());
+    const auto source = proxy ? proxy->mapToSource(selected[0]) : selected[0];
+    EXPECT_EQ(model->getCell(source.row(), 0).value_or(""), QString("B"));
+    EXPECT_EQ(model->headerData(source.column(), Qt::Horizontal, Qt::UserRole).toString(), QString("en"));
+}
+
+//-------------------------------------------------------------------
+// 日本語・空白・CP932 に無い文字（ハングル）を含むフォルダでも、
+// 表の読み込み・保存・開き直し・進捗の計算ができること
+//-------------------------------------------------------------------
+namespace
+{
+    class JapanesePathTest : public EditedCsvReloadTest
+    {
+    protected:
+        void SetUp() override
+        {
+            SetupProject(component, tempDir.filePath(QString(u"日本語 フォルダ/ゲーム_한글")));
+            SetLanguages(*component.setting, {{"en", true}});
+            editingCsv = component.setting->langscoreProjectDirectory + "/editing/Actors.csv";
+        }
+    };
+}
+
+TEST_F(JapanesePathTest, ProjectPath)
+{
+    // 設定の保存・読み込みで、日本語のパスが化けないこと
+    EXPECT_TRUE(component.setting->gameProjectPath.endsWith(QString(u"日本語 フォルダ/ゲーム_한글")));
+    EXPECT_TRUE(QFile::exists(component.setting->langscoreProjectDirectory + "/config.json"));
+    //列の表示設定の保存先は、日本語を含まないキーになること
+    const auto group = langscore::CSVEditorSortFilterProxyModel::settingsGroupForProject(component.setting->langscoreProjectDirectory);
+    EXPECT_TRUE(std::ranges::all_of(group, [](QChar c) { return c.unicode() < 0x80; })) << group.toStdString();
+}
+
+TEST_F(JapanesePathTest, SavedTranslationSurvivesReopen)
+{
+    // 日本語のフォルダに保存した翻訳を、開き直して読めること
+    WriteAnalyzeResult(R"([{"original": "勇者", "type": ["name"]}])");
+    {
+        auto manager = std::make_shared<EditDataManager>();
+        MainCSVTable table(&component, manager);
+        auto* model = OpenActors(component, manager, table);
+        ASSERT_NE(model, nullptr);
+        model->setCell(*FindRow(*model, QString(u"勇者")), *FindColumn(*model, "en"), "Hero");
+        ASSERT_TRUE(manager->saveAllModels(component.setting->langscoreProjectDirectory + "/editing"));
+    }
+    ASSERT_TRUE(QFile::exists(editingCsv));
+
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    auto* model = OpenActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+    EXPECT_EQ(FindCell(*model, QString(u"勇者"), "en"), QString("Hero"));
+}
+
+TEST_F(JapanesePathTest, ProgressOfUnopenedFile)
+{
+    // 開いていないファイルの進捗を、保存した翻訳から数えられること。数えるだけで編集データは作らないこと
+    WriteAnalyzeResult(R"([
+        {"original": "A", "type": ["name"]},
+        {"original": "B", "type": ["name"]}
+    ])");
+    WriteTextFile(editingCsv, "original,en,type\nA,Hello,name\n");
+
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    std::optional<std::pair<int, int>> progress;
+    QObject::connect(&table, &MainCSVTable::fileProgressChanged, [&progress](const QString& fileName, int translatedRows, int totalRows) {
+        if(fileName.startsWith("Actors")) {
+            progress = std::make_pair(translatedRows, totalRows);
+        }
+    });
+    table.notifyAllFileProgress();
+
+    ASSERT_TRUE(progress.has_value());
+    EXPECT_EQ(*progress, std::make_pair(1, 2));
+    EXPECT_EQ(manager->findMainCSVModel(editingCsv), nullptr);
 }

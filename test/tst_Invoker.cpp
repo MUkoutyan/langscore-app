@@ -27,9 +27,10 @@ struct InvokerTestComponent : public ComponentBase
     using ComponentBase::setting;
 };
 
-TEST(Invoker, VXAceExportIncludesPacking)
+TEST(Invoker, ExportDoesNotIncludePacking)
 {
-    // VXAce の書き出しでは、続けてパッキングも行うこと（Data/Translate を作らないとゲームで使えない）
+    // 書き出しではパッキングしないこと。VXAce は、editing の翻訳をCSVに反映してから
+    // WriteModeComponent がパッキングを別に実行する
     InvokerTestComponent component;
     invoker inv(&component);
     int finishCount = 0;
@@ -37,14 +38,11 @@ TEST(Invoker, VXAceExportIncludesPacking)
 
     component.setting->projectType = settings::VXAce;
     inv.exportCSV();
-    EXPECT_TRUE(inv.lastProcessOption().contains("--packing"));
-    inv.exportFirstTime();
-    EXPECT_TRUE(inv.lastProcessOption().contains("--packing"));
-
-    // MV/MZ はパッキング不要
-    component.setting->projectType = settings::MZ;
-    inv.exportCSV();
     EXPECT_FALSE(inv.lastProcessOption().contains("--packing"));
+    inv.exportFirstTime();
+    EXPECT_FALSE(inv.lastProcessOption().contains("--packing"));
+    inv.packing();
+    EXPECT_TRUE(inv.lastProcessOption().contains("--packing"));
 
     EXPECT_TRUE(WaitUntil([&finishCount]() { return 3 <= finishCount; }, 1000));
 }

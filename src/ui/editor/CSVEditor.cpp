@@ -48,6 +48,8 @@ CSVEditor::CSVEditor(std::weak_ptr<EditDataManager> loadFileManager, ComponentBa
     this->setSelectionMode(QAbstractItemView::ExtendedSelection);
     this->setSortingEnabled(false);
     this->setContextMenuPolicy(Qt::CustomContextMenu);
+    //セルを選んで文字を打つだけで入力を始められるようにする（IME の入力も含む）
+    this->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::AnyKeyPressed);
 
     this->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     this->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -111,15 +113,19 @@ void CSVEditor::setupActions()
     
     translateAction = new QAction(tr("Translate Selected Cells"), this);
     connect(translateAction, &QAction::triggered, this, &CSVEditor::translateSelectedCells);
-    
+
+    retranslateAction = new QAction(tr("Retranslate Selected Cells (Overwrite)"), this);
+    connect(retranslateAction, &QAction::triggered, this, &CSVEditor::retranslateSelectedCells);
+
+    //ショートカットはメニューバーの「編集」に付いているため、ここでは付けない（二重に付けると両方効かなくなる）
+    undoAction = history->createUndoAction(this, tr("Undo"));
+    redoAction = history->createRedoAction(this, tr("Redo"));
+
     // Column visibility actions
     hideLanguageColumnsAction = new QAction(tr("Hide Language Columns..."), this);
     connect(hideLanguageColumnsAction, &QAction::triggered, this, &CSVEditor::hideLanguageColumns);
     
-    filterSettingsAction = new QAction(tr("Filter Settings..."), this);
-    connect(filterSettingsAction, &QAction::triggered, this, &CSVEditor::hideLanguageColumns);
-
-    showAllColumnsAction = new QAction(tr("Show All Columns"), this);
+showAllColumnsAction = new QAction(tr("Show All Columns"), this);
     connect(showAllColumnsAction, &QAction::triggered, this, &CSVEditor::showAllColumns);
     
     // アクションを追加
@@ -130,14 +136,18 @@ void CSVEditor::setupActions()
     addAction(selectAllAction);
     addAction(translationSettingsAction);
     addAction(translateAction);
+    addAction(retranslateAction);
     addAction(hideLanguageColumnsAction);
-    addAction(filterSettingsAction);
-    addAction(showAllColumnsAction);
+addAction(showAllColumnsAction);
 }
 
 void CSVEditor::setupContextMenu()
 {
     contextMenu = new QMenu(this);
+
+    contextMenu->addAction(undoAction);
+    contextMenu->addAction(redoAction);
+    contextMenu->addSeparator();
 
     cutAction->setEnabled(true);
     copyAction->setEnabled(true);
@@ -155,6 +165,7 @@ void CSVEditor::setupContextMenu()
     contextMenu->addSeparator();
     translationMenu = contextMenu->addMenu(tr("Translation"));
     translationMenu->addAction(translateAction);
+    translationMenu->addAction(retranslateAction);
     translationMenu->addSeparator();
     translationMenu->addAction(translationSettingsAction);
     
@@ -162,8 +173,7 @@ void CSVEditor::setupContextMenu()
     contextMenu->addSeparator();
     columnVisibilityMenu = contextMenu->addMenu(tr("Column Visibility"));
     columnVisibilityMenu->addAction(hideLanguageColumnsAction);
-    columnVisibilityMenu->addAction(filterSettingsAction);
-    columnVisibilityMenu->addAction(showAllColumnsAction);
+columnVisibilityMenu->addAction(showAllColumnsAction);
     
     // Update menus
     updateTranslationMenu();
@@ -174,20 +184,21 @@ void CSVEditor::updateTranslationMenu()
 {
     if (!translationMenu) return;
     
-    bool hasService = hasConfiguredTranslationService();
-    translationMenu->menuAction()->setVisible(hasService);
-    
-    if (hasService) {
-        // Update translate action based on selection
-        QList<QModelIndex> emptyCells = getEmptySelectedCells();
-        translateAction->setEnabled(!emptyCells.isEmpty());
-        
-        QString actionText = tr("Translate Selected Cells");
-        if (!emptyCells.isEmpty()) {
-            actionText = tr("Translate %1 Empty Cell(s)").arg(emptyCells.size());
-        }
-        translateAction->setText(actionText);
+    //外部翻訳サービスが未設定でも、設定を開けるようにメニューは常に出す
+    const bool hasService = hasConfiguredTranslationService();
+
+    const auto emptyCells = getEmptySelectedCells();
+    translateAction->setEnabled(hasService && emptyCells.isEmpty() == false);
+    QString actionText = tr("Translate Selected Cells");
+    if(hasService == false) {
+        actionText = tr("Translate Selected Cells (Set up translation service first)");
     }
+    else if(emptyCells.isEmpty() == false) {
+        actionText = tr("Translate %1 Empty Cell(s)").arg(emptyCells.size());
+    }
+    translateAction->setText(actionText);
+
+    retranslateAction->setEnabled(hasService && getTranslatableSelectedCells(true).isEmpty() == false);
 }
 
 void CSVEditor::updateColumnVisibilityMenu()
@@ -250,7 +261,7 @@ void CSVEditor::showAllColumns()
     proxy->clearAllHiddenLanguages();
 
     QSettings settings(qApp->applicationDirPath() + "/settings.ini", QSettings::IniFormat);
-    settings.remove("filters");
+    settings.remove(proxy->settingsGroup());
     settings.sync();
 
     updateColumnVisibilityMenu();
@@ -326,12 +337,34 @@ void CSVEditor::translateSelectedCells()
 
     QList<QModelIndex> emptyCells = getEmptySelectedCells();
     if (emptyCells.isEmpty()) {
-        QMessageBox::information(this, tr("Translation"), 
+        QMessageBox::information(this, tr("Translation"),
                                tr("No empty cells selected for translation."));
         return;
     }
-    
-    int originalColumn = findOriginalColumn();
+    translateCells(emptyCells);
+}
+
+//選択したセルを、翻訳済みのものも含めて翻訳し直す
+void CSVEditor::retranslateSelectedCells()
+{
+    if(pendingTranslationCells.isEmpty() == false) {
+        QMessageBox::information(this, tr("Translation"), tr("Translation is in progress."));
+        return;
+    }
+    const auto targetCells = getTranslatableSelectedCells(true);
+    if(targetCells.isEmpty()) { return; }
+
+    const auto button = QMessageBox::question(
+        this, tr("Translation"),
+        tr("The existing translations of %1 cell(s) will be overwritten.\nDo you want to continue?").arg(targetCells.size())
+    );
+    if(button != QMessageBox::Yes) { return; }
+    translateCells(targetCells);
+}
+
+void CSVEditor::translateCells(const QList<QModelIndex>& targetCells)
+{
+    int originalColumn= findOriginalColumn();
     if (originalColumn == -1) {
         QMessageBox::warning(this, tr("Translation Error"), 
                            tr("Could not find 'Original' column for source text.(no use api)"));
@@ -354,8 +387,8 @@ void CSVEditor::translateSelectedCells()
 
     QString sourceLang = TranslationService::GetTranslationLanguageCode(preferredService, this->setting->defaultLanguage);
     bool detectSameLang = false;
-    for (const QModelIndex& cellIndex : emptyCells) {
-        QString originalText = getOriginalTextForRow(cellIndex.row());
+    for (const QModelIndex& cellIndex : targetCells) {
+        QString originalText= getOriginalTextForRow(cellIndex.row());
         QString targetLang = getTargetLanguageForColumn(cellIndex.column(), preferredService);
         
         if (originalText.isEmpty()) {
@@ -416,21 +449,26 @@ void CSVEditor::translateSelectedCells()
     translationManager->translateBatch(requests, preferredService);
 }
 
-QList<QModelIndex> CSVEditor::getEmptySelectedCells() const
+//翻訳の対象にできる、選択中の言語列のセル。includeTranslatedがfalseなら空のセルのみ対象とする。
+QList<QModelIndex> CSVEditor::getTranslatableSelectedCells(bool includeTranslated) const
 {
-    QList<QModelIndex> emptyCells;
-    QModelIndexList selectedIndexes = getSelectedIndexes();
-    
-    for (const QModelIndex& index : selectedIndexes) {
-        if (index.isValid()) {
-            QString cellText = model()->data(index, Qt::EditRole).toString().trimmed();
-            if (cellText.isEmpty()) {
-                emptyCells.append(index);
-            }
+    QList<QModelIndex> result;
+    if(model() == nullptr) { return result; }
+    for(const QModelIndex& index : getSelectedIndexes())
+    {
+        if(index.isValid() == false) { continue; }
+        if((model()->flags(index) & Qt::ItemIsEditable) == 0) { continue; }
+        const bool isEmpty = model()->data(index, Qt::EditRole).toString().trimmed().isEmpty();
+        if(includeTranslated || isEmpty) {
+            result.append(index);
         }
     }
-    
-    return emptyCells;
+    return result;
+}
+
+QList<QModelIndex> CSVEditor::getEmptySelectedCells() const
+{
+    return getTranslatableSelectedCells(false);
 }
 
 QString CSVEditor::getOriginalTextForRow(int row) const
@@ -472,7 +510,7 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     int successCount = 0;
     
     for (const auto& result : results) {
-        //要求時のセルを永続インデックスで引く。表示が変わっていても同じセルを指し、モデルが変わっていれば無効になる
+        //表示が変更されても同一のセルを参照できるように、QPersistentModelIndexを使用すること。
         const QPersistentModelIndex cellIndex = pendingTranslationCells.take({result.row, result.column});
         if (result.success && !result.translatedText.isEmpty()) {
             if (cellIndex.isValid() && cellIndex.model() == model()) {
@@ -547,21 +585,35 @@ void CSVEditor::onModelDataChanged()
     updateColumnVisibilityMenu(); // Update column visibility menu when data changes
 }
 
-void CSVEditor::selectAndEditNextCell()
+void CSVEditor::selectAndEditNextCell(int rowStep, int columnStep)
 {
-    auto currentSelectedIndexes = getSelectedIndexes();
-    if(currentSelectedIndexes.isEmpty()) { return; }
+    if(model() == nullptr) { return; }
+    const auto current = this->currentIndex();
+    if(current.isValid() == false) { return; }
 
-    auto index = currentSelectedIndexes.back();
-    if(this->model()->rowCount() <= index.row()) {
-        return;
+    //編集できない列（原文・種類）は飛ばす。表の端まで来たら何もしない
+    int row = current.row() + rowStep;
+    int column = current.column() + columnStep;
+    while(0 <= row && row < model()->rowCount() && 0 <= column && column < model()->columnCount())
+    {
+        const auto nextIndex = model()->index(row, column);
+        if(isEditableIndex(nextIndex))
+        {
+            this->selectionModel()->setCurrentIndex(nextIndex, QItemSelectionModel::ClearAndSelect);
+            this->scrollTo(nextIndex);
+            this->edit(nextIndex);
+            return;
+        }
+        row += rowStep;
+        column += columnStep;
     }
+}
 
-    this->selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectionFlag::Deselect);
-
-    auto newSelectIndex = this->model()->index(index.row() + 1, index.column(), index.parent());
-    this->selectionModel()->setCurrentIndex(newSelectIndex, QItemSelectionModel::SelectionFlag::Select);
-    this->edit(newSelectIndex);
+void CSVEditor::cellEditsApplied(const QModelIndex& firstIndex)
+{
+    //Undo/Redo したセルが画面の外にあっても分かるように、見える位置まで移動する
+    if(firstIndex.model() != model()) { return; }
+    this->scrollTo(firstIndex);
 }
 
 bool CSVEditor::isEditableIndex(const QModelIndex& index)
@@ -681,7 +733,7 @@ bool CSVEditor::saveAsCSV(const QString& filePath, langscore::CSVEditorTableMode
 {
     QString saveFilePath = filePath;
     if (saveFilePath.isEmpty()) {
-        saveFilePath = QFileDialog::getSaveFileName(this, tr("Save CSV File"), 
+        saveFilePath = QFileDialog::getSaveFileName(this, tr("SaveCSVFile"), 
                                                    currentFilePath, tr("CSV Files (*.csv)"));
         if (saveFilePath.isEmpty()) {
             return false;
@@ -768,12 +820,38 @@ void CSVEditor::paste()
 
         // CSV形式のテキストを正しく行ごとに分割
         QStringList lines = parseCSVRows(text);
-        
+
         QList<CSVEditCommand::CellEdit> edits;
+
+        //1つの値を複数のセルに貼り付けた場合は、選択したすべてのセルに入れる
+        if(lines.size() == 1 && 1 < indexes.size())
+        {
+            const auto fields = parseCSVLine(lines.front());
+            if(fields.size() == 1)
+            {
+                for(const auto& targetIndex : indexes)
+                {
+                    if(isEditableIndex(targetIndex) == false) { continue; }
+                    CSVEditCommand::CellEdit edit;
+                    edit.index = targetIndex;
+                    edit.oldValue = model()->data(targetIndex, Qt::EditRole);
+                    edit.newValue = fields.front();
+                    edits.append(edit);
+                }
+                if(edits.isEmpty() == false) {
+                    executeEditCommand(edits, tr("Paste"));
+                }
+                return;
+            }
+        }
+
+        //表に入りきらなかった分は捨てて通知する。
+        bool overflowed = false;
 
         for(int lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
             int targetRow = minRow + lineIndex;
             if(targetRow >= model()->rowCount()) {
+                overflowed = true;
                 break;
             }
 
@@ -783,6 +861,7 @@ void CSVEditor::paste()
             for(int fieldIndex = 0; fieldIndex < fields.size(); ++fieldIndex) {
                 int targetColumn = minCol + fieldIndex;
                 if(targetColumn >= model()->columnCount()) {
+                    overflowed = true;
                     break;
                 }
 
@@ -801,6 +880,9 @@ void CSVEditor::paste()
 
         if (!edits.isEmpty()) {
             executeEditCommand(edits, tr("Paste"));
+        }
+        if(overflowed) {
+            this->dispatch(StatusMessage, {tr("Some of the pasted cells were outside the table and were not pasted."), 5000});
         }
     }
 }

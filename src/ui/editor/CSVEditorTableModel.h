@@ -4,6 +4,7 @@
 #include <QString>
 #include <vector>
 #include <optional>
+#include <QSet>
 #include "FastCSVContainer.h"
 #include "../ComponentBase.h"
 #include "service/ValidationErrorInfo.h"
@@ -21,7 +22,7 @@ public:
 
     bool loadFromEditCSVFile(const QString& path);
     bool loadFromJsonFile(const QString& filePath);
-    bool saveToFile(const QString& path) const;
+    bool saveToFile(const QString& path);
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -43,8 +44,6 @@ public:
     void setSettings(std::shared_ptr<settings> setting);
     void setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting);
 
-    bool isLanguageColumnHidden(const QString& language) const;
-
     void setUseLanguageFont(bool use);
 
     bool mergeTranslationsFromCsv(const QString& csvPath);
@@ -53,6 +52,13 @@ public:
         return currentShowFileName;
     }
 
+    //保存してから編集されたか
+    bool isModified() const { return _modified; }
+    //検証の後に編集したセルの記録を消す（検証が終わったときに呼ぶ）
+    void clearEditedSinceValidation();
+    //すべての言語が埋まっている行の数と、全体の行数
+    std::pair<int, int> translatedRowCount() const;
+
     void clearAll() {
         beginResetModel();
         csvContainer.clear();
@@ -60,8 +66,16 @@ public:
     }
 
 
+signals:
+    void modifiedChanged(bool modified);
+
 private:
+    void setModified(bool modified);
+    std::vector<const ValidationErrorInfo*> cellErrors(int row, int col) const;
+
     langscore::FastCSVContainer csvContainer;
+    bool _modified = false;
+    QSet<std::pair<int, int>> _editedSinceValidation;
     QString currentShowFileName;
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;

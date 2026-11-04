@@ -92,7 +92,8 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
     connect(this->taskBar, &FormTaskBar::validationAll, this, [this]() {
-        //editing の CSV を検証するため、編集中の内容を先に保存する
+        //divisiでアプリ側エディターのCSVを検証するため、開いていないファイルも読み込んでから保存する
+        this->writeUi->loadAllMainFiles();
         this->dispatch(SaveProject, {});
         this->dispatch(ValidateAll, {});
     });

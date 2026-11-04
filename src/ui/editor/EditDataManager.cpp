@@ -65,6 +65,13 @@ MainCSVTableModel* EditDataManager::getMainCSVModel(const QString& filePath) {
     return qobject_cast<MainCSVTableModel*>(model);
 }
 
+MainCSVTableModel* EditDataManager::findMainCSVModel(const QString& filePath) const
+{
+    const auto it = sessions_.find(filePath);
+    if(it == sessions_.end()) { return nullptr; }
+    return qobject_cast<MainCSVTableModel*>(it->second->model.get());
+}
+
 ScriptCSVTableModel* EditDataManager::getScriptCSVModel(const QString& filePath) {
     auto* model = getOrCreateModel(filePath, ModelType::ScriptCSV);
     return qobject_cast<ScriptCSVTableModel*>(model);
@@ -118,6 +125,17 @@ bool EditDataManager::saveModel(const QString& filePath)
     }
 
     return success;
+}
+
+void EditDataManager::clearEditedSinceValidation()
+{
+    for(const auto& [path, session] : sessions_)
+    {
+        if(session->modelType != ModelType::MainCSV) { continue; }
+        if(auto* mainModel = qobject_cast<MainCSVTableModel*>(session->model.get())) {
+            mainModel->clearEditedSinceValidation();
+        }
+    }
 }
 
 bool EditDataManager::saveAllModels(const QString& editingDirectory)

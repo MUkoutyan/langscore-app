@@ -30,6 +30,7 @@ public:
     enum TreeColIndex {
         CheckBox = 0,
         Name = 0,
+        Progress = 1,
         NumColumn
     };
 
@@ -86,6 +87,8 @@ public:
     void updateTreeVisibility();
 
     void clearErrors();
+    //ファイルの翻訳の進捗を表示する（fileName は拡張子付きでもよい）
+    void setFileProgress(const QString& fileName, int translatedRows, int totalRows);
 
 signals:
     // Scriptタブでスクリプトファイル名に該当する行をスクロール・選択する
@@ -97,6 +100,8 @@ signals:
 
     // MainタブでJSONを表示する
     void showMainFile(const QString& treeItemName, const QString& fileName);
+    // Mainタブで検証結果（ValidationErrorInfo::id）のセルを選択する
+    void selectMainError(quint64 errorId);
 
     // Scriptタブでスクリプトファイルを表示する
     void showScriptFile(const QString& scriptFilePath);

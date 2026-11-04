@@ -84,3 +84,26 @@ TEST_F(CSVEditorTest, ClearSkipsOriginalColumn)
     EXPECT_EQ(model->getCell(0, 0).value(), QString("A"));
     EXPECT_EQ(model->getCell(0, 1).value(), QString());
 }
+
+TEST_F(CSVEditorTest, PasteSingleValueFillsSelection)
+{
+    // 1つの値を複数のセルに貼り付けると、選択したすべてのセルに入ること
+    QGuiApplication::clipboard()->setText("Same");
+    editor->selectionModel()->select(model->index(0, 1), QItemSelectionModel::ClearAndSelect);
+    editor->selectionModel()->select(model->index(1, 1), QItemSelectionModel::Select);
+    editor->paste();
+    EXPECT_EQ(model->getCell(0, 1).value(), QString("Same"));
+    EXPECT_EQ(model->getCell(1, 1).value(), QString("Same"));
+}
+
+TEST_F(CSVEditorTest, NextCellStopsAtTableEdge)
+{
+    // 次のセルへの移動は編集できない列を飛ばし、表の端では動かないこと
+    editor->selectionModel()->setCurrentIndex(model->index(0, 1), QItemSelectionModel::ClearAndSelect);
+    editor->selectAndEditNextCell(0, 1);
+    EXPECT_EQ(editor->currentIndex(), model->index(0, 1));
+    editor->selectAndEditNextCell(1, 0);
+    EXPECT_EQ(editor->currentIndex(), model->index(1, 1));
+    editor->selectAndEditNextCell(1, 0);
+    EXPECT_EQ(editor->currentIndex(), model->index(1, 1));
+}

@@ -33,6 +33,7 @@ public:
 
     void show();
     void clear();
+    void loadAllMainFiles();
 
 public slots:
     void treeItemSelected();
@@ -65,7 +66,8 @@ private:
         ExportFirstTime,
         ExportCSV,
         UpdatePlugin,
-        Reanalisys
+        Reanalisys,
+        PackingAfterExport
     };
 
     Ui::WriteModeComponent* ui;
@@ -93,6 +95,9 @@ private:
     void dragEnterEvent(QDragEnterEvent *event) override;
 
     bool confirmOverwriteReadOnlyPlugins();
+
+    void applyEditingTranslationsToExport();
+    void finishExport();
 
     void changeUIColor();
 

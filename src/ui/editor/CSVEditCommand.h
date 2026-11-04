@@ -6,6 +6,8 @@ struct CSVEditCommand : public QUndoCommand
 {
     struct CellEditsListener {
         virtual void setData(QModelIndex index, QVariant value, int role) = 0;
+        //編集を反映した後に呼ぶ。変更したセルを表示するために使う
+        virtual void cellEditsApplied(const QModelIndex& firstIndex) { Q_UNUSED(firstIndex); }
         bool _suppressUndoTracking = false;
         bool _isModified = false;
     };

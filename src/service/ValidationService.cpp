@@ -50,7 +50,7 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
         }
     }
     else {
-        //編集表と行がそろうよう、書き出し先ではなく editing の CSV を検証する
+        //編集表と行がそろうよう、書き出し先ではなくアプリ側エディターのCSVを検証する
         checkFileList.append(this->setting->langscoreProjectDirectory + "/editing");
     }
 

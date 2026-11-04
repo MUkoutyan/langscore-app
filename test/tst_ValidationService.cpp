@@ -35,10 +35,10 @@ namespace
     }
 }
 
-// 仕様の確認。divisi は ValidateCSVNameList に指定されたファイル・フォルダの CSV を検証する
+// 仕様の確認。divisi は ValidateCSVNameList に指定されたファイル・フォルダのCSVを検証する
 TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
 {
-    // 1ファイルだけ検証するとき、ValidateCSVNameList には editing フォルダの CSV のフルパスが書かれること
+    // 1ファイルだけ検証するとき、ValidateCSVNameList には editing フォルダのCSVのフルパスが書かれること
     QTemporaryDir tempDir;
     const auto gameDir = tempDir.filePath("Game");
     QDir().mkpath(gameDir);
@@ -50,7 +50,7 @@ TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
     component.setting->setGameProjectPath(gameDir);
     langscore::ValidationService service(&component);
 
-    //MainCSVTable の検証ボタンと同じく、編集中の CSV のフルパスを渡す
+    //MainCSVTable の検証ボタンと同じく、編集中のCSVのフルパスを渡す
     const auto editingCsv = component.setting->langscoreProjectDirectory + "/editing/Actors.csv";
     //divisi.exe はテスト環境に無いため起動に失敗するが、config.json は起動前に保存される
     service.receive(ComponentBase::ValidateCSV, {editingCsv});
@@ -66,7 +66,7 @@ TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
 
 TEST(ValidationServiceTest, ValidateAllChecksEditingFolder)
 {
-    // 全検証では、書き出し先ではなく editing フォルダの CSV を検証すること（編集表と行をそろえるため）
+    // 全検証では、書き出し先ではなく editing フォルダのCSVを検証すること（編集表と行をそろえるため）
     QTemporaryDir tempDir;
     ValidationTestComponent component;
     SetupProject(component, tempDir.filePath("Game"));

@@ -34,6 +34,10 @@ public:
     void clearAllHiddenLanguages();
     void loadColumnFilterFromSettings();
     void saveColumnFilterToSettings(const std::vector<std::pair<QString, bool>>& languageVisibilities);
+    //列の表示設定を保存する settings.ini のグループ。プロジェクトごとに分ける
+    void setSettingsGroup(const QString& group) { _settingsGroup = group; }
+    QString settingsGroup() const { return _settingsGroup; }
+    static QString settingsGroupForProject(const QString& projectDirectory);
 
     // 3ステートソート（なし → 昇順 → 降順 → なし）
     void cycleColumnSort(int proxyColumn);
@@ -51,6 +55,7 @@ protected:
     bool lessThan(const QModelIndex& left, const QModelIndex& right) const override;
 
     QString _filterText;
+    QString _settingsGroup = "filters";
     QSet<QString> _hiddenLanguages;
     int _filterColumn = -1;
     int _sortColumn = -1;

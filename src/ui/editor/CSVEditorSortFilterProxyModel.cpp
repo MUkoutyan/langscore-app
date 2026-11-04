@@ -3,6 +3,7 @@
 #include <QAbstractItemModel>
 #include <QSettings>
 #include <QApplication>
+#include <QCryptographicHash>
 
 namespace langscore {
 
@@ -83,7 +84,7 @@ void CSVEditorSortFilterProxyModel::clearAllHiddenLanguages()
 void CSVEditorSortFilterProxyModel::loadColumnFilterFromSettings()
 {
     QSettings settings(qApp->applicationDirPath() + "/settings.ini", QSettings::IniFormat);
-    settings.beginGroup("filters");
+    settings.beginGroup(_settingsGroup);
     const QStringList keys = settings.childKeys();
     for(const QString& key : keys) {
         const bool visible = settings.value(key, true).toBool();
@@ -102,12 +103,19 @@ void CSVEditorSortFilterProxyModel::saveColumnFilterToSettings(
     const std::vector<std::pair<QString, bool>>& languageVisibilities)
 {
     QSettings settings(qApp->applicationDirPath() + "/settings.ini", QSettings::IniFormat);
-    settings.beginGroup("filters");
+    settings.beginGroup(_settingsGroup);
     for(const auto& [lang, visible] : languageVisibilities) {
         settings.setValue(lang.toLower(), visible);
     }
     settings.endGroup();
     settings.sync();
+}
+
+QString CSVEditorSortFilterProxyModel::settingsGroupForProject(const QString& projectDirectory)
+{
+    //パスの区切り文字をキーに使えないため、ハッシュにする
+    const auto hash = QCryptographicHash::hash(projectDirectory.toUtf8(), QCryptographicHash::Md5).toHex();
+    return "filters_" + QString::fromLatin1(hash);
 }
 
 void CSVEditorSortFilterProxyModel::cycleColumnSort(int proxyColumn)

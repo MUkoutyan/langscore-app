@@ -9,6 +9,7 @@
 #include "EditDataManager.h"
 
 // FileTree.cpp の UserRole::FILE_NAME / VISIBLE と同じ値
+constexpr int ItemTypeRole = Qt::UserRole + 1;
 constexpr int FileNameRole = Qt::UserRole + 2;
 constexpr int VisibleRole = Qt::UserRole + 4;
 
@@ -118,4 +119,47 @@ TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat)
     found[0]->setCheckState(0, Qt::Unchecked);
 
     EXPECT_EQ(setting.writeObj.ignorePicturePath, std::vector<QString>{"img/faces/Actor1"});
+}
+
+// 不具合の再発防止
+TEST_F(FileTreeTest, SelectValidationErrorShowsItsFile)
+{
+    // 検証結果の項目を押すと、結果が付いているファイルを開くこと（空のファイル名で表を空にしない）
+    auto* treeWidget = tree->findChild<QTreeWidget*>();
+    ASSERT_NE(treeWidget, nullptr);
+    auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
+    top->setData(0, ItemTypeRole, FileTree::Basic);
+    auto* armors = new QTreeWidgetItem(top, {"Armors"});
+    armors->setData(0, FileNameRole, "Armors.json");
+
+    ValidationErrorInfo info;
+    info.type = ValidationErrorInfo::Warning;
+    info.summary = ValidationErrorInfo::EmptyCol;
+    info.row = 1;
+    info.language = "en";
+    info.id = 5;    //ValidationService は 1 から番号を振る
+    component->runtimeData->errors["Armors"].push_back(info);
+    component->runtimeData->updateList["Armors"] = true;
+    component->addDispatch(tree.get());
+    component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
+    ASSERT_EQ(armors->childCount(), 1);
+
+    QStringList shownFiles;
+    QObject::connect(tree.get(), &FileTree::showMainFile, [&shownFiles](const QString&, const QString& fileName) {
+        shownFiles.append(fileName);
+    });
+    std::vector<quint64> selectedErrors;
+    QObject::connect(tree.get(), &FileTree::selectMainError, [&selectedErrors](quint64 id) {
+        selectedErrors.push_back(id);
+    });
+
+    treeWidget->setCurrentItem(armors->child(0));
+    EXPECT_EQ(shownFiles, QStringList{"Armors.json"});
+    // 開いた後に、その検証結果のセルへ移動すること
+    EXPECT_EQ(selectedErrors, std::vector<quint64>{5});
+
+    // 見出しを押しても表を開き直さない
+    shownFiles.clear();
+    treeWidget->setCurrentItem(top);
+    EXPECT_TRUE(shownFiles.isEmpty());
 }

@@ -3,6 +3,9 @@
 #include <QTableWidget>
 #include <QLabel>
 #include <QToolButton>
+#include <QLineEdit>
+#include <QCheckBox>
+#include <QSpinBox>
 #include <QString>
 
 #include <QTextEdit>
@@ -24,8 +27,20 @@ public:
     void clear();
 
     void showMainFileText(QString treeItemName, QString fileName);
+    void loadAllMainFiles();
+    void selectError(quint64 errorId);
+    //すべてのファイルの進捗を fileProgressChanged で通知する
+    void notifyAllFileProgress();
+
+signals:
+    void fileProgressChanged(const QString& fileName, int translatedRows, int totalRows);
 
 private:
+    void selectCell(int row, int column);
+    MainCSVTableModel* loadModel(const QString& fileName);
+    //解析結果とエディターのCSVから、表の内容を作る
+    void fillModelFromFiles(langscore::CSVEditorTableModel& model, const QString& fileName) const;
+    std::pair<int, int> fileProgress(const QString& fileName);
 
     struct TableUndo : QUndoCommand
     {
@@ -50,14 +65,20 @@ private:
 
     void receive(DispatchType type, const QVariantList& args) override;
     void restoreColumnWidths();
+    void updateFileNameLabel();
+    void updateProgressLabel();
+    //表示順で、今のセルの次にある検証結果のセルへ移動する
+    void selectNextError(bool forward);
 
     std::weak_ptr<EditDataManager> loadFileManager;
     QLabel* mainFileName;
     QLabel* mainFileWordCount;
-    QToolButton* filterMenuButton;
-    QAction* showAllAction;
-    QAction* hideTranslatedAction;
-    QPushButton* hideLanguageColumnsAction;
+    QLineEdit* searchEdit;
+    QCheckBox* hideTranslatedCheck;
+    QCheckBox* languageFontCheck;
+    QCheckBox* fixedWidthCheck;
+    QSpinBox* fixedWidthSpinBox;
+QPushButton* hideLanguageColumnsAction;
     QPushButton* validateButton;
     QPushButton* validateResultListButton;
     QDialog* validateResultDialog;
@@ -71,6 +92,10 @@ private:
     invoker* _invoker;
     QTimer* updateTimer;
     QString currentFileName;
-    bool _finishInvoke;
+    QString currentTreeItemName;
+    QString currentTreeFileName;
+//表示中のモデルとの接続。ファイルを切り替えるときに外す
+    QList<QMetaObject::Connection> modelConnections;
+bool _finishInvoke;
     bool _showAllScriptContents;
 };

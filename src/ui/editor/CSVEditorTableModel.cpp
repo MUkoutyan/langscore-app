@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QColor>
+#include "../ValidationIcon.h"
 #include <fstream>
 #include "service/LanguageNames.h"
 
@@ -95,9 +96,80 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
     return success;
 }
 
-bool CSVEditorTableModel::saveToFile(const QString& path) const
+bool CSVEditorTableModel::saveToFile(const QString& path)
 {
-    return csvContainer.saveToFile(path);
+    const bool success = csvContainer.saveToFile(path);
+    if(success) {
+        setModified(false);
+    }
+    return success;
+}
+
+void CSVEditorTableModel::setModified(bool modified)
+{
+    if(_modified == modified) { return; }
+    _modified = modified;
+    emit modifiedChanged(modified);
+}
+
+void CSVEditorTableModel::clearEditedSinceValidation()
+{
+    if(_editedSinceValidation.isEmpty()) { return; }
+    _editedSinceValidation.clear();
+    if(rowCount() == 0 || columnCount() == 0) { return; }
+    emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1), {Qt::BackgroundRole, Qt::DecorationRole, Qt::ToolTipRole});
+}
+
+//セルに対応する検証結果を返す（原文・種類の列は対象外）
+std::vector<const ValidationErrorInfo*> CSVEditorTableModel::cellErrors(int row, int col) const
+{
+    std::vector<const ValidationErrorInfo*> result;
+    if(this->_runtimeData == nullptr) { return result; }
+    const auto& errors = this->_runtimeData->errors;
+    const auto fileErrors = errors.find(currentShowFileName);
+    if(fileErrors == errors.end()) { return result; }
+
+    const auto& headerText = csvContainer.headers()[col];
+    if(headerText == "type" || headerText == "original") { return result; }
+
+    for(const auto& error : fileErrors->second)
+    {
+        if(error.row - 1 == row && error.language.contains(headerText)) {
+            result.push_back(&error);
+        }
+    }
+    return result;
+}
+
+//すべての言語列が埋まっている行の数と、全体の行数を返す（無効にした言語は数えない）
+std::pair<int, int> CSVEditorTableModel::translatedRowCount() const
+{
+    std::vector<size_t> languageColumns;
+    if(_settings)
+    {
+        for(const auto& lang : _settings->languages)
+        {
+            if(lang.enable == false) { continue; }
+            const auto column = csvContainer.headers().indexOf(lang.languageName);
+            if(0 <= column) {
+                languageColumns.push_back(static_cast<size_t>(column));
+            }
+        }
+    }
+    const auto totalRows = static_cast<int>(csvContainer.rowCount());
+    if(languageColumns.empty()) { return {0, totalRows}; }
+
+    int translatedRows = 0;
+    for(size_t row = 0; row < csvContainer.rowCount(); ++row)
+    {
+        const bool filledAll = std::ranges::all_of(languageColumns, [this, row](size_t column) {
+            return csvContainer[row][column].isEmpty() == false;
+        });
+        if(filledAll) {
+            translatedRows++;
+        }
+    }
+    return {translatedRows, totalRows};
 }
 
 int CSVEditorTableModel::rowCount(const QModelIndex&) const {
@@ -130,60 +202,58 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
         }
         return QVariant();
     }
-    else if(role == Qt::BackgroundRole)
+    else if(role == Qt::BackgroundRole || role == Qt::DecorationRole)
     {
-        if(this->_runtimeData == nullptr) {
+        //検証の後に編集したセルは、結果が古いため色を付けない
+        if(_editedSinceValidation.contains({row, col})) { return QVariant(); }
+        const auto cellErrorList = cellErrors(row, col);
+        const bool isError = std::ranges::any_of(cellErrorList, [](const auto* x) { return x->type == ValidationErrorInfo::Error; });
+        const bool isWarning = std::ranges::any_of(cellErrorList, [](const auto* x) { return x->type == ValidationErrorInfo::Warning; });
+        //色だけでは見分けにくいため、アイコンも付ける
+        if(role == Qt::DecorationRole)
+        {
+            if(isError) { return ValidationIcon(ValidationErrorInfo::Error); }
+            if(isWarning) { return ValidationIcon(ValidationErrorInfo::Warning); }
             return QVariant();
         }
-        const auto& errors = this->_runtimeData->errors;
-        if(errors.empty()) {
-            return QVariant();
-        }
-
-        if(errors.find(currentShowFileName) == errors.end()) {
-            return QVariant();
-        }
-        const auto& headerText = csvContainer.headers()[col];
-        if(headerText == "type" || headerText == "original") { return QVariant(); }
-
-        const auto& errorList = errors.at(currentShowFileName);
-
-        auto find_result = std::ranges::find_if(errorList, [this, row, headerText](const auto& x) {
-            return x.row - 1 == row && x.language.contains(headerText);
-        });
-        if(find_result != errorList.end()) {
-            if(find_result->type == ValidationErrorInfo::Error) {
-                return QColor(236, 11, 0, 51);
+        if(isError) { return QColor(236, 11, 0, 51); }
+        if(isWarning) { return QColor(240, 227, 0, 51); }
+        return QVariant();
+    }
+    else if(role == Qt::ToolTipRole)
+    {
+        QStringList lines;
+        if(_editedSinceValidation.contains({row, col}) == false)
+        {
+            for(const auto* error : cellErrors(row, col))
+            {
+                if(error->summary == ValidationErrorInfo::IncludeCR) { continue; }
+                const auto prefix = (error->type == ValidationErrorInfo::Error) ? tr("[Error] ") : tr("[Warning] ");
+                lines.append(prefix + error->getErrorText());
             }
-            else if(find_result->type == ValidationErrorInfo::Warning) {
-                return QColor(240, 227, 0, 51);
+        }
+        //翻訳文の長さを原文と比べられるようにする
+        const auto originalColumn = csvContainer.headers().indexOf("original");
+        if(0 <= originalColumn && headerData(col, Qt::Horizontal, DataType::IsLanguageColumn).toBool())
+        {
+            QString translated;
+            QString original;
+            csvContainer.getValue(static_cast<size_t>(row), static_cast<size_t>(col), translated);
+            csvContainer.getValue(static_cast<size_t>(row), static_cast<size_t>(originalColumn), original);
+            if(translated.isEmpty() == false) {
+                lines.append(tr("Characters: %1 (Original: %2)").arg(translated.length()).arg(original.length()));
             }
         }
+        if(lines.isEmpty()) { return QVariant(); }
+        return lines.join("\n");
     }
     else if(role == Qt::UserRole)
     {
-        if(this->_runtimeData == nullptr) {
-            return QVariant();
+        const auto cellErrorList = cellErrors(row, col);
+        if(cellErrorList.empty() == false) {
+            return cellErrorList.front()->id;
         }
-        const auto& errors = this->_runtimeData->errors;
-        if(errors.empty()) {
-            return QVariant();
-        }
-
-        if(errors.find(currentShowFileName) == errors.end()) {
-            return QVariant();
-        }
-        const auto& headerText = csvContainer.headers()[col];
-        if(headerText == "type" || headerText == "original") { return QVariant(); }
-
-        const auto& errorList = errors.at(currentShowFileName);
-
-        auto find_result = std::ranges::find_if(errorList, [this, row, headerText](const auto& x) {
-            return x.row - 1 == row && x.language.contains(headerText);
-        });
-        if(find_result != errorList.end()) {
-            return find_result->id;
-        }
+        return QVariant();
     }
 
     if(role != Qt::DisplayRole && role != Qt::EditRole) {
@@ -238,7 +308,10 @@ bool CSVEditorTableModel::setData(const QModelIndex& index, const QVariant& valu
     int row = index.row();
     int col = index.column();
 
-    if(csvContainer.setValue(static_cast<size_t>(row), static_cast<size_t>(col), value.toString())) {
+    if(csvContainer.setValue(static_cast<size_t>(row), static_cast<size_t>(col), value.toString()))
+    {
+        _editedSinceValidation.insert({row, col});
+        setModified(true);
         emit dataChanged(index, index);
         return true;
     }
@@ -366,29 +439,7 @@ const std::vector<std::vector<QString>>& CSVEditorTableModel::dataRaw() const {
 }
 
 
-bool CSVEditorTableModel::isLanguageColumnHidden(const QString& language) const
-{
-    QSettings settings(qApp->applicationDirPath() + "/settings.ini", QSettings::IniFormat);
-    settings.beginGroup("filters");
-    QVariant v = settings.value(language.toLower(), QVariant());
-    settings.endGroup();
-    
-    //設定値に保存されていればそれを返す
-    if(v.isValid()) {
-        return v.toBool();
-    }
-
-    //表示されていたらtrueを返す
-    for(int col = 0; col < this->columnCount(); ++col) {
-        QString headerText = this->headerData(col, Qt::Horizontal, Qt::UserRole).toString().toLower().trimmed();
-        if(headerText == language.toLower()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-//editing に保存した CSV の翻訳を、原文が一致する行へ戻す。
+//editing に保存したCSVの翻訳を、原文が一致する行へ戻す。
 //今の表に無い言語の列（無効にした言語）は、翻訳を失わないよう列ごと足す
 bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
 {
@@ -399,10 +450,12 @@ bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
     const auto savedOriginalColumn = savedHeaders.indexOf("original");
     if(savedOriginalColumn < 0) { return false; }
 
-    //原文から、保存した CSV の行を引けるようにする
+    //原文から、保存したCSVの行を参照できるようにする
+    //CSV を読むと原文の改行 \r\n が \n になるため、改行をそろえてから比較する
+    const auto toKey = [](QString text) { return text.replace("\r\n", "\n"); };
     QHash<QString, size_t> savedRowOfOriginal;
     for(size_t row = 0; row < saved.rowCount(); ++row) {
-        savedRowOfOriginal.insert(saved[row][static_cast<size_t>(savedOriginalColumn)], row);
+        savedRowOfOriginal.insert(toKey(saved[row][static_cast<size_t>(savedOriginalColumn)]), row);
     }
 
     const auto originalColumn = static_cast<size_t>(csvContainer.headers().indexOf("original"));
@@ -424,7 +477,7 @@ bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
 
         for(size_t row = 0; row < csvContainer.rowCount(); ++row)
         {
-            const auto savedRow = savedRowOfOriginal.constFind(csvContainer[row][originalColumn]);
+            const auto savedRow = savedRowOfOriginal.constFind(toKey(csvContainer[row][originalColumn]));
             if(savedRow == savedRowOfOriginal.cend()) { continue; }
             csvContainer[row][column] = saved[savedRow.value()][static_cast<size_t>(savedColumn)];
         }

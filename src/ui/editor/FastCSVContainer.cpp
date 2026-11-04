@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QTextStream>
+#include <QRegularExpression>
 
 namespace langscore {
 
@@ -40,10 +41,14 @@ bool FastCSVContainer::loadFromCsvData(const std::vector<std::vector<CellData>>&
 bool FastCSVContainer::loadFromFile(const CellData& filePath) {
     //CSV ファイルの値はエスケープされているので、ここで元に戻す。
     //loadFromCsvData は JSON 由来などのエスケープされていない値も受け取るため、そちらでは戻さない。
+    //セル内の改行はアプリ内では \n にそろえる（以前の保存で \r\r\n になったものも含む）。
+    //ゲームに合わせた改行への変換は、書き出し時に行う
+    static const QRegularExpression lineBreak("\\r+\\n");
     auto csvData = langscore::readCsv(filePath);
     for (size_t i = 1; i < csvData.size(); ++i) {
         for (auto& field : csvData[i]) {
             field = unescapeCSVField(field);
+            field.replace(lineBreak, "\n");
         }
     }
     return loadFromCsvData(csvData);
@@ -67,7 +72,8 @@ bool FastCSVContainer::saveToFile(const CellData& filePath) const
         }
     }
 
-    if(file.open(QIODevice::WriteOnly | QIODevice::Text) == false) {
+    //Text モードはセル内の \r\n を \r\r\n にしてしまうため、バイナリで書く
+    if(file.open(QIODevice::WriteOnly) == false) {
         return false;
     }
 

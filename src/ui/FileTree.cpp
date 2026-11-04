@@ -15,6 +15,7 @@
 #include "../invoker.h"
 #include "../utility.hpp"
 #include "service/GraphicsImageLoader.h"
+#include "ValidationIcon.h"
 
 enum UserRole : int
 {
@@ -88,14 +89,18 @@ FileTree::FileTree(ComponentBase* component, std::weak_ptr<EditDataManager> load
     , _suspendHistory(false)
     , graphicsImageLoader(nullptr)
     , graphicsLoaderThread(nullptr)
-    , attentionIcon(QIcon(":/images/resources/image/attention.svg"))
-    , warningIcon(QIcon(":/images/resources/image/warning.svg"))
+    , attentionIcon(ValidationIcon(ValidationErrorInfo::Error))
+    , warningIcon(ValidationIcon(ValidationErrorInfo::Warning))
 {
 
     this->setObjectName("FileTree");
     this->treeWidget->setAnimated(true);
     this->treeWidget->header()->setVisible(false);
     this->treeWidget->setColumnCount(TreeColIndex::NumColumn);
+    //ファイル名の列を広げ、進捗の列は右端に内容の幅で置く
+    this->treeWidget->header()->setStretchLastSection(false);
+    this->treeWidget->header()->setSectionResizeMode(TreeColIndex::Name, QHeaderView::Stretch);
+    this->treeWidget->header()->setSectionResizeMode(TreeColIndex::Progress, QHeaderView::ResizeToContents);
 
     this->treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this->treeWidget, &QTreeWidget::customContextMenuRequested, this, &FileTree::showContextMenu);
@@ -478,14 +483,25 @@ void FileTree::itemSelected()
     auto selectedItems = this->treeWidget->selectedItems();
     if(selectedItems.empty()) { return; }
     auto item = selectedItems[0];
+    //検証結果の項目はファイル名を持たないので、結果が付いているファイルの項目を開き、そのセルへ移動する
+    quint64 errorId = 0;
+    if(item->data(TreeColIndex::Name, UserRole::ERROR_ITEM).toBool() && item->parent()) {
+        errorId = item->data(TreeColIndex::Name, UserRole::ERROR_ID).toULongLong();
+        item = item->parent();
+    }
     auto topLevelItem = getTopLevelItem(item);
     if(topLevelItem == nullptr) { return; }
 
     const auto treeType = topLevelItem->data(TreeColIndex::CheckBox, UserRole::ITEM_TYPE);
     if(treeType == TreeItemType::Map || treeType == TreeItemType::Basic) {
         auto fileName = item->data(TreeColIndex::Name, UserRole::FILE_NAME).toString();
+        //「Basics」などの見出しはファイルではないので、表を空にしない
+        if(fileName.isEmpty()) { return; }
         emit setTabIndex(1);
         emit showMainFile(item->text(TreeColIndex::Name), fileName);
+        if(errorId != 0) {
+            emit selectMainError(errorId);
+        }
     }
     else if(treeType == TreeItemType::Script)
     {
@@ -1075,6 +1091,24 @@ void FileTree::updateTreeItemText()
         updateTextRecursively(item);
     }
     this->blockSignals(false);
+}
+
+void FileTree::setFileProgress(const QString& fileName, int translatedRows, int totalRows)
+{
+    auto* item = this->findTreeItemByFileName(langscore::withoutAllExtension(fileName));
+    if(item == nullptr) { return; }
+
+    if(totalRows <= 0)
+    {
+        item->setText(TreeColIndex::Progress, "");
+        item->setToolTip(TreeColIndex::Progress, "");
+        return;
+    }
+    const auto percent = translatedRows * 100 / totalRows;
+    item->setText(TreeColIndex::Progress, QString("%1%").arg(percent));
+    item->setToolTip(TreeColIndex::Progress, tr("Translated: %1 / %2 rows").arg(translatedRows).arg(totalRows));
+    //終わったファイルが一目で分かるよう色を変える
+    item->setForeground(TreeColIndex::Progress, (translatedRows == totalRows) ? QColor(120, 200, 120) : QColor(170, 170, 170));
 }
 
 void FileTree::receive(DispatchType type, const QVariantList& args)

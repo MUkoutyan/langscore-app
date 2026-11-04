@@ -281,6 +281,7 @@ void ScriptCSVTable::setupScriptTable()
     csvEditor->setModel(_proxyModel);
 
     _proxyModel->setHideUncheckRow(showAllScriptContents == false);
+    _proxyModel->setSettingsGroup(CSVEditorSortFilterProxyModel::settingsGroupForProject(this->setting->langscoreProjectDirectory));
     _proxyModel->loadColumnFilterFromSettings();
 
     currentModel->setSettings(this->setting);
