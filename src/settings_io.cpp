@@ -485,7 +485,7 @@ void deserializeBasicDataList(settings* s, const QJsonArray& basicScripts)
         try {
             auto& info = s->fetchBasicDataInfo(name);
             info.ignore = isIgnore;
-            info.visible = jsonScript["IsVisible"].toBool(true);
+            info.visible = jsonScript["IsVisible"].toBool(settings::isBasicDataVisibleByDefault(name));
             if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isArray()) {
                 auto typesArray = jsonScript[key(JsonKey::ValidateTextCategory)].toArray();
                 for(const auto& valueTypesData : typesArray) {

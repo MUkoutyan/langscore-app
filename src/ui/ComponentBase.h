@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QSettings>
 #include <QUndoStack>
+#include <QSet>
 #include "service/ColorTheme.h"
 #include "service/ValidationErrorInfo.h"
 
@@ -13,6 +14,23 @@ public:
     struct RuntimeData {
         std::unordered_map<QString, std::vector<ValidationErrorInfo>> errors;
         std::unordered_map<QString, bool> updateList;
+        //errors を作り直したら増やす。セルごとの検証結果の索引（CSVEditorTableModel）を作り直すために使う
+        quint64 errorsRevision = 0;
+
+        //検証結果の表示で隠す言語と種類
+        QSet<QString> hiddenErrorLanguages;
+        bool hideErrors = false;
+        bool hideWarnings = false;
+
+        //表示の絞り込みで隠していない検証結果か。言語の無い結果（ファイル全体）は種類だけで決める
+        bool isErrorShown(const ValidationErrorInfo& info) const
+        {
+            if(info.type == ValidationErrorInfo::Error && hideErrors) { return false; }
+            if(info.type == ValidationErrorInfo::Warning && hideWarnings) { return false; }
+            const auto languages = info.language.split(' ', Qt::SkipEmptyParts);
+            if(languages.isEmpty()) { return true; }
+            return std::ranges::any_of(languages, [this](const QString& lang) { return hiddenErrorLanguages.contains(lang) == false; });
+        }
     };
 
     enum DispatchType {
@@ -25,6 +43,7 @@ public:
         ValidateAll,
         NotifyFinishValidateCSV,
         SendLog,
+        ChangeValidationFilter, //無し。検証結果の表示の絞り込みを変えた
     };
 
     ComponentBase()

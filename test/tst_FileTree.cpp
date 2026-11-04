@@ -1,5 +1,6 @@
-#include "test_common.h"
+﻿#include "test_common.h"
 #include <QTreeWidget>
+#include <QCheckBox>
 #include <QLineEdit>
 #include <QTemporaryDir>
 #include <QDir>
@@ -20,6 +21,7 @@ struct TestComponent : public ComponentBase
     using ComponentBase::setting;
     using ComponentBase::addDispatch;
     using ComponentBase::dispatch;
+    using ComponentBase::history;
 };
 
 class FileTreeTest : public ::testing::Test
@@ -162,4 +164,105 @@ TEST_F(FileTreeTest, SelectValidationErrorShowsItsFile)
     shownFiles.clear();
     treeWidget->setCurrentItem(top);
     EXPECT_TRUE(shownFiles.isEmpty());
+}
+
+TEST_F(FileTreeTest, ValidationFilterRebuildsErrorItems)
+{
+    // 言語で絞り込むと、その言語の検証結果の項目が消え、戻すと再び出ること
+    auto* treeWidget = tree->findChild<QTreeWidget*>();
+    ASSERT_NE(treeWidget, nullptr);
+    auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
+    auto* actors = new QTreeWidgetItem(top, {"Actors"});
+    actors->setData(0, FileNameRole, "Actors.json");
+
+    ValidationErrorInfo info;
+    info.type = ValidationErrorInfo::Warning;
+    info.summary = ValidationErrorInfo::EmptyCol;
+    for(const auto* language : {"en", "en", "fr"}) {
+        info.row++;
+        info.language = language;
+        component->runtimeData->errors["Actors"].push_back(info);
+    }
+    component->runtimeData->updateList["Actors"] = true;
+    component->addDispatch(tree.get());
+    component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
+    ASSERT_EQ(actors->childCount(), 3);
+
+    component->runtimeData->hiddenErrorLanguages.insert("en");
+    component->dispatch(ComponentBase::ChangeValidationFilter, {});
+    EXPECT_EQ(actors->childCount(), 1);
+
+    component->runtimeData->hiddenErrorLanguages.clear();
+    component->dispatch(ComponentBase::ChangeValidationFilter, {});
+    EXPECT_EQ(actors->childCount(), 3);
+}
+
+namespace
+{
+    QTreeWidgetItem* FindChild(QTreeWidgetItem* parent, const QString& fileName)
+    {
+        for(int i = 0; i < parent->childCount(); ++i) {
+            if(parent->child(i)->data(0, FileNameRole).toString() == fileName) { return parent->child(i); }
+        }
+        return nullptr;
+    }
+}
+
+TEST_F(FileTreeTest, MultiSelectTogglesChecks)
+{
+    // 複数の項目を選んでチェックを外すと、選んだ項目がすべて翻訳対象から外れ、元に戻せること
+    component->setting->fetchBasicDataInfo("Actors");
+    component->setting->fetchBasicDataInfo("Armors");
+    component->setting->fetchBasicDataInfo("Items");
+    tree->setupBasicsTree();
+    auto* treeWidget = tree->findChild<QTreeWidget*>();
+    auto* top = treeWidget->topLevelItem(0);
+    auto* actors = FindChild(top, "Actors.json");
+    auto* armors = FindChild(top, "Armors.json");
+    ASSERT_NE(actors, nullptr);
+    ASSERT_NE(armors, nullptr);
+
+    actors->setSelected(true);
+    armors->setSelected(true);
+    actors->setCheckState(0, Qt::Unchecked);
+
+    EXPECT_TRUE(component->setting->fetchBasicDataInfo("Actors").ignore);
+    EXPECT_TRUE(component->setting->fetchBasicDataInfo("Armors").ignore);
+    EXPECT_FALSE(component->setting->fetchBasicDataInfo("Items").ignore) << "選んでいない項目まで変わっています";
+    EXPECT_EQ(armors->checkState(0), Qt::Unchecked);
+
+    component->history->undo();
+    EXPECT_FALSE(component->setting->fetchBasicDataInfo("Actors").ignore);
+    EXPECT_FALSE(component->setting->fetchBasicDataInfo("Armors").ignore);
+    EXPECT_EQ(armors->checkState(0), Qt::Checked);
+}
+
+TEST_F(FileTreeTest, ShowUntranslatedOnly)
+{
+    // 翻訳が終わっていないファイルだけを表示できること。Animations は最初から表示しないこと
+    component->setting->fetchBasicDataInfo("Actors");
+    component->setting->fetchBasicDataInfo("Armors");
+    component->setting->fetchBasicDataInfo("Animations");
+    tree->setupBasicsTree();
+    tree->updateTreeVisibility();
+    auto* top = tree->findChild<QTreeWidget*>()->topLevelItem(0);
+    auto* actors = FindChild(top, "Actors.json");
+    auto* armors = FindChild(top, "Armors.json");
+    EXPECT_TRUE(FindChild(top, "Animations.json")->isHidden());
+    tree->setFileProgress("Actors.json", 1, 1);
+    tree->setFileProgress("Armors.json", 0, 1);
+
+    QCheckBox* untranslatedOnly = nullptr;
+    for(auto* check : tree->findChildren<QCheckBox*>()) {
+        if(check->text() == "Show Untranslated Files Only") { untranslatedOnly = check; }
+    }
+    ASSERT_NE(untranslatedOnly, nullptr);
+    const bool before = untranslatedOnly->isChecked();
+    untranslatedOnly->setChecked(true);
+    EXPECT_TRUE(actors->isHidden()) << "翻訳済みの Actors が表示されています";
+    EXPECT_FALSE(armors->isHidden());
+
+    untranslatedOnly->setChecked(false);
+    EXPECT_FALSE(actors->isHidden());
+    untranslatedOnly->setChecked(before);   //アプリの設定を元に戻す
 }

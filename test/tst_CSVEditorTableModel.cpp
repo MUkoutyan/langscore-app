@@ -164,3 +164,36 @@ TEST_F(CSVEditorTableModelTest, IsLanguageColumnWithoutSettings)
     EXPECT_FALSE(model.headerData(0, Qt::Horizontal, DataType::IsLanguageColumn).toBool());
     EXPECT_FALSE(model.headerData(99, Qt::Horizontal, DataType::IsLanguageColumn).toBool());
 }
+
+TEST_F(CSVEditorTableModelTest, ValidationFilterHidesLanguage)
+{
+    // 言語で絞り込んだ検証結果はセルに出ないこと。検証中に結果が増えても反映されること
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}])")));
+    model.insertColumn(1, "en");
+    model.insertColumn(2, "fr");
+    auto runtimeData = std::make_shared<ComponentBase::RuntimeData>();
+    ValidationErrorInfo info;
+    info.type = ValidationErrorInfo::Warning;
+    info.summary = ValidationErrorInfo::EmptyCol;
+    info.row = 1;
+    info.language = "en";
+    runtimeData->errors["Actors"].push_back(info);
+    model.setRuntimeData(runtimeData);
+
+    const auto enCell = model.index(0, 1);
+    const auto frCell = model.index(0, 2);
+    EXPECT_TRUE(model.data(enCell, Qt::BackgroundRole).isValid());
+    EXPECT_FALSE(model.data(frCell, Qt::BackgroundRole).isValid());
+
+    info.language = "fr";
+    runtimeData->errors["Actors"].push_back(info);
+    EXPECT_TRUE(model.data(frCell, Qt::BackgroundRole).isValid()) << "増えた検証結果がセルに出ていません";
+
+    runtimeData->hiddenErrorLanguages.insert("en");
+    EXPECT_FALSE(model.data(enCell, Qt::BackgroundRole).isValid()) << "隠した言語の検証結果が出ています";
+    EXPECT_TRUE(model.data(frCell, Qt::BackgroundRole).isValid());
+
+    runtimeData->hideWarnings = true;
+    EXPECT_FALSE(model.data(frCell, Qt::BackgroundRole).isValid()) << "隠した種類の検証結果が出ています";
+}

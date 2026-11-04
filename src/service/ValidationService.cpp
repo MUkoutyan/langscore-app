@@ -57,6 +57,7 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
     this->_pendingText.clear();
     this->runtimeData->errors.clear();
     this->runtimeData->updateList.clear();
+    this->runtimeData->errorsRevision++;
     this->_finishInvoke = false;
 
     this->setting->validateObj.csvNameList = checkFileList;
@@ -265,6 +266,7 @@ void ValidationService::addErrorText(QString text)
         this->runtimeData->updateList[fileName] = true;
         _mutex.unlock();
     }
+    if(infos.empty() == false) { this->runtimeData->errorsRevision++; }
 
     this->dispatch(DispatchType::SendLog, {text});
 }

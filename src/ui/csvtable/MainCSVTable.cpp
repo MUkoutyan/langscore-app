@@ -200,6 +200,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 
     connect(validateResultListButton, &QPushButton::clicked, this, [this]()
     {
+        this->updateValidateResultTable();
         this->validateResultDialog->show();
         this->validateResultDialog->raise();
     });
@@ -283,7 +284,7 @@ void MainCSVTable::selectNextError(bool forward)
     std::vector<QModelIndex> errorCells;
     for(const auto& info : fileErrors->second)
     {
-        if(info.row < 1 || info.summary == ValidationErrorInfo::IncludeCR) { continue; }
+        if(info.row < 1 || info.summary == ValidationErrorInfo::IncludeCR || this->runtimeData->isErrorShown(info) == false) { continue; }
         const auto column = columnOfLanguage.value(info.language.split(" ").value(0), 0);
         const auto proxyIndex = this->_proxyModel->mapFromSource(this->currentModel->index(static_cast<int>(info.row - 1), column));
         if(proxyIndex.isValid()) {
@@ -400,7 +401,8 @@ MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
 void MainCSVTable::refreshLanguageColumns()
 {
     if(this->currentModel == nullptr) { return; }
-    this->showMainFileText(this->currentTreeItemName, this->currentTreeFileName);
+    this->loadModel(this->currentTreeFileName);
+    this->restoreColumnWidths();
 }
 
 void MainCSVTable::fillModelFromFiles(langscore::CSVEditorTableModel& model, const QString& fileName) const
@@ -524,6 +526,12 @@ int MainCSVTable::importTranslationCsv(const QString& csvPath)
 void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
 {
     auto* mainModel = this->loadModel(fileName);
+    //表示中のファイルを選び直したとき（検証結果の項目を選んだときなど）は、行の高さの計算などをやり直さない
+    if(mainModel != nullptr && mainModel == this->currentModel && fileName == this->currentTreeFileName) {
+        this->currentTreeItemName = treeItemName;
+        this->updateFileNameLabel();
+        return;
+    }
     for(const auto& connection : this->modelConnections) {
         disconnect(connection);
     }
@@ -549,13 +557,8 @@ if(mainModel == nullptr) {
     const auto editedData = this->setting->langscoreProjectDirectory + "/editing/" + withoutExtension(fileName) + ".csv";
     this->currentFileName = editedData;
     //検証結果はファイルのベース名をキーにしている（ValidationService / FileTree）
-    const auto& errors = this->runtimeData->errors;
-    if(errors.empty() || errors.find(QFileInfo(editedData).baseName()) == errors.end()) {
-        this->validateResultListButton->setEnabled(false);
-    }
-    else {
-        this->validateResultListButton->setEnabled(true);
-    }
+    this->updateValidateResultListButton();
+    if(this->validateResultDialog->isVisible()) { this->updateValidateResultTable(); }
     
     // プロキシモデルを初期化し、テーブルビューに設定
     const bool isNewProxy = (_proxyModel == nullptr);
@@ -606,33 +609,25 @@ if(mainModel == nullptr) {
         auto proxyIndex = selected.indexes().first();
         auto sourceIndex = _proxyModel ? _proxyModel->mapToSource(proxyIndex) : proxyIndex;
 
-        auto currentShowFileName = currentModel->getCurrentShowFileName();
-        const auto& errors = this->runtimeData->errors;
-        if(errors.find(currentShowFileName) == errors.end()) { return; }
-
-        const auto& errorList = errors.at(currentShowFileName);
-
-        auto header = currentModel->headerData(sourceIndex.column(), Qt::Orientation::Horizontal, Qt::UserRole).toString();
+        //ファイル全体の結果と、選んだセルの結果を表示する
+        auto errorList = currentModel->fileErrors();
+        for(const auto* error : currentModel->cellErrors(sourceIndex.row(), sourceIndex.column())) {
+            errorList.push_back(error);
+        }
 
         QString message;
-        for(const auto& error : errorList) 
+        for(const auto* error : errorList)
         {
-            if(error.summary == ValidationErrorInfo::IncludeCR) {
+            if(error->summary == ValidationErrorInfo::IncludeCR) {
                 continue;
             }
-            const bool isFileError = error.row == 0 && error.language.isEmpty();
-            const bool isCellError = error.row - 1 == sourceIndex.row() && error.language.contains(header);
-            if(isFileError || isCellError) 
-            {
-                if(error.type == ValidationErrorInfo::Error) {
-                    message += tr("[Error] ");
-                }
-                else if(error.type == ValidationErrorInfo::Warning) {
-                    message += tr("[Warning] ");
-                }
-
-                message += error.getErrorText() + "\n";
+            if(error->type == ValidationErrorInfo::Error) {
+                message += tr("[Error] ");
             }
+            else if(error->type == ValidationErrorInfo::Warning) {
+                message += tr("[Warning] ");
+            }
+            message += error->getErrorText() + "\n";
         }
 
         if(message.isEmpty()) {
@@ -691,126 +686,141 @@ void MainCSVTable::receive(DispatchType type, const QVariantList& args)
         if(auto manager = this->loadFileManager.lock()) {
             manager->clearEditedSinceValidation();
         }
-        const auto& errors = this->runtimeData->errors;
-        if(errors.empty()) {
-            this->validateResultListButton->setEnabled(false);
-            return;
+        this->updateValidateResultListButton();
+        this->refreshValidationView();
+    }
+    else if(type == DispatchType::ChangeValidationFilter)
+    {
+        this->refreshValidationView();
+    }
+}
+
+void MainCSVTable::updateValidateResultListButton()
+{
+    const auto& errors = this->runtimeData->errors;
+    const auto showFileName = langscore::getFileNameWithoutExtension(this->currentFileName);
+    this->validateResultListButton->setEnabled(errors.find(showFileName) != errors.end());
+}
+
+//検証結果の一覧とセルの色を、今の結果と表示の絞り込みに合わせる
+void MainCSVTable::refreshValidationView()
+{
+    this->cellErrorLog->setVisible(false);
+    //一覧は件数が多いと作るのに時間がかかるため、開いているときだけ作る（開くときにも作る）
+    if(this->validateResultDialog->isVisible()) {
+        this->updateValidateResultTable();
+    }
+    this->csvEditor->viewport()->update();
+}
+
+void MainCSVTable::updateValidateResultTable()
+{
+    this->validateResultTable->setUpdatesEnabled(false);
+    this->validateResultTable->clearContents();
+    this->validateResultTable->setRowCount(0);
+    this->validateResultTable->setColumnCount(4);
+    this->validateResultTable->setHorizontalHeaderLabels(QStringList() << tr("Row") << tr("Type") << tr("Language") << tr("Description"));
+
+    const auto& errors = this->runtimeData->errors;
+    const auto showFileName = langscore::getFileNameWithoutExtension(this->currentFileName);
+    const auto found = errors.find(showFileName);
+    if(this->currentModel == nullptr || found == errors.end()) {
+        this->validateResultTable->setUpdatesEnabled(true);
+        return;
+    }
+    const auto& errorList = found->second;
+    this->validateResultTable->setRowCount(static_cast<int>(errorList.size()));
+
+    std::unordered_map<QString, int> header_col;
+    auto numHeader = this->currentModel->columnCount();
+    for(int i = 0; i < numHeader; ++i) {
+        auto headerName = this->currentModel->headerData(i, Qt::Horizontal, Qt::UserRole).toString();
+        header_col[headerName] = i;
+    }
+
+    int row = 0;
+    for(const auto& info : errorList)
+    {
+        if(info.summary == ValidationErrorInfo::IncludeCR || this->runtimeData->isErrorShown(info) == false) {
+            continue;
         }
+        int col = 0;
 
-        auto currentShowFileName = langscore::getFileNameWithoutExtension(this->currentFileName);
-        if(errors.find(currentShowFileName) == errors.end()) {
-            this->validateResultListButton->setEnabled(false);
-            return;
-        }
-        this->validateResultListButton->setEnabled(true);
-
-        const auto& errorList = errors.at(currentShowFileName);
-        this->validateResultTable->clearContents();
-        this->validateResultTable->setRowCount(errorList.size());
-        this->validateResultTable->setColumnCount(4);
-        this->validateResultTable->setHorizontalHeaderLabels(QStringList() << tr("Row") << tr("Type") << tr("Language") << tr("Description"));
-
-        std::unordered_map<QString, int> header_col;
-        if(this->currentModel == nullptr){ return; }
-        auto numHeader = this->currentModel->columnCount();
-        for(int i = 0; i < numHeader; ++i) {
-            auto headerName = this->currentModel->headerData(i, Qt::Horizontal, Qt::UserRole).toString();
-            header_col[headerName] = i;
+        QString infoTypeText;
+        QColor color;
+        switch(info.type) {
+        case ValidationErrorInfo::Error:
+            infoTypeText = "Error";
+            color = QColor(236, 11, 0, 51);
+            break;
+        case ValidationErrorInfo::Warning:
+            infoTypeText = "Warning";
+            color = QColor(240, 227, 0, 51);
+            break;
+        case ValidationErrorInfo::Invalid:
+            infoTypeText = "Invalid";
+            break;
         }
         
-        int row = 0;
-        for(const auto& info : errorList)
-        {
-            if(info.summary == ValidationErrorInfo::IncludeCR) {
-                continue;
-            }
-            int col = 0;
+        const auto createItem = [&](QString text) {
+            auto item = new QTableWidgetItem(text);
+            item->setBackground(color);
+            item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            item->setData(TableItemType::CSVRow, info.row);
 
-            QString infoTypeText;
-            QColor color;
-            switch(info.type) {
-            case ValidationErrorInfo::Error:
-                infoTypeText = "Error";
-                color = QColor(236, 11, 0, 51);
-                break;
-            case ValidationErrorInfo::Warning:
-                infoTypeText = "Warning";
-                color = QColor(240, 227, 0, 51);
-                break;
-            case ValidationErrorInfo::Invalid:
-                infoTypeText = "Invalid";
-                break;
-            }
-            
-            const auto createItem = [&](QString text) {
-                auto item = new QTableWidgetItem(text);
-                item->setBackground(color);
-                item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-                item->setData(TableItemType::CSVRow, info.row);
-
-                if(info.language.isEmpty()) {
-                    return item;
-                }
-
-                auto langs = info.language.split(" ");
-                if(langs.isEmpty()) {
-                    return item;
-                }
-                auto find_result = header_col.find(langs[0]);
-                if(find_result != header_col.end()) {
-                    auto lang_index = find_result->second;
-                    item->setData(TableItemType::LanguageIndex, lang_index);
-                }
+            if(info.language.isEmpty()) {
                 return item;
-            };
-            {
-                //info内のrowはCSVファイルの行数が格納される。
-                //CSVにはヘッダーが含まれるため、実質1インデックスとなる。
-                //エディターで表示する際はヘッダーはセルには存在しないため、0インデックスとなる。
-                auto item = createItem((1 <= info.row) ? QString::number(info.row - 1) : tr("File"));
-                this->validateResultTable->setItem(row, col++, item);
             }
-            {
-                auto item = createItem(infoTypeText);
-                this->validateResultTable->setItem(row, col++, item);
-            }
-            {
-                auto langs = info.language.split(" ");
-                if(langs.isEmpty() == false) 
-                {
-                    std::ranges::transform(langs, langs.begin(), [](const auto& l) {
-                        return langscore::languageDisplayName(l);
-                    });
 
-                    auto item = createItem(langs.join(", "));
-                    this->validateResultTable->setItem(row, col++, item);
-                }
-                else {
-                    auto item = createItem(info.language);
-                    this->validateResultTable->setItem(row, col++, item);
-                }
+            auto langs = info.language.split(" ");
+            if(langs.isEmpty()) {
+                return item;
             }
-            {
-                auto item = createItem(info.getErrorText());
-                this->validateResultTable->setItem(row, col++, item);
+            auto find_result = header_col.find(langs[0]);
+            if(find_result != header_col.end()) {
+                auto lang_index = find_result->second;
+                item->setData(TableItemType::LanguageIndex, lang_index);
             }
-            row++;
+            return item;
+        };
+        {
+            //info内のrowはCSVファイルの行数が格納される。
+            //CSVにはヘッダーが含まれるため、実質1インデックスとなる。
+            //エディターで表示する際はヘッダーはセルには存在しないため、0インデックスとなる。
+            auto item = createItem((1 <= info.row) ? QString::number(info.row - 1) : tr("File"));
+            this->validateResultTable->setItem(row, col++, item);
         }
+        {
+            auto item = createItem(infoTypeText);
+            this->validateResultTable->setItem(row, col++, item);
+        }
+        {
+            auto langs = info.language.split(" ");
+            if(langs.isEmpty() == false) 
+            {
+                std::ranges::transform(langs, langs.begin(), [](const auto& l) {
+                    return langscore::languageDisplayName(l);
+                });
 
-        QTimer::singleShot(1, this, [this]() {
-            this->validateResultTable->resizeColumnsToContents();
-            this->csvEditor->update();
-            // モデルの背景色やユーザーロールが更新されているため、ビューへ反映させる
-            if(currentModel && currentModel->rowCount() > 0 && currentModel->columnCount() > 0) {
-                auto top = currentModel->index(0, 0);
-                auto bottom = currentModel->index(currentModel->rowCount() - 1, currentModel->columnCount() - 1);
-                emit currentModel->dataChanged(top, bottom, QVector<int>{Qt::BackgroundRole, Qt::UserRole});
+                auto item = createItem(langs.join(", "));
+                this->validateResultTable->setItem(row, col++, item);
             }
-            this->update();
-            this->csvEditor->viewport()->update();
-        });
-
+            else {
+                auto item = createItem(info.language);
+                this->validateResultTable->setItem(row, col++, item);
+            }
+        }
+        {
+            auto item = createItem(info.getErrorText());
+            this->validateResultTable->setItem(row, col++, item);
+        }
+        row++;
     }
+
+    //隠した結果の分だけ空いた行を詰める
+    this->validateResultTable->setRowCount(row);
+    this->validateResultTable->resizeColumnsToContents();
+    this->validateResultTable->setUpdatesEnabled(true);
 }
 
 

@@ -163,6 +163,11 @@ private:
     void updateTreeVisibilityMap(QTreeWidgetItem* parentItem);
     void updateTreeVisibilityScript(QTreeWidgetItem* parentItem);
     void updateTreeVisibilityPictures(QTreeWidgetItem* parentItem);
+    bool hideTranslatedItems(QTreeWidgetItem* item);
+    void rebuildErrorTree();
+
+    bool showUntranslatedOnly = false;
+    bool visibilityUpdatePending = false;
 
 
 private slots:

@@ -120,23 +120,60 @@ void CSVEditorTableModel::clearEditedSinceValidation()
     emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1), {Qt::BackgroundRole, Qt::DecorationRole, Qt::ToolTipRole});
 }
 
+const std::vector<ValidationErrorInfo>* CSVEditorTableModel::indexedFileErrors() const
+{
+    if(this->_runtimeData == nullptr) { return nullptr; }
+    const auto& errors = this->_runtimeData->errors;
+    const auto found = errors.find(currentShowFileName);
+    if(found == errors.end() || found->second.empty()) { return nullptr; }
+
+    //検証中は結果が増えていくため、件数が変わったときも作り直す
+    const auto& list = found->second;
+    if(_errorIndex.revision != _runtimeData->errorsRevision || _errorIndex.size != list.size())
+    {
+        _errorIndex = ErrorIndex{_runtimeData->errorsRevision, list.size()};
+        for(size_t i = 0; i < list.size(); ++i)
+        {
+            const auto& error = list[i];
+            const auto languages = error.language.split(' ', Qt::SkipEmptyParts);
+            if(error.row == 0 && languages.isEmpty()) {
+                _errorIndex.fileLevel.push_back(i);
+                continue;
+            }
+            //error.row はヘッダーを 0 行目とした CSV の行
+            for(const auto& lang : languages) {
+                _errorIndex.cells[{static_cast<int>(error.row - 1), lang}].push_back(i);
+            }
+        }
+    }
+    return &list;
+}
+
 //セルに対応する検証結果を返す（原文・種類の列は対象外）
 std::vector<const ValidationErrorInfo*> CSVEditorTableModel::cellErrors(int row, int col) const
 {
     std::vector<const ValidationErrorInfo*> result;
-    if(this->_runtimeData == nullptr) { return result; }
-    const auto& errors = this->_runtimeData->errors;
-    const auto fileErrors = errors.find(currentShowFileName);
-    if(fileErrors == errors.end()) { return result; }
-
+    if(col < 0 || static_cast<size_t>(col) >= csvContainer.columnCount()) { return result; }
     const auto& headerText = csvContainer.headers()[col];
     if(headerText == "type" || headerText == "original") { return result; }
 
-    for(const auto& error : fileErrors->second)
-    {
-        if(error.row - 1 == row && error.language.contains(headerText)) {
-            result.push_back(&error);
-        }
+    const auto* list = indexedFileErrors();
+    if(list == nullptr) { return result; }
+    const auto found = _errorIndex.cells.constFind({row, headerText});
+    if(found == _errorIndex.cells.cend()) { return result; }
+    for(const auto i : found.value()) {
+        if(_runtimeData->isErrorShown((*list)[i])) { result.push_back(&(*list)[i]); }
+    }
+    return result;
+}
+
+std::vector<const ValidationErrorInfo*> CSVEditorTableModel::fileErrors() const
+{
+    std::vector<const ValidationErrorInfo*> result;
+    const auto* list = indexedFileErrors();
+    if(list == nullptr) { return result; }
+    for(const auto i : _errorIndex.fileLevel) {
+        if(_runtimeData->isErrorShown((*list)[i])) { result.push_back(&(*list)[i]); }
     }
     return result;
 }

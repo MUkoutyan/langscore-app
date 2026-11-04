@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include <QSet>
+#include <QHash>
 #include "FastCSVContainer.h"
 #include "../ComponentBase.h"
 #include "service/ValidationErrorInfo.h"
@@ -59,6 +60,10 @@ public:
     //すべての言語が埋まっている行の数と、全体の行数
     std::pair<int, int> translatedRowCount() const;
 
+    //セル・ファイル全体の検証結果のうち、表示の絞り込みで隠していないもの
+    std::vector<const ValidationErrorInfo*> cellErrors(int row, int col) const;
+    std::vector<const ValidationErrorInfo*> fileErrors() const;
+
     void clearAll() {
         beginResetModel();
         csvContainer.clear();
@@ -71,7 +76,8 @@ signals:
 
 private:
     void setModified(bool modified);
-    std::vector<const ValidationErrorInfo*> cellErrors(int row, int col) const;
+    //表示中のファイルの検証結果。セルの索引を必要なら作り直してから返す。無ければ nullptr
+    const std::vector<ValidationErrorInfo>* indexedFileErrors() const;
 
     langscore::FastCSVContainer csvContainer;
     bool _modified = false;
@@ -80,6 +86,14 @@ private:
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;
     std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
+    //セルを描くたびに全件を調べると、結果が多いときに重くなるため、(行, 言語) から引けるようにしておく
+    struct ErrorIndex {
+        quint64 revision = ~0ull;
+        size_t size = 0;
+        QHash<std::pair<int, QString>, std::vector<size_t>> cells; //(表の行, 言語) → errors の位置
+        std::vector<size_t> fileLevel;                             //行も言語も無い、ファイル全体の結果
+    };
+    mutable ErrorIndex _errorIndex;
     int _sortedColumn = -1;
     int _sortOrder = 0;
 };

@@ -25,7 +25,7 @@ settings::settings()
     , languages()
     , defaultLanguage("ja")
     , isFirstExported(false)
-    , isShowHiddenFilesOnTree(true)
+    , isShowHiddenFilesOnTree(false)
     , langscoreProjectDirectory("")
 {
 }
@@ -284,6 +284,13 @@ void settings::removeLanguage(QString bcp47Name)
     this->languages.erase(result);
 }
 
+//Animations・Tilesets は翻訳する文章をほとんど含まないため、最初はツリーに表示しない
+bool settings::isBasicDataVisibleByDefault(const QString& fileName)
+{
+    const auto name = langscore::withoutAllExtension(fileName);
+    return name != "Animations" && name != "Tilesets";
+}
+
 settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
 {
     fileName = langscore::withoutAllExtension(fileName);
@@ -303,10 +310,9 @@ settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
         return *result;
     }
 
-    list.emplace_back(
-        settings::BasicData{fileName}
-    );
-    return list[list.size() - 1];
+    auto& info = list.emplace_back(settings::BasicData{fileName});
+    info.visible = settings::isBasicDataVisibleByDefault(fileName);
+    return info;
 }
 
 settings::MapInfo& settings::fetchMapInfo(QString _fileName)

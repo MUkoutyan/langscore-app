@@ -197,6 +197,7 @@ public:
     void removeLanguage(QString bcp47Name);
 
     BasicData &fetchBasicDataInfo(QString fileName);
+    static bool isBasicDataVisibleByDefault(const QString& fileName);
     MapInfo &fetchMapInfo(QString fileName);
     ScriptInfo &fetchScriptInfo(QString fileName);
     void removeScriptInfoPoint(QString fileName, langscore::ScriptTextPosition point);
