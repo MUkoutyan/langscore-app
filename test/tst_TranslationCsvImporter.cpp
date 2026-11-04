@@ -93,3 +93,30 @@ TEST(TranslationCsvImporter, RejectsCsvWithoutOriginalColumn)
     const auto originalOfRow = [&model](int row) { return model.item(row, 0)->text(); };
     EXPECT_EQ(langscore::ImportTranslationCsv(csvPath, model, originalOfRow, {{"ja", 1}}), -1);
 }
+
+//以前の divisi は VXAce の Scripts.csv の original 列に、原文ではなく "ファイル名:行:列" を書き出していた
+TEST(TranslationCsvImporter, ImportsOldScriptsCsvByPosition)
+{
+    QTemporaryDir dir;
+    const auto csvPath = dir.filePath("Scripts.csv");
+    {
+        QFile file(csvPath);
+        ASSERT_TRUE(file.open(QFile::WriteOnly));
+        file.write(Text(
+            u"original,en,ja\n"
+            u"97506006:11:22,Buy,\n"
+            u"97506006:12:22,Sell,\n").toUtf8());
+    }
+
+    QStandardItemModel model;
+    AddRow(model, Text(u"購入する"), "", "");
+    AddRow(model, Text(u"売却する"), "", "");
+    const auto originalOfRow = [&model](int row) { return model.item(row, 0)->text(); };
+    const auto positionOfRow = [](int row) { return QString("97506006:%1:22").arg(row + 11); };
+
+    const auto changed = langscore::ImportTranslationCsv(csvPath, model, originalOfRow, {{"ja", 1}, {"en", 2}}, positionOfRow);
+
+    EXPECT_EQ(changed, 2);
+    EXPECT_EQ(model.item(0, 2)->text(), "Buy");
+    EXPECT_EQ(model.item(1, 2)->text(), "Sell");
+}

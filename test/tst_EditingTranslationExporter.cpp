@@ -5,6 +5,8 @@
 #include "settings.h"
 #include "FastCSVContainer.h"
 #include "EditingTranslationExporter.h"
+#include "ScriptCSVTableModel.h"
+#include "EditorTableDefines.h"
 
 //-------------------------------------------------------------------
 // 書き出したCSVに editing の翻訳を反映する処理と、改行の扱い
@@ -149,4 +151,41 @@ TEST(FastCSVContainer, LineBreakInCellIsSavedOnceAndReadAsLF)
     ASSERT_TRUE(reopened.loadFromFile(path));
     EXPECT_EQ(reopened.at(0, 0), QString("a\nb"));
     EXPECT_EQ(reopened.at(0, 1), QString("x"));
+}
+
+// 不具合の再発防止：スクリプトの表で入力した翻訳が、書き出した Scripts.csv に入らなかった
+TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
+{
+    QTemporaryDir tempDir;
+    auto setting = std::make_shared<settings>(MakeSetting(tempDir.path()));
+    setting->projectType = settings::MZ;
+    setting->writeObj.enableFillDefaultLanguage = false;
+    //同じ原文が2つのスクリプトにあっても、訳は1行にまとまる
+    for(const auto& fileName : {QString("A.js"), QString("B.js")})
+    {
+        settings::ScriptInfo info;
+        info.fileName = fileName;
+        info.scriptName = fileName;
+        langscore::ScriptTextPosition line;
+        line.type = langscore::ScriptTextPosition::Type::RowCol;
+        line.originalText = "Hello";
+        line.d = langscore::ScriptTextPosition::RowCol{1, 2};
+        info.lines.push_back(line);
+        setting->writeObj.scriptInfo.push_back(info);
+    }
+
+    ScriptCSVTableModel model;
+    model.setSettings(setting);
+    const auto editingFolder = tempDir.filePath("editing");
+    QDir().mkpath(editingFolder);
+    model.loadFromEditJSONWithSettings(editingFolder);
+    ASSERT_EQ(model.rowCount(), 2);
+    //言語は ja, en の順。B.js の行の en に入力する
+    ASSERT_TRUE(model.setData(model.index(1, Columns::LangColumnStart + 1), "Translated", Qt::EditRole));
+    ASSERT_TRUE(model.saveToFile(editingFolder + "/Scripts.lsjson"));
+
+    const auto exportPath = tempDir.filePath("Data/Translate/Scripts.csv");
+    WriteBytes(exportPath, Bom + "original,ja,en\nHello,,");
+    langscore::ApplyEditingTranslations(*setting);
+    EXPECT_EQ(ReadBytes(exportPath), Bom + "original,ja,en\nHello,,Translated");
 }

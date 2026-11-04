@@ -30,7 +30,6 @@ MainWindow::MainWindow(QWidget *parent)
     , undoView(nullptr)
     , initialAnalysis(false)
     , explicitSave(false)
-    , lastSavedHistoryIndex(0)
 {
     ui->setupUi(this);
     this->setObjectName("mainWindow");
@@ -128,12 +127,9 @@ MainWindow::MainWindow(QWidget *parent)
         this->openGameProject(std::move(projFile));
     });
 
-    connect(this->history, &QUndoStack::indexChanged, this, [this](int idx){
-        if(this->lastSavedHistoryIndex != idx){
-            this->setWindowTitle("Langscore " + tr("Edited"));
-        } else {
-            this->setWindowTitle("Langscore");
-        }
+    //履歴を消したとき（再解析・プロジェクトの切り替え）も保存済みの状態になるよう、履歴の clean 状態で判定する
+    connect(this->history, &QUndoStack::cleanChanged, this, [this](bool clean){
+        this->setWindowTitle(clean ? "Langscore" : "Langscore " + tr("Edited"));
     });
 
     {
@@ -258,7 +254,7 @@ void MainWindow::receive(DispatchType type, const QVariantList &args)
     else if(type == DispatchType::SaveProject)
     {
         this->setting->saveForProject();
-        lastSavedHistoryIndex = this->history->index();
+        this->history->setClean();
     }
     else if(type == DispatchType::ChangeColor)
     {
@@ -277,7 +273,7 @@ int MainWindow::askCloseProject()
 {
     bool ask = this->initialAnalysis && (this->explicitSave == false);
 
-    if(ask == false && (this->history->index() == this->lastSavedHistoryIndex)){
+    if(ask == false && this->history->isClean()){
         return QMessageBox::Discard;
     }
     //ファイルを閉じようとしています。

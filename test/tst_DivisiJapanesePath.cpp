@@ -137,12 +137,12 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
     EXPECT_EQ(validate.exitCode, 0) << validate.output.toStdString();
 
     //書き出し（アプリと同じく、divisiの書き出し後にアプリ側の翻訳を反映してからパッキングする）。
-    //langscore フォルダの Data/Translate に、原文と翻訳が化けずに入り、訳の改行が原文と同じ \r\n になること
+    //ゲームのフォルダの Data/Translate に、原文と翻訳が化けずに入り、訳の改行が原文と同じ \r\n になること
     setting.validateObj.csvNameList.clear();
     setting.write(configPath);
     const auto exportResult = RunDivisi(configPath, "--exportCSV");
     ASSERT_EQ(exportResult.exitCode, 0) << exportResult.output.toStdString();
-    const auto exported = FindFile(setting.langscoreProjectDirectory + "/Data/Translate", "Actors.csv");
+    const auto exported = FindFile(setting.translateDirectoryPath(), "Actors.csv");
     ASSERT_FALSE(exported.isEmpty()) << exportResult.output.toStdString();
     EXPECT_TRUE(langscore::ApplyEditingTranslations(setting).contains(exported));
     QFile exportedFile(exported);

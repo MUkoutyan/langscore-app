@@ -51,7 +51,8 @@ int ImportTranslationCsv(
     const QString& csvPath,
     QAbstractItemModel& model,
     const std::function<QString(int row)>& originalOfRow,
-    const QHash<QString, int>& languageColumns
+    const QHash<QString, int>& languageColumns,
+    const std::function<QString(int row)>& positionOfRow
 )
 {
     FastCSVContainer imported;
@@ -67,7 +68,10 @@ int ImportTranslationCsv(
     for(int row = 0; row < model.rowCount(); ++row)
     {
         const auto original = originalOfRow(row);
-        const auto importedRow = importedRowOfOriginal.constFind(ToKey(original));
+        auto importedRow = importedRowOfOriginal.constFind(ToKey(original));
+        if(importedRow == importedRowOfOriginal.cend() && positionOfRow) {
+            importedRow = importedRowOfOriginal.constFind(positionOfRow(row));
+        }
         if(importedRow == importedRowOfOriginal.cend()) { continue; }
 
         for(auto column = languageColumns.cbegin(); column != languageColumns.cend(); ++column)

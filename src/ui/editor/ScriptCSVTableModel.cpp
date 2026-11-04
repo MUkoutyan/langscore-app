@@ -3,6 +3,8 @@
 #include "EditorTableDefines.h"
 
 #include <QFile>
+#include <QFileInfo>
+#include <QHash>
 #include <QBrush>
 #include <QLocale>
 #include <QJsonDocument>
@@ -43,7 +45,6 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
     beginResetModel();
     _rows.clear();
     _languages.clear();
-    _dirtyFiles.clear();
     _scriptNameToRows.clear();
 
     if(_settings == nullptr) {
@@ -144,9 +145,70 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
     endResetModel();
 }
 
-bool ScriptCSVTableModel::saveToFile(const QString& editingDir) const
+bool ScriptCSVTableModel::saveToFile(const QString& editJsonFile) const
 {
-    return saveToEditJsonFile(editingDir);
+    if(saveToEditJsonFile(editJsonFile) == false) { return false; }
+    //メインの表と同じく、書き出したCSVへの反映と検証は editing のCSVを使うため、CSVでも保存する
+    return saveToEditCsvFile(QFileInfo(editJsonFile).absolutePath() + "/Scripts.csv");
+}
+
+//divisi が書き出す Scripts.csv と同じく、原文ごとに1行の CSV（original, 有効な言語…）で保存する。
+//無視する行は書き出されないため含めない
+bool ScriptCSVTableModel::saveToEditCsvFile(const QString& csvPath) const
+{
+    if(_rows.isEmpty()) { return true; }
+
+    std::vector<std::vector<QString>> csvData;
+    auto& header = csvData.emplace_back();
+    header.push_back("original");
+    for(const auto& lang : _languages) { header.push_back(lang); }
+    //行を追加すると csvData が再確保され header の参照が無効になるため、列数は先に取っておく
+    const auto columnCount = header.size();
+
+    //同じ原文が複数のスクリプトにある場合は1行にまとめ、空の訳は他の行の訳で埋める
+    QHash<QString, size_t> rowOfOriginal;
+    for(const auto& rd : _rows)
+    {
+        if(rd.include == false || rd.scriptIgnored) { continue; }
+        auto found = rowOfOriginal.constFind(rd.originalText);
+        if(found == rowOfOriginal.cend())
+        {
+            found = rowOfOriginal.insert(rd.originalText, csvData.size());
+            auto& row = csvData.emplace_back(columnCount);
+            row[0] = rd.originalText;
+        }
+        auto& row = csvData[found.value()];
+        for(int i = 0; i < _languages.size() && i < rd.translations.size(); ++i) {
+            if(row[i + 1].isEmpty()) { row[i + 1] = rd.translations[i]; }
+        }
+    }
+
+    FastCSVContainer container;
+    return container.loadFromCsvData(csvData) && container.saveToFile(csvPath);
+}
+
+//言語の有効・無効を変えたとき、入力済みの訳を保ったまま言語の列を作り直す
+void ScriptCSVTableModel::refreshLanguages()
+{
+    if(_settings == nullptr) { return; }
+    beginResetModel();
+    for(auto& rd : _rows) {
+        for(int i = 0; i < _languages.size() && i < rd.translations.size(); ++i) {
+            rd.savedTranslates[_languages[i]] = rd.translations[i];
+        }
+    }
+    _languages.clear();
+    for(const auto& lang : _settings->languages) {
+        if(lang.enable) { _languages.append(lang.languageName); }
+    }
+    for(auto& rd : _rows)
+    {
+        rd.translations.resize(_languages.size());
+        for(int i = 0; i < _languages.size(); ++i) {
+            rd.translations[i] = rd.savedTranslates[_languages[i]].toString();
+        }
+    }
+    endResetModel();
 }
 
 bool ScriptCSVTableModel::saveToEditJsonFile(const QString& editJsonFile) const
@@ -206,65 +268,6 @@ bool ScriptCSVTableModel::saveToEditJsonFile(const QString& editJsonFile) const
 }
 
 // ────────────────────────────────────────────────────────────
-void ScriptCSVTableModel::saveAllModifiedFiles(const QString& editingDir)
-{
-    if(_dirtyFiles.isEmpty()) { return; }
-
-    for(const auto& scriptFileName : std::as_const(_dirtyFiles)) 
-    {
-        const auto csvPath = editingDir + "/" + withoutExtension(scriptFileName) + ".json";
-
-        FastCSVContainer container;
-        bool loaded = false;
-        if(QFile::exists(csvPath)) {
-            loaded = container.loadFromFile(csvPath);
-        }
-        if(!loaded) {
-            std::vector<std::vector<QString>> headerOnly;
-            auto& hdr = headerOnly.emplace_back();
-            hdr.push_back("original");
-            for(const auto& lang : _languages) {
-                hdr.push_back(lang);
-            }
-            container.loadFromCsvData(headerOnly);
-        }
-
-        for(const auto& rd : _rows) 
-        {
-            if(rd.scriptFileName != scriptFileName) { continue; }
-
-            bool found = false;
-            const size_t rowCount = container.rowCount();
-            for(size_t r = 0; r < rowCount; ++r) {
-                QString orig;
-                container.getValue(r, size_t(0), orig);
-                if(orig == rd.originalText) {
-                    for(int i = 0; i < _languages.size(); ++i) {
-                        if(i < rd.translations.size()) {
-                            container.setValue(r, _languages[i], rd.translations[i]);
-                        }
-                    }
-                    found = true;
-                    break;
-                }
-            }
-
-            if(!found) {
-                std::vector<QString> newRow;
-                newRow.push_back(rd.originalText);
-                for(int i = 0; i < _languages.size(); ++i) {
-                    newRow.push_back(i < rd.translations.size() ? rd.translations[i] : QString());
-                }
-                container.addRow(newRow);
-            }
-        }
-
-        container.saveToFile(csvPath);
-    }
-    _dirtyFiles.clear();
-}
-
-// ────────────────────────────────────────────────────────────
 void ScriptCSVTableModel::setUseLanguageFont(bool use)
 {
     if(_useLanguageFont == use) { return; }
@@ -283,6 +286,15 @@ QString ScriptCSVTableModel::getOriginalText(int row) const
 {
     if(row < 0 || _rows.size() <= row) { return {}; }
     return _rows[row].originalText;
+}
+
+QString ScriptCSVTableModel::getPositionKey(int row) const
+{
+    if(row < 0 || _rows.size() <= row) { return {}; }
+    const auto& rd = _rows[row];
+    if(rd.position.type != ScriptTextPosition::Type::RowCol) { return {}; }
+    const auto& pos = std::get<ScriptTextPosition::RowCol>(rd.position.d);
+    return QString("%1:%2:%3").arg(langscore::withoutAllExtension(rd.scriptFileName)).arg(pos.row).arg(pos.col);
 }
 
 QString ScriptCSVTableModel::getScriptFileName(int row) const
@@ -462,7 +474,6 @@ bool ScriptCSVTableModel::setData(const QModelIndex& idx, const QVariant& value,
                 rd.translations.resize(li + 1);
             }
             rd.translations[li] = value.toString();
-            _dirtyFiles.insert(rd.scriptFileName);
             emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});
             return true;
         }

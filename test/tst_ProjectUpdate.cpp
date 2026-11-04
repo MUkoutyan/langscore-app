@@ -428,3 +428,20 @@ TEST_F(JapanesePathTest, ProgressOfUnopenedFile)
     EXPECT_EQ(*progress, std::make_pair(1, 2));
     EXPECT_EQ(manager->findMainCSVModel(editingCsv), nullptr);
 }
+
+// 不具合の再発防止：開いた後に有効にした言語の列が表に出なかった
+TEST_F(EditedCsvReloadTest, LanguageEnabledAfterOpenAddsColumn)
+{
+    // ファイルを開いた後に言語を有効にしても、開き直せばその言語の列があること
+    WriteAnalyzeResult(R"([{"original": "A", "type": ["name"]}])");
+
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    ASSERT_NE(OpenActors(component, manager, table), nullptr);
+
+    //言語の切り替え（LanguageSelectComponent）は setting の enable を変えるだけ
+    SetLanguages(*component.setting, {{"en", true}, {"fr", true}});
+    auto* model = OpenActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+    EXPECT_TRUE(FindColumn(*model, "fr").has_value()) << "後から有効にした fr の列がありません";
+}

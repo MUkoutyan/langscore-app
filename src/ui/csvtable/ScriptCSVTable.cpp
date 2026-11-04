@@ -267,10 +267,11 @@ int ScriptCSVTable::importTranslationCsv(const QString& csvPath)
         languageColumns.insert(language.languageName, column);
     }
     const auto originalOfRow = [model](int row) { return model->getOriginalText(row); };
-    const auto changedCells = langscore::ImportTranslationCsv(csvPath, *model, originalOfRow, languageColumns);
+    const auto positionOfRow = [model](int row) { return model->getPositionKey(row); };
+    const auto changedCells = langscore::ImportTranslationCsv(csvPath, *model, originalOfRow, languageColumns, positionOfRow);
 
     //スクリプトの表は表示するたびにediting/から読み直すため、取り込んだ内容はすぐに保存する
-    model->saveAllModifiedFiles(editFolder);
+    model->saveToFile(editFolder + "/Scripts.lsjson");
     return changedCells;
 }
 
@@ -515,6 +516,13 @@ void ScriptCSVTable::changeScriptTableItemCheck(QString scriptName, Qt::CheckSta
     updateTableTextColor();
 }
 
+void ScriptCSVTable::refreshLanguageColumns()
+{
+    if(currentModel == nullptr) { return; }
+    currentModel->refreshLanguages();
+    restoreColumnWidths();
+}
+
 void ScriptCSVTable::setScriptFileName(QString fileName)
 {
     scriptFileName->setText(fileName);
@@ -523,12 +531,8 @@ void ScriptCSVTable::setScriptFileName(QString fileName)
 void ScriptCSVTable::receive(DispatchType type, const QVariantList& args)
 {
     Q_UNUSED(args);
-    if(type == DispatchType::SaveProject) {
-        if(currentModel == nullptr || !setting) { return; }
-        const auto editFolder = setting->langscoreProjectDirectory + "/editing";
-        currentModel->saveAllModifiedFiles(editFolder);
-    }
-    else if(type == DispatchType::ChangeColor) {
+    //保存は EditDataManager::saveAllModels で行う
+    if(type == DispatchType::ChangeColor) {
         updateTableTextColor();
     }
 }

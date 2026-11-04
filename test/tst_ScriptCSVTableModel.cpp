@@ -131,3 +131,25 @@ TEST_F(ScriptCSVTableModelTest, SaveKeepsDisabledLanguage)
     EXPECT_EQ(translates["ja"].toString(), QString("Konnichiwa"));
     EXPECT_EQ(translates["en"].toString(), QString("Hello!"));
 }
+
+// 不具合の再発防止：表を作った後に有効にした言語の列が出なかった
+TEST_F(ScriptCSVTableModelTest, RefreshLanguagesKeepsTranslations)
+{
+    ScriptCSVTableModel model;
+    model.setSettings(setting);
+    model.loadFromEditJSONWithSettings(tempDir.path());
+    ASSERT_TRUE(model.setData(model.index(0, Columns::LangColumnStart + 1), "Hi", Qt::EditRole));
+
+    //ja を無効にし、fr を有効にする
+    setting->languages[0].enable = false;
+    setting->languages.push_back(settings::Language{"fr", {}, true});
+    model.refreshLanguages();
+    EXPECT_EQ(model.columnCount(), Columns::LangColumnStart + 2);
+    EXPECT_EQ(LangCell(model, 0), QString("Hi"));
+
+    //ja を戻しても、入力済みの訳は失われない
+    setting->languages[0].enable = true;
+    ASSERT_TRUE(model.setData(model.index(0, Columns::LangColumnStart + 0), "Hi2", Qt::EditRole));
+    model.refreshLanguages();
+    EXPECT_EQ(LangCell(model, 1), QString("Hi2"));
+}

@@ -378,8 +378,29 @@ MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
     //読み込み済みのモデルを読み直すと未保存の編集が失われるため、未読み込みの場合のみ読み込む。
     if(mainModel->columnCount() == 0) {
         this->fillModelFromFiles(*mainModel, fileName);
+        return mainModel;
+    }
+    //読み込んだ後に有効にした言語の列は無いので、type 列の前に足す
+    QStringList headers;
+    for(int column = 0; column < mainModel->columnCount(); ++column) {
+        headers.append(mainModel->headerData(column, Qt::Horizontal, DataType::FilterText).toString());
+    }
+    for(const auto& lang : this->setting->languages)
+    {
+        if(lang.enable == false || headers.contains(lang.languageName)) { continue; }
+        const auto typeColumn = headers.indexOf("type");
+        const auto insertIndex = typeColumn < 0 ? headers.size() : typeColumn;
+        mainModel->insertColumn(static_cast<size_t>(insertIndex), lang.languageName);
+        headers.insert(insertIndex, lang.languageName);
     }
     return mainModel;
+}
+
+//言語の有効・無効を変えたとき、表示中のファイルに言語の列を足す
+void MainCSVTable::refreshLanguageColumns()
+{
+    if(this->currentModel == nullptr) { return; }
+    this->showMainFileText(this->currentTreeItemName, this->currentTreeFileName);
 }
 
 void MainCSVTable::fillModelFromFiles(langscore::CSVEditorTableModel& model, const QString& fileName) const

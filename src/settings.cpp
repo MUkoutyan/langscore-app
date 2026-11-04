@@ -42,14 +42,9 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     this->gameProjectPath = absoluteGameProjectPath;
     this->projectType = projType;
 
-    if(projType == ProjectType::VXAce){
-        this->writeObj.exportDirectory = "./Data/Translate";
-    }
-    else if(projType == ProjectType::MV || projType == ProjectType::MZ){
-        this->writeObj.exportDirectory = "./data/translate";
-    }
-
     updateLangscoreProjectPath();
+    //書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（FirstWriteDialog・WriteDialog・divisi）
+    this->writeObj.exportDirectory = QDir(this->langscoreProjectDirectory).relativeFilePath(this->translateDirectoryPath());
 }
 
 void settings::setupLanguages(const std::vector<QLocale>& locales)

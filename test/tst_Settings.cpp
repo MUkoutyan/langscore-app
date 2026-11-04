@@ -100,7 +100,7 @@ TEST_F(SettingsTest, SetGameProjectPathMV)
 
     EXPECT_EQ(s.projectType, settings::MV);
     EXPECT_EQ(s.gameProjectPath, dir);
-    EXPECT_EQ(s.writeObj.exportDirectory, QString("./data/translate"));
+    EXPECT_EQ(s.writeObj.exportDirectory, QString("../Game/data/translate"));
     EXPECT_EQ(QDir::cleanPath(s.langscoreProjectDirectory), QDir::cleanPath(tempDir.filePath("Game_langscore")));
     EXPECT_EQ(s.translateDirectoryPath(), dir + "/data/translate");
     EXPECT_EQ(s.tempGraphicsFileDirectoryPath(), dir + "/img");
@@ -116,7 +116,7 @@ TEST_F(SettingsTest, SetGameProjectPathVXAce)
     // バックスラッシュはスラッシュに正規化される
     EXPECT_EQ(s.gameProjectPath, dir);
     EXPECT_EQ(s.projectType, settings::VXAce);
-    EXPECT_EQ(s.writeObj.exportDirectory, QString("./Data/Translate"));
+    EXPECT_EQ(s.writeObj.exportDirectory, QString("../Game/Data/Translate"));
     EXPECT_EQ(s.translateDirectoryPath(), dir + "/Data/Translate");
     EXPECT_EQ(s.tempGraphicsFileDirectoryPath(), dir + "/Graphics");
     EXPECT_EQ(settings::scriptExt(s.projectType), QString(".rb"));
@@ -494,4 +494,17 @@ TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi)
     const auto point = points[0].toObject();
     EXPECT_EQ(point["Row"].toInteger(), 1);
     EXPECT_FALSE(point["Ignore"].toBool(false));
+}
+
+// 不具合の再発防止：新規プロジェクトの書き出し先が、ゲームのフォルダではなく _langscore フォルダの中になっていた
+TEST_F(SettingsTest, DefaultExportDirectoryIsGameTranslateFolder)
+{
+    // 書き出し先は langscore プロジェクトのフォルダからの相対パスとして使われる（FirstWriteDialog・divisi）
+    auto dir = MakeProject("Game", "Game.rmmzproject");
+    settings s;
+    s.setGameProjectPath(dir);
+    s.load(WriteConfig(s));
+
+    const auto exportPath = QDir::cleanPath(QDir(s.langscoreProjectDirectory).absoluteFilePath(s.writeObj.exportDirectory));
+    EXPECT_EQ(exportPath, QDir::cleanPath(s.translateDirectoryPath()));
 }

@@ -234,13 +234,7 @@ WriteModeComponent::~WriteModeComponent(){
 
 void WriteModeComponent::show()
 {
-    for(auto& lang : this->setting->languages)
-    {
-        if(lang.languageName == QLocale::system().bcp47Name()){
-            lang.enable = true;
-        }
-    }
-
+    //OS の言語は新規プロジェクトの既定言語として setupLanguages で有効になる。開くたびには変えない
     this->clear();
     this->setup();
 }
@@ -494,6 +488,9 @@ void WriteModeComponent::setup()
         this->ui->langTabGrid->addWidget(langComp, count/3, count%3);
         langComp->update();
         connect(langComp, &LanguageSelectComponent::ChangeUseLanguageState, this, [this](){
+            //開いている表に、有効にした言語の列を足す
+            this->mainTable->refreshLanguageColumns();
+            this->scriptTable->refreshLanguageColumns();
             auto isDisabledALl = std::all_of(this->setting->languages.begin(), this->setting->languages.end(), [](const settings::Language& lang){
                 return lang.enable == false;
             });

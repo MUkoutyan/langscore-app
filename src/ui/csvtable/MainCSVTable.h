@@ -28,6 +28,8 @@ public:
 
     void showMainFileText(QString treeItemName, QString fileName);
     void loadAllMainFiles();
+    //言語の有効・無効を変えたときに、表示中のファイルに言語の列を足す
+    void refreshLanguageColumns();
     //外部エディターで編集したCSVの翻訳を、同じ名前のファイルの表に取り込む。
     //書き換えたセルの数を返す。取り込み先のファイルが無い・CSVを読めない場合は -1
     int importTranslationCsv(const QString& csvPath);

@@ -22,15 +22,19 @@ public:
     void setRuntimeData(std::shared_ptr<ComponentBase::RuntimeData> setting);
 
     void loadFromEditJSONWithSettings(const QString& editingDir);
-    bool saveToFile(const QString& editingDir) const;
+    //editing/Scripts.lsjson と、書き出し・検証用の editing/Scripts.csv に保存する
+    bool saveToFile(const QString& editJsonFile) const;
     bool saveToEditJsonFile(const QString& editingDir) const;
-
-    void saveAllModifiedFiles(const QString& editingDir);
+    bool saveToEditCsvFile(const QString& csvPath) const;
+    void refreshLanguages();
 
     void setUseLanguageFont(bool use);
 
     // 指定行の原文テキストを返す（auto-check 操作向け）
     QString getOriginalText(int row) const;
+
+    // 指定行の位置を旧形式の Scripts.csv の original と同じ "ファイル名:行:列" で返す。行・列を持たない行は空
+    QString getPositionKey(int row) const;
 
     // 指定行のスクリプトファイル名を返す（拡張子付き）
     QString getScriptFileName(int row) const;
@@ -77,7 +81,6 @@ private:
     std::shared_ptr<settings> _settings;
     std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
     bool                      _useLanguageFont = false;
-    QSet<QString>             _dirtyFiles;
 
     // scriptDisplayName → 行インデックス のキャッシュ
     std::unordered_map<QString, std::vector<int>> _scriptNameToRows;
