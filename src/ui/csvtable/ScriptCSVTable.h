@@ -26,7 +26,10 @@ public:
     void clear();
 
     void setupScriptTable();
-    void filterScriptTextData(std::vector<ScriptTextData>& scriptDataList);
+    //外部エディターで編集した Scripts.csv の翻訳を取り込み、editing に保存する。
+    //書き換えたセルの数を返す。Scripts.csv ではない・CSVを読めない場合は -1
+    int importTranslationCsv(const QString& csvPath);
+void filterScriptTextData(std::vector<ScriptTextData>& scriptDataList);
 
     void updateScriptIgnoreState(QString scriptName, Qt::CheckState check);
 

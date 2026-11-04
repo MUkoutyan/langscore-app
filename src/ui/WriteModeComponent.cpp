@@ -274,6 +274,33 @@ void WriteModeComponent::loadAllMainFiles()
     this->mainTable->loadAllMainFiles();
 }
 
+QString WriteModeComponent::importTranslationCsvFiles(const QStringList& csvPaths)
+{
+    int changedCells = 0;
+    QStringList skippedFiles;
+    for(const auto& csvPath : csvPaths)
+    {
+        auto result = this->scriptTable->importTranslationCsv(csvPath);
+        if(result < 0) { result = this->mainTable->importTranslationCsv(csvPath); }
+        if(result < 0)
+        {
+            skippedFiles.append(QFileInfo(csvPath).fileName());
+            continue;
+        }
+        changedCells += result;
+    }
+    this->mainTable->notifyAllFileProgress();
+
+    auto message = tr("Imported %1 translations.").arg(changedCells);
+    if(0 < changedCells) {
+        message += "\n" + tr("Save the project to keep the imported translations.");
+    }
+    if(skippedFiles.isEmpty() == false) {
+        message += "\n\n" + tr("The following files were skipped because no matching file was found in the project:") + "\n" + skippedFiles.join("\n");
+    }
+    return message;
+}
+
 void WriteModeComponent::treeItemSelected()
 {
     this->fileTree->itemSelected();

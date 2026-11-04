@@ -118,6 +118,10 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     auto validationAction = new QAction(tr("Validation all file..."), this);
     validationAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_V);
     editMenu->addAction(validationAction);
+    editMenu->addSeparator();
+    //CSVエディターより前の、外部エディターでCSVを編集していたプロジェクト向け
+    auto importAction = editMenu->addAction(tr("Import Translation CSV..."));
+    connect(importAction, &QAction::triggered, this, &FormTaskBar::importTranslationCsv);
 
     connect(undoAction, &QAction::triggered, this, &FormTaskBar::undo);
     connect(redoAction, &QAction::triggered, this, &FormTaskBar::redo);

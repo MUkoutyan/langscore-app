@@ -37,6 +37,7 @@ signals:
     void showUndoView();
 
     void validationAll();
+    void importTranslationCsv();
 
     void changeTheme(ColorTheme::Theme);
 

@@ -137,6 +137,8 @@ set(PROJECT_SOURCES
     src/service/LanguageNames.cpp
     src/service/EditingTranslationExporter.h
     src/service/EditingTranslationExporter.cpp
+    src/service/TranslationCsvImporter.h
+    src/service/TranslationCsvImporter.cpp
 )
 
 include_directories(

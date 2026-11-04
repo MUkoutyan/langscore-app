@@ -14,6 +14,7 @@
 #include <QPalette>
 #include <QFontDatabase>
 #include <QMessageBox>
+#include <QFileDialog>
 #include <QTimer>   
 
 using namespace langscore;
@@ -96,6 +97,18 @@ MainWindow::MainWindow(QWidget *parent)
         this->writeUi->loadAllMainFiles();
         this->dispatch(SaveProject, {});
         this->dispatch(ValidateAll, {});
+    });
+    connect(this->taskBar, &FormTaskBar::importTranslationCsv, this, [this]()
+    {
+        //プロジェクトを開いていない間は取り込み先が無い
+        if(this->writeUi->isEnabled() == false) { return; }
+        //外部エディターでは、書き出したCSVを直接編集していたため、書き出し先から選ぶ
+        const QDir langscoreProjectDir(this->setting->langscoreProjectDirectory);
+        const auto exportFolder = langscoreProjectDir.absoluteFilePath(this->setting->writeObj.exportDirectory);
+        const auto csvPaths = QFileDialog::getOpenFileNames(this, tr("Import Translation CSV"), exportFolder, tr("CSV (*.csv)"));
+        if(csvPaths.isEmpty()) { return; }
+        const auto message = this->writeUi->importTranslationCsvFiles(csvPaths);
+        QMessageBox::information(this, tr("Import Translation CSV"), message);
     });
     //connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
     connect(this->taskBar, &FormTaskBar::quit,            this, &MainWindow::close);

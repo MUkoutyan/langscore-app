@@ -23,6 +23,7 @@
 #include "EditDataManager.h"
 #include "MainCSVTableModel.h"
 #include "service/LanguageNames.h"
+#include "service/TranslationCsvImporter.h"
 
 using namespace langscore;
 
@@ -455,6 +456,48 @@ void MainCSVTable::loadAllMainFiles()
     };
     loadFiles(this->setting->writeObj.basicDataInfo);
     loadFiles(this->setting->writeObj.mapDataInfo);
+}
+
+int MainCSVTable::importTranslationCsv(const QString& csvPath)
+{
+    const auto baseName = QFileInfo(csvPath).completeBaseName();
+    const auto analyzeFolder = this->setting->analyzeDirectoryPath();
+    //解析結果が無いファイルは表を作れないため、取り込まない
+    if(QFile::exists(analyzeFolder + "/" + baseName + ".lsjson") == false) { return -1; }
+
+    QString targetFileName;
+    const auto findTarget = [&](const auto& infoList) {
+        for(const auto& info : infoList) {
+            if(withoutExtension(info.fileName) == baseName) { targetFileName = info.fileName; }
+        }
+    };
+    findTarget(this->setting->writeObj.basicDataInfo);
+    findTarget(this->setting->writeObj.mapDataInfo);
+    if(targetFileName.isEmpty()) { return -1; }
+
+    auto* model = this->loadModel(targetFileName);
+    if(model == nullptr) { return -1; }
+
+    int originalColumn = -1;
+    QHash<QString, int> languageColumns;
+    for(int column = 0; column < model->columnCount(); ++column)
+    {
+        const auto header = model->headerData(column, Qt::Horizontal, DataType::FilterText).toString();
+        if(header == "original") {
+            originalColumn = column;
+        }
+        else if(header != "type") {
+            languageColumns.insert(header, column);
+        }
+    }
+    if(originalColumn < 0) { return -1; }
+
+    const auto originalOfRow = [model, originalColumn](int row) {
+        return model->data(model->index(row, originalColumn), Qt::EditRole).toString();
+    };
+    const auto changedCells = langscore::ImportTranslationCsv(csvPath, *model, originalOfRow, languageColumns);
+    if(model == this->currentModel) { this->updateProgressLabel(); }
+    return changedCells;
 }
 
 void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)

@@ -28,7 +28,10 @@ public:
 
     void showMainFileText(QString treeItemName, QString fileName);
     void loadAllMainFiles();
-    void selectError(quint64 errorId);
+    //外部エディターで編集したCSVの翻訳を、同じ名前のファイルの表に取り込む。
+    //書き換えたセルの数を返す。取り込み先のファイルが無い・CSVを読めない場合は -1
+    int importTranslationCsv(const QString& csvPath);
+void selectError(quint64 errorId);
     //すべてのファイルの進捗を fileProgressChanged で通知する
     void notifyAllFileProgress();
 

@@ -136,7 +136,7 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
     const auto validate= RunDivisi(configPath, "--validate");
     EXPECT_EQ(validate.exitCode, 0) << validate.output.toStdString();
 
-    //書き出し（アプリと同じく、divisi の書き出し後に editing の翻訳を反映してからパッキングする）。
+    //書き出し（アプリと同じく、divisiの書き出し後にアプリ側の翻訳を反映してからパッキングする）。
     //langscore フォルダの Data/Translate に、原文と翻訳が化けずに入り、訳の改行が原文と同じ \r\n になること
     setting.validateObj.csvNameList.clear();
     setting.write(configPath);

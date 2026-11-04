@@ -15,6 +15,7 @@
 #include "../utility.hpp"
 #include "../csv.hpp"
 #include "../graphics.hpp"
+#include "service/TranslationCsvImporter.h"
 
 #include <ranges>
 #include <algorithm>
@@ -240,6 +241,37 @@ void ScriptCSVTable::clear()
     filterEdit->clear();
     scriptFileName->setText("");
     scriptFileWordCount->setText("");
+}
+
+int ScriptCSVTable::importTranslationCsv(const QString& csvPath)
+{
+    if(setting == nullptr) { return -1; }
+    if(QFileInfo(csvPath).completeBaseName() != "Scripts") { return -1; }
+    auto manager = loadFileManager.lock();
+    if(manager == nullptr) { return -1; }
+
+    const auto editFolder = setting->langscoreProjectDirectory + "/editing";
+    auto* model = manager->getScriptCSVModel(editFolder + "/" + "Scripts.lsjson");
+    if(model == nullptr) { return -1; }
+    model->setSettings(setting);
+    model->setRuntimeData(runtimeData);
+    //読み込み済みの表は未保存の編集を含むため、読み直さない
+    if(model->rowCount() == 0) { model->loadFromEditJSONWithSettings(editFolder); }
+
+    //言語の列は、有効な言語の順に並ぶ
+    QHash<QString, int> languageColumns;
+    for(const auto& language : setting->languages)
+    {
+        if(language.enable == false) { continue; }
+        const auto column = Columns::LangColumnStart + static_cast<int>(languageColumns.size());
+        languageColumns.insert(language.languageName, column);
+    }
+    const auto originalOfRow = [model](int row) { return model->getOriginalText(row); };
+    const auto changedCells = langscore::ImportTranslationCsv(csvPath, *model, originalOfRow, languageColumns);
+
+    //スクリプトの表は表示するたびにediting/から読み直すため、取り込んだ内容はすぐに保存する
+    model->saveAllModifiedFiles(editFolder);
+    return changedCells;
 }
 
 void ScriptCSVTable::setupScriptTable()

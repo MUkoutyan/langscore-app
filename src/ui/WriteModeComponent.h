@@ -34,6 +34,8 @@ public:
     void show();
     void clear();
     void loadAllMainFiles();
+    //外部エディターで編集した翻訳のCSVをエディターに取り込み、結果の文章を返す
+    QString importTranslationCsvFiles(const QStringList& csvPaths);
 
 public slots:
     void treeItemSelected();
