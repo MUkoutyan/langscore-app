@@ -11,6 +11,7 @@
 #include <mutex>
 
 class QLineEdit;
+namespace langscore { class FastCSVContainer; }
 class QToolButton;
 class QHBoxLayout;
 class QTimer;
@@ -102,6 +103,8 @@ signals:
     void showMainFile(const QString& treeItemName, const QString& fileName);
     // Mainタブで検証結果（ValidationErrorInfo::id）のセルを選択する
     void selectMainError(quint64 errorId);
+    //スクリプトの検証結果を選んだとき。スクリプトの表で、そのスクリプトの原文の行を選ぶ
+    void selectScriptError(const QString& scriptFileName, const QString& original);
 
     // Scriptタブでスクリプトファイルを表示する
     void showScriptFile(const QString& scriptFilePath);
@@ -178,4 +181,5 @@ private slots:
     
     //検証で使用するメソッド
     void updateErrorTree();
+    std::vector<std::pair<QTreeWidgetItem*, QString>> scriptErrorTargets(const ValidationErrorInfo& info, const langscore::FastCSVContainer& scriptsCsv);
 };

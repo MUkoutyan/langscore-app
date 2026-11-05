@@ -73,6 +73,7 @@ private:
     void updateFileNameLabel();
     void updateProgressLabel();
     void updateValidateResultListButton();
+    void showOldTranslationsDialog();
     void updateValidateResultTable();
     void refreshValidationView();
     //表示順で、今のセルの次にある検証結果のセルへ移動する
@@ -89,6 +90,7 @@ private:
 QPushButton* hideLanguageColumnsAction;
     QPushButton* validateButton;
     QPushButton* validateResultListButton;
+    QPushButton* oldTranslationsButton;
     QDialog* validateResultDialog;
     QTableWidget* validateResultTable;
     QToolButton* settingButton;

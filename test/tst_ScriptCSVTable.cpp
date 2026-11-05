@@ -28,3 +28,34 @@ TEST(ScriptCSVTable, ClearKeepsManagerOwnedModel)
     }
     EXPECT_TRUE(alive);
 }
+
+TEST(ScriptCSVTable, SelectRowOfScriptExactName)
+{
+    // ファイルツリーでスクリプトを選ぶと、名前がそのスクリプトと一致する最初の行が選ばれること。
+    // 名前の一部が一致する別のスクリプト（"A" に対する "AB"）の行は選ばない
+    ComponentBase component;
+    auto manager = std::make_shared<EditDataManager>();
+    auto table = std::make_unique<ScriptCSVTable>(&component, manager);
+    struct Access : ComponentBase { using ComponentBase::setting; };
+    auto& setting = *static_cast<Access&>(component).setting;
+    setting.projectType = settings::MZ;
+    for(const auto& fileName : {QString("AB.js"), QString("A.js")})
+    {
+        settings::ScriptInfo info;
+        info.fileName = fileName;
+        info.scriptName = fileName;
+        langscore::ScriptTextPosition line;
+        line.originalText = "Hello " + fileName;
+        line.d = langscore::ScriptTextPosition::RowCol{1, 2};
+        info.lines.push_back(line);
+        setting.writeObj.scriptInfo.push_back(info);
+    }
+    table->setupScriptTable();
+
+    table->onScriptTableSelectRow("A");
+    auto* editor = table->findChild<CSVEditor*>();
+    ASSERT_NE(editor, nullptr);
+    const auto selected = editor->selectionModel()->selectedRows(Columns::OriginalText);
+    ASSERT_EQ(selected.size(), 1);
+    EXPECT_EQ(selected[0].data().toString(), QString("Hello A.js"));
+}

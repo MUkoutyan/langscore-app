@@ -4,6 +4,10 @@
 #include "../ui/editor/FastCSVContainer.h"
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QHash>
 #include <algorithm>
 
@@ -32,10 +36,30 @@ namespace
         return text.replace("\r\n", "\n");
     }
 
+    //Scripts.csv は、1列目が原文ではなく「ファイル名:行:列」か「ファイル名:パラメータ名」のキーになる。
+    //プラグインはこのキーで訳を引くため、キーから原文を引けるようにする
+    QHash<QString, QString> ScriptOriginalOfKey(const QString& editJsonPath)
+    {
+        QHash<QString, QString> originalOfKey;
+        QFile file(editJsonPath);
+        if(file.open(QIODevice::ReadOnly) == false) { return originalOfKey; }
+        for(const auto& value : QJsonDocument::fromJson(file.readAll()).array())
+        {
+            const auto obj = value.toObject();
+            const auto prefix = QFileInfo(obj["file"].toString()).completeBaseName() + ":";
+            const auto key = obj.contains("parameterName")
+                ? prefix + obj["parameterName"].toString()
+                : prefix + QString::number(obj["row"].toInteger()) + ":" + QString::number(obj["col"].toInteger());
+            originalOfKey.insert(key, obj["original"].toString());
+        }
+        return originalOfKey;
+    }
+
     bool ApplyToExportedFile(
         const QString& exportPath,
         const FastCSVContainer& editing,
         const QHash<QString, size_t>& editingRowOfOriginal,
+        const QHash<QString, QString>& originalOfKey,
         const settings& setting
     )
     {
@@ -62,7 +86,8 @@ namespace
             if(fields.empty()) { continue; }
             fields.resize(std::max(fields.size(), columnCount));
 
-            const auto original = csvFormat.unescapeCSVField(fields[0]);
+            const auto firstField = csvFormat.unescapeCSVField(fields[0]);
+            const auto original = originalOfKey.value(firstField, firstField);
             const auto editingRow = editingRowOfOriginal.constFind(ToKey(original));
             for(size_t column = 1; column < columnCount; ++column)
             {
@@ -119,11 +144,14 @@ QStringList ApplyEditingTranslations(const settings& setting)
             editingRowOfOriginal.insert(ToKey(editing.at(row, "original")), row);
         }
 
+        const auto originalOfKey = fileName == "Scripts.csv"
+            ? ScriptOriginalOfKey(editingFolder + "/Scripts.lsjson")
+            : QHash<QString, QString>{};
         for(const auto& folder : exportFolders)
         {
             const auto exportPath = folder + "/" + fileName;
             if(QFile::exists(exportPath) == false) { continue; }
-            if(ApplyToExportedFile(exportPath, editing, editingRowOfOriginal, setting)) {
+            if(ApplyToExportedFile(exportPath, editing, editingRowOfOriginal, originalOfKey, setting)) {
                 updatedFiles.append(exportPath);
             }
         }

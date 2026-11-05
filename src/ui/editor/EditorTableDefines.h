@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <qnamespace.h>
 #include <QString>
 
@@ -15,10 +15,9 @@ enum Columns
 {
     Include = 0,
     ScriptName,
-    TextPoint,
     OriginalText,
 
-    LangColumnStart
+    LangColumnStart     //言語の列の後の最後の列は、テキストの位置（ScriptCSVTableModel::textPointColumn）
 };
 
 enum FilterMode : int

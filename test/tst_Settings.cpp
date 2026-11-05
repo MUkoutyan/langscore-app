@@ -508,3 +508,21 @@ TEST_F(SettingsTest, DefaultExportDirectoryIsGameTranslateFolder)
     const auto exportPath = QDir::cleanPath(QDir(s.langscoreProjectDirectory).absoluteFilePath(s.writeObj.exportDirectory));
     EXPECT_EQ(exportPath, QDir::cleanPath(s.translateDirectoryPath()));
 }
+
+TEST_F(SettingsTest, DetectsOldExportDirectory)
+{
+    // 以前のバージョンの書き出し先（langscore のフォルダの中）を見分け、ゲームの翻訳フォルダへ変えられること
+    auto dir = MakeProject("Game", "Game.rmmzproject");
+    settings s;
+    s.setGameProjectPath(dir);
+    EXPECT_FALSE(s.isExportDirectoryInLangscoreFolder());
+
+    s.writeObj.exportDirectory = "data/translate";
+    EXPECT_TRUE(s.isExportDirectoryInLangscoreFolder());
+    s.writeObj.exportDirectory = "";
+    EXPECT_TRUE(s.isExportDirectoryInLangscoreFolder());
+
+    s.useGameTranslateFolderForExport();
+    EXPECT_FALSE(s.isExportDirectoryInLangscoreFolder());
+    EXPECT_EQ(QDir::cleanPath(QDir(s.langscoreProjectDirectory).absoluteFilePath(s.writeObj.exportDirectory)), QDir::cleanPath(s.translateDirectoryPath()));
+}

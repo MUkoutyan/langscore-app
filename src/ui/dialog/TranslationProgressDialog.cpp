@@ -29,6 +29,8 @@ void TranslationProgressDialog::startProgress(int totalRequests)
     ui->progressBar->setRange(0, totalRequests);
     ui->progressBar->setValue(0);
     ui->statusLabel->setText(tr("Starting translation..."));
+    //前回の結果の色（エラー・一部失敗）が残らないようにする
+    ui->statusLabel->setStyleSheet(QString());
     ui->currentTextLabel->clear();
     ui->cancelButton->setEnabled(true);
     ui->cancelButton->setText(tr("Cancel"));
@@ -67,13 +69,15 @@ void TranslationProgressDialog::showError(const QString& errorMessage)
     ui->cancelButton->setText(tr("Close"));
 }
 
-void TranslationProgressDialog::showCompletion(int successCount, int totalCount)
+void TranslationProgressDialog::showCompletion(int successCount, int totalCount, const QString& errorMessage)
 {
     if (successCount == totalCount) {
         ui->statusLabel->setText(tr("Translation completed successfully! %1 texts translated.").arg(successCount));
         ui->statusLabel->setStyleSheet("color: green;");
     } else {
-        ui->statusLabel->setText(tr("Translation completed with errors. %1 of %2 texts translated successfully.").arg(successCount).arg(totalCount));
+        auto text = tr("Translation completed with errors. %1 of %2 texts translated successfully.").arg(successCount).arg(totalCount);
+        if(errorMessage.isEmpty() == false) { text += "\n" + tr("Error: %1").arg(errorMessage); }
+        ui->statusLabel->setText(text);
         ui->statusLabel->setStyleSheet("color: orange;");
     }
     ui->cancelButton->setText(tr("Close"));

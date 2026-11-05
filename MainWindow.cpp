@@ -173,6 +173,7 @@ void MainWindow::openGameProject(QString configFilePath)
 
     this->setting->load(std::move(configFilePath));
     this->history->clear();
+    this->askMoveExportDirectory();
 
     auto&& settings = this->getAppSettings();
     auto projDir = this->setting->gameProjectPath;
@@ -202,6 +203,30 @@ void MainWindow::openGameProject(QString configFilePath)
     settings.sync();
 
     this->showWriteMode();
+}
+
+//以前のバージョンでは langscore のフォルダの中に書き出していた。ゲームが読む翻訳フォルダへ変えるかを確認する。
+//「いいえ」を選んだプロジェクトでは次から確認しない
+void MainWindow::askMoveExportDirectory()
+{
+    if(this->setting->isExportDirectoryInLangscoreFolder() == false) { return; }
+    auto&& appSettings = this->getAppSettings();
+    const auto key = "KeepExportDirectory/" + QString(this->setting->langscoreProjectDirectory.toUtf8().toBase64());
+    if(appSettings.value(key, false).toBool()) { return; }
+
+    const auto newFolder = QDir::toNativeSeparators(this->setting->translateDirectoryPath());
+    const auto button = QMessageBox::question(this, tr("Change Export Folder"),
+        tr("The export folder of this project is inside the Langscore project folder.\n"
+           "From this version, translations are exported to the game's translation folder.\n"
+           "Change the export folder to the following folder?\n\n%1").arg(newFolder),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+    if(button == QMessageBox::Yes) {
+        this->setting->useGameTranslateFolderForExport();
+        this->setting->saveForProject();
+    }
+    else {
+        appSettings.setValue(key, true);
+    }
 }
 
 void MainWindow::showWriteMode()

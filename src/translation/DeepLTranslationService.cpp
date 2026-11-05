@@ -84,6 +84,17 @@ void DeepLTranslationService::onTranslationFinished()
     
     TranslationRequest request = it.value();
     pendingRequests.erase(it);
+
+    //多くのセルを続けて翻訳すると DeepL が 429 を返すことがあるため、待ってから送り直す
+    const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const int retryCount = retryCounts.value(request.requestId, 0);
+    const int delay = retryDelayMs(httpStatus, retryCount, reply->rawHeader("Retry-After"));
+    if(0 <= delay) {
+        retryCounts[request.requestId] = retryCount + 1;
+        QTimer::singleShot(delay, this, [this, request]() { this->translateText(request); });
+        return;
+    }
+    retryCounts.remove(request.requestId);
     
     TranslationResult result;
     result.originalText = request.text;
@@ -125,6 +136,17 @@ QString DeepLTranslationService::endpointUrl(const QString& apiKey, const QStrin
     //無料版のキーは ":fx" で終わる。それ以外は Pro 版のエンドポイントを使う
     const QString host = apiKey.endsWith(":fx") ? "api-free.deepl.com" : "api.deepl.com";
     return QString("https://%1/v2/%2").arg(host, api);
+}
+
+int DeepLTranslationService::retryDelayMs(int httpStatus, int retryCount, const QByteArray& retryAfterHeader)
+{
+    constexpr int MaxRetry = 5;
+    const bool retryable = httpStatus == 429 || (500 <= httpStatus && httpStatus < 600);
+    if(retryable == false || MaxRetry <= retryCount) { return -1; }
+    bool isOk = false;
+    const int retryAfterSec = retryAfterHeader.toInt(&isOk);
+    if(isOk && 0 < retryAfterSec) { return std::min(retryAfterSec, 60) * 1000; }
+    return 1000 << retryCount;  //1, 2, 4, 8, 16 秒
 }
 
 QString DeepLTranslationService::mapLanguageCode(const QString& langCode) const

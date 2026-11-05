@@ -112,3 +112,15 @@ TEST_F(DeepLTranslationServiceTest, TraditionalChineseTarget)
     EXPECT_EQ(errorCount, 0);
     EXPECT_EQ(service.BodyValue("target_lang"), QString("ZH-HANT"));
 }
+
+TEST(DeepLRetryTest, RetryOnlyWhenBusy)
+{
+    // 混み合っている（429）・一時的な不具合（5xx）のときだけ、待ち時間を延ばしながら送り直すこと
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(429, 0), 1000);
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(503, 2), 4000);
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(429, 0, "3"), 3000);
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(429, 5), -1);
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(200, 0), -1);
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(456, 0), -1);   //文字数の上限
+    EXPECT_EQ(DeepLTranslationService::retryDelayMs(403, 0), -1);   //キーが違う
+}

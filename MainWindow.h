@@ -45,6 +45,7 @@ private:
 
     void receive(DispatchType type, const QVariantList& args) override;
     int askCloseProject();
+    void askMoveExportDirectory();
 
     void attachTheme(ColorTheme::Theme theme);
 

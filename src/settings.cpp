@@ -43,8 +43,22 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     this->projectType = projType;
 
     updateLangscoreProjectPath();
-    //書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（FirstWriteDialog・WriteDialog・divisi）
+    this->useGameTranslateFolderForExport();
+}
+
+//書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（FirstWriteDialog・WriteDialog・divisi）
+void settings::useGameTranslateFolderForExport()
+{
     this->writeObj.exportDirectory = QDir(this->langscoreProjectDirectory).relativeFilePath(this->translateDirectoryPath());
+}
+
+//以前のバージョンの既定の書き出し先（langscore プロジェクトのフォルダの中）のままか
+bool settings::isExportDirectoryInLangscoreFolder() const
+{
+    const QDir langscoreDir(this->langscoreProjectDirectory);
+    const auto root = QDir::cleanPath(langscoreDir.absolutePath());
+    const auto exportPath = QDir::cleanPath(langscoreDir.absoluteFilePath(this->writeObj.exportDirectory));
+    return exportPath.compare(root, Qt::CaseInsensitive) == 0 || exportPath.startsWith(root + "/", Qt::CaseInsensitive);
 }
 
 void settings::setupLanguages(const std::vector<QLocale>& locales)

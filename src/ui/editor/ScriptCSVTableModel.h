@@ -59,6 +59,7 @@ public:
     bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override;
     Qt::ItemFlags flags(const QModelIndex& index) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    int textPointColumn() const;
 
 signals:
     void checkStateChanged(const QString& scriptFileName, Qt::CheckState treeCheckState);

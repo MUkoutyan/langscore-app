@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <vector>
 #include <mutex>
@@ -19,6 +19,9 @@ public:
 
     //divisi の標準出力を受け取り、検証結果に加える
     void addErrorText(QString text);
+
+    //全体の検証で divisi に渡すCSVの一覧
+    static QStringList ValidationTargetFiles(const settings& setting);
 
 private:
 

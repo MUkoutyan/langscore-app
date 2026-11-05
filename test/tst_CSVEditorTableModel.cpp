@@ -2,6 +2,7 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include "CSVEditorTableModel.h"
+#include "CSVEditorSortFilterProxyModel.h"
 #include "EditorTableDefines.h"
 
 class CSVEditorTableModelTest : public ::testing::Test
@@ -196,4 +197,19 @@ TEST_F(CSVEditorTableModelTest, ValidationFilterHidesLanguage)
 
     runtimeData->hideWarnings = true;
     EXPECT_FALSE(model.data(frCell, Qt::BackgroundRole).isValid()) << "隠した種類の検証結果が出ています";
+}
+
+TEST_F(CSVEditorTableModelTest, RowNumberMatchesValidationRow)
+{
+    // 行の番号（垂直ヘッダー）は1から始まり、検索で行を絞り込んでも元の行の番号のままであること。
+    // 検証結果の行（CSVのヘッダーを0行目とした行）と同じ番号になる
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}, {"original": "World", "type": []}])")));
+    EXPECT_EQ(model.headerData(0, Qt::Vertical).toInt(), 1);
+
+    langscore::CSVEditorSortFilterProxyModel proxy;
+    proxy.setSourceModel(&model);
+    proxy.setFilterText("World");
+    ASSERT_EQ(proxy.rowCount(), 1);
+    EXPECT_EQ(proxy.headerData(0, Qt::Vertical).toInt(), 2);
 }

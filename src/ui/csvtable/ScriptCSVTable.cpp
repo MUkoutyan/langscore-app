@@ -55,6 +55,9 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
     , settingButton(new QToolButton(this))
     , settingPane(new QWidget(this))
     , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns"), this))
+    , languageFontCheck(new QCheckBox(tr("Apply language font"), this))
+    , fixedWidthCheck(new QCheckBox(tr("Fixed cell width"), this))
+    , fixedWidthSpinBox(new QSpinBox(this))
     , filterEdit(new QLineEdit(this))
     , csvEditor(new CSVEditor(this->loadFileManager, this, this))
     , currentModel(nullptr)
@@ -68,9 +71,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
     csvEditor->setSelectionMode(QAbstractItemView::ExtendedSelection);
     csvEditor->setAlternatingRowColors(true);
     csvEditor->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    csvEditor->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     csvEditor->verticalHeader()->setMinimumSectionSize(28);
-    csvEditor->verticalHeader()->hide();
     csvEditor->setContextMenuPolicy(Qt::CustomContextMenu);
     csvEditor->setSortingEnabled(false);
 
@@ -83,38 +84,39 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
         auto* paneLayout = new QVBoxLayout(settingPane);
         settingPane->setLayout(paneLayout);
         paneLayout->addWidget(hideLanguageColumnsAction);
+        paneLayout->addWidget(languageFontCheck);
 
-        auto* fontCheck = new QCheckBox(tr("Apply language font"), settingPane);
-        paneLayout->addWidget(fontCheck);
-        connect(fontCheck, &QCheckBox::clicked, this, [this](bool checked) {
+        fixedWidthSpinBox->setRange(10, 2000);
+        fixedWidthSpinBox->setSuffix(" px");
+        auto* fixedWidthLayout = new QHBoxLayout();
+        fixedWidthLayout->addWidget(fixedWidthCheck);
+        fixedWidthLayout->addWidget(fixedWidthSpinBox);
+        paneLayout->addLayout(fixedWidthLayout);
+
+        //前回の設定を戻す
+        auto appSettings = ComponentBase::getAppSettings();
+        languageFontCheck->setChecked(appSettings.value("ScriptCSVTable/useLanguageFont", false).toBool());
+        fixedWidthCheck->setChecked(appSettings.value("ScriptCSVTable/fixedCellWidth", false).toBool());
+        fixedWidthSpinBox->setValue(appSettings.value("ScriptCSVTable/cellWidth", 100).toInt());
+        fixedWidthSpinBox->setEnabled(fixedWidthCheck->isChecked());
+
+        connect(languageFontCheck, &QCheckBox::toggled, this, [this](bool checked)
+        {
+            ComponentBase::getAppSettings().setValue("ScriptCSVTable/useLanguageFont", checked);
             if(currentModel) { currentModel->setUseLanguageFont(checked); }
         });
 
-        auto* fwLayout  = new QHBoxLayout();
-        auto* fwCheck   = new QCheckBox(tr("Fixed Cell Width"), settingPane);
-        auto* fwSpinBox = new QSpinBox(settingPane);
-        fwSpinBox->setRange(10, 2000);
-        fwSpinBox->setValue(100);
-        fwSpinBox->setSuffix(" px");
-        fwSpinBox->setEnabled(false);
-        fwLayout->addWidget(fwCheck);
-        fwLayout->addWidget(fwSpinBox);
-        paneLayout->addLayout(fwLayout);
-
-        connect(fwCheck, &QCheckBox::toggled, this, [this, fwSpinBox](bool checked) {
-            fwSpinBox->setEnabled(checked);
-            auto* hdr = csvEditor->horizontalHeader();
-            if(checked) {
-                hdr->setSectionResizeMode(QHeaderView::Fixed);
-                hdr->setDefaultSectionSize(fwSpinBox->value());
-            } else {
-                hdr->setSectionResizeMode(QHeaderView::Interactive);
-            }
+        connect(fixedWidthCheck, &QCheckBox::toggled, this, [this](bool checked)
+        {
+            ComponentBase::getAppSettings().setValue("ScriptCSVTable/fixedCellWidth", checked);
+            this->fixedWidthSpinBox->setEnabled(checked);
+            this->restoreColumnWidths();
         });
-        connect(fwSpinBox, &QSpinBox::valueChanged, this, [this, fwCheck](int v) {
-            if(fwCheck->isChecked()) {
-                csvEditor->horizontalHeader()->setDefaultSectionSize(v);
-            }
+
+        connect(fixedWidthSpinBox, &QSpinBox::valueChanged, this, [this](int value)
+        {
+            ComponentBase::getAppSettings().setValue("ScriptCSVTable/cellWidth", value);
+            this->restoreColumnWidths();
         });
 
         settingButton->setIcon(QIcon(":/images/resources/image/settings.png"));
@@ -204,8 +206,10 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
                 autoCheckButton, &QToolButton::showMenu);
     }
 
-    connect(hideLanguageColumnsAction, &QPushButton::clicked,
-            this, &ScriptCSVTable::showLanguageColumnMenu);
+    connect(hideLanguageColumnsAction, &QPushButton::clicked, this, [this]()
+    {
+        this->csvEditor->hideLanguageColumns();
+    });
 
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
@@ -301,6 +305,7 @@ void ScriptCSVTable::setupScriptTable()
     const auto editFolder = setting->langscoreProjectDirectory + "/editing";
     currentModel->setSettings(setting);
     currentModel->loadFromEditJSONWithSettings(editFolder);
+    currentModel->setUseLanguageFont(languageFontCheck->isChecked());
 
     if(uncheckSignOnlyAction->isChecked())   { 
         unckeckSignOnlyText(); 
@@ -312,6 +317,8 @@ void ScriptCSVTable::setupScriptTable()
     _proxyModel->setSortState(0, SortOrder::None);
     _proxyModel->setSourceModel(currentModel);
     csvEditor->setModel(_proxyModel);
+    //行の高さは表示したときに内容に合わせる（その後は手で変えられる）
+    QTimer::singleShot(0, this, [this]() { this->csvEditor->resizeRowsToContents(); });
 
     _proxyModel->setHideUncheckRow(showAllScriptContents == false);
     _proxyModel->setSettingsGroup(CSVEditorSortFilterProxyModel::settingsGroupForProject(this->setting->langscoreProjectDirectory));
@@ -339,6 +346,16 @@ void ScriptCSVTable::restoreColumnWidths()
 {
     if(_proxyModel == nullptr || setting == nullptr) { return; }
     const int colCount = _proxyModel->columnCount();
+    auto* header = csvEditor->horizontalHeader();
+    if(fixedWidthCheck->isChecked())
+    {
+        header->setSectionResizeMode(QHeaderView::Fixed);
+        for(int c = 0; c < colCount; ++c) {
+            csvEditor->setColumnWidth(c, fixedWidthSpinBox->value());
+        }
+        return;
+    }
+    header->setSectionResizeMode(QHeaderView::Interactive);
     for(int c = 0; c < colCount; ++c) {
         const QString hdr = _proxyModel->headerData(c, Qt::Horizontal, Qt::UserRole).toString();
         for(const auto& lang : setting->languages) {
@@ -348,22 +365,6 @@ void ScriptCSVTable::restoreColumnWidths()
             }
         }
     }
-}
-
-void ScriptCSVTable::showLanguageColumnMenu()
-{
-    if(_proxyModel == nullptr || setting == nullptr) { return; }
-    auto* menu = new QMenu(this);
-    for(const auto& lang : setting->languages) {
-        if(!lang.enable) { continue; }
-        auto* action = menu->addAction(lang.languageName);
-        action->setCheckable(true);
-        action->setChecked(!_proxyModel->isLanguageColumnHidden(lang.languageName));
-        connect(action, &QAction::toggled, this, [this, code = lang.languageName](bool visible) {
-            _proxyModel->setLanguageColumnHidden(code, !visible);
-        });
-    }
-    menu->popup(QCursor::pos());
 }
 
 void ScriptCSVTable::updateScriptIgnoreState(QString scriptName, Qt::CheckState check)
@@ -443,35 +444,48 @@ void ScriptCSVTable::uncheckNotContainHiragana()
     }
 }
 
+//表に出ている、そのスクリプトの最初の行。無ければ無効なインデックス
+QModelIndex ScriptCSVTable::firstVisibleRowOfScript(const QString& scriptFileName) const
+{
+    if(currentModel == nullptr || _proxyModel == nullptr) { return {}; }
+    for(int r = 0; r < currentModel->rowCount(); ++r) {
+        if(withoutExtension(currentModel->getScriptFileName(r)) != scriptFileName) { continue; }
+        //絞り込みで隠れている行は飛ばす
+        const auto prox = _proxyModel->mapFromSource(currentModel->index(r, Columns::ScriptName));
+        if(prox.isValid()) { return prox; }
+    }
+    return {};
+}
+
+//ファイルツリーでスクリプトを選んだとき、そのスクリプトの先頭の行を表の一番上に出す
 void ScriptCSVTable::onScriptTableScrollToRow(const QString& scriptFileName)
 {
-    if(currentModel == nullptr || _proxyModel == nullptr) { return; }
-    const int rows = currentModel->rowCount();
-    for(int r = 0; r < rows; ++r) {
-        if(withoutExtension(currentModel->getScriptFileName(r)).contains(scriptFileName)) {
-            auto src  = currentModel->index(r, Columns::ScriptName);
-            auto prox = _proxyModel->mapFromSource(src);
-            if(prox.isValid()) { csvEditor->scrollTo(prox, QAbstractItemView::PositionAtCenter); }
-            break;
-        }
-    }
+    //タブを切り替えた直後は表の大きさが決まっていないため、次のイベントで行う
+    QTimer::singleShot(0, this, [this, scriptFileName]() {
+        const auto prox = firstVisibleRowOfScript(scriptFileName);
+        if(prox.isValid()) { csvEditor->scrollTo(prox, QAbstractItemView::PositionAtTop); }
+    });
 }
 
 void ScriptCSVTable::onScriptTableSelectRow(const QString& scriptFileName)
 {
+    const auto prox = firstVisibleRowOfScript(scriptFileName);
+    if(prox.isValid() == false || csvEditor->selectionModel() == nullptr) { return; }
+    csvEditor->selectionModel()->select(prox, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+}
+
+void ScriptCSVTable::selectRowByOriginal(const QString& scriptFileName, const QString& original)
+{
     if(currentModel == nullptr || _proxyModel == nullptr) { return; }
-    const int rows = currentModel->rowCount();
-    for(int r = 0; r < rows; ++r) {
-        if(withoutExtension(currentModel->getScriptFileName(r)).contains(scriptFileName)) {
-            auto src  = currentModel->index(r, Columns::ScriptName);
-            auto prox = _proxyModel->mapFromSource(src);
-            if(prox.isValid()) {
-                csvEditor->selectionModel()->select(
-                    prox,
-                    QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-            }
-            break;
-        }
+    for(int r = 0; r < currentModel->rowCount(); ++r)
+    {
+        if(withoutExtension(currentModel->getScriptFileName(r)) != scriptFileName) { continue; }
+        if(currentModel->getOriginalText(r) != original) { continue; }
+        const auto prox = _proxyModel->mapFromSource(currentModel->index(r, Columns::OriginalText));
+        if(prox.isValid() == false) { return; }
+        csvEditor->scrollTo(prox, QAbstractItemView::PositionAtCenter);
+        csvEditor->selectionModel()->select(prox, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        return;
     }
 }
 
@@ -487,7 +501,7 @@ void ScriptCSVTable::onScriptTableSelected()
 
     const int row = sourceIdx.row();
     auto textPoint = currentModel->data(
-        currentModel->index(row, Columns::TextPoint), Qt::DisplayRole
+        currentModel->index(row, currentModel->textPointColumn()), Qt::DisplayRole
     ).toString();
 
     constexpr size_t invalid = std::numeric_limits<size_t>::max();

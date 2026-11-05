@@ -51,6 +51,10 @@ CSVEditor::CSVEditor(std::weak_ptr<EditDataManager> loadFileManager, ComponentBa
     //セルを選んで文字を打つだけで入力を始められるようにする（IME の入力も含む）
     this->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::AnyKeyPressed);
 
+    //行の番号を出す。行の高さは表示したときに内容に合わせ、その後は手で変えられる
+    this->verticalHeader()->setVisible(true);
+    this->verticalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+
     this->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     this->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     this->verticalScrollBar()->setSingleStep(20);
@@ -508,6 +512,7 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     
     QList<CSVEditCommand::CellEdit> edits;
     int successCount = 0;
+    QString errorMessage;
     
     for (const auto& result : results) {
         //表示が変更されても同一のセルを参照できるように、QPersistentModelIndexを使用すること。
@@ -522,6 +527,9 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
                 successCount++;
             }
         }
+        else if(errorMessage.isEmpty()) {
+            errorMessage = result.errorMessage;
+        }
     }
     
     if (!edits.isEmpty()) {
@@ -529,7 +537,7 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     }
     
     if (progressDialog) {
-        progressDialog->showCompletion(successCount, results.size());
+        progressDialog->showCompletion(successCount, results.size(), errorMessage);
     }
     
     updateTranslationMenu();

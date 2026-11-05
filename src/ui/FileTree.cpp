@@ -17,6 +17,8 @@
 #include "service/GraphicsImageLoader.h"
 #include "ValidationIcon.h"
 #include "service/LanguageNames.h"
+#include "editor/FastCSVContainer.h"
+#include "ValidationFilterButton.h"
 
 enum UserRole : int
 {
@@ -29,6 +31,7 @@ enum UserRole : int
     ERROR_ITEM,
     BASE_TEXT_ITEM,
     PROGRESS_STATE,     //翻訳の進捗（ProgressState）。未設定なら進捗が分からない
+    ERROR_ORIGINAL,     //スクリプトの検証結果の原文。スクリプトの表で該当する行を選ぶのに使う
 };
 
 //翻訳が終わっていない項目だけを表示するときに使う
@@ -488,8 +491,10 @@ void FileTree::itemSelected()
     auto item = selectedItems[0];
     //検証結果の項目はファイル名を持たないので、結果が付いているファイルの項目を開き、そのセルへ移動する
     quint64 errorId = 0;
+    QString errorOriginal;
     if(item->data(TreeColIndex::Name, UserRole::ERROR_ITEM).toBool() && item->parent()) {
         errorId = item->data(TreeColIndex::Name, UserRole::ERROR_ID).toULongLong();
+        errorOriginal = item->data(TreeColIndex::Name, UserRole::ERROR_ORIGINAL).toString();
         item = item->parent();
     }
     auto topLevelItem = getTopLevelItem(item);
@@ -501,7 +506,10 @@ void FileTree::itemSelected()
         //「Basics」などの見出しはファイルではないので、表を空にしない
         if(fileName.isEmpty()) { return; }
         emit setTabIndex(1);
-        emit showMainFile(item->text(TreeColIndex::Name), fileName);
+        //表示名の「(n/n)」は子の項目の数なので、表の名前には付けない
+        auto displayName = item->data(TreeColIndex::Name, UserRole::BASE_TEXT_ITEM).toString();
+        if(displayName.isEmpty()) { displayName = item->text(TreeColIndex::Name); }
+        emit showMainFile(displayName, fileName);
         if(errorId != 0) {
             emit selectMainError(errorId);
         }
@@ -510,6 +518,8 @@ void FileTree::itemSelected()
     {
         auto changedItemScriptFileName = ::getFileName(item);
         emit setTabIndex(2);
+        //「Script」の見出しに付いたファイル全体の検証結果は、開くスクリプトが無い
+        if(changedItemScriptFileName.isEmpty()) { return; }
 
         auto scriptExt = langscore::GetScriptExtension(this->setting->projectType);
         auto scriptFilePath = this->setting->tempScriptFileDirectoryPath() + "/" + changedItemScriptFileName + scriptExt;
@@ -518,6 +528,9 @@ void FileTree::itemSelected()
         // テーブル側の行を探してスクロール・選択
         emit scriptTableScrollToRow(changedItemScriptFileName);
         emit scriptTableSelectRow(changedItemScriptFileName);
+        if(errorOriginal.isEmpty() == false) {
+            emit selectScriptError(changedItemScriptFileName, errorOriginal);
+        }
     }
     else if(treeType == TreeItemType::Pictures)
     {
@@ -911,39 +924,7 @@ void FileTree::setupSearchBar()
         this->settingPane->move(QCursor::pos());
     });
 
-    //検証結果を種類・言語で絞り込む。項目は開くたびに有効な言語から作る
-    auto* filterButton = new QToolButton(this);
-    filterButton->setText(tr("Filter"));
-    filterButton->setToolTip(tr("Filter validation results"));
-    filterButton->setPopupMode(QToolButton::InstantPopup);
-    auto* filterMenu = new QMenu(filterButton);
-    filterButton->setMenu(filterMenu);
-    connect(filterMenu, &QMenu::aboutToShow, this, [this, filterMenu]()
-    {
-        filterMenu->clear();
-        const auto addToggle = [this, filterMenu](const QString& text, bool shown, std::function<void(bool)> apply) {
-            auto* action = filterMenu->addAction(text);
-            action->setCheckable(true);
-            action->setChecked(shown);
-            connect(action, &QAction::toggled, this, [this, apply](bool checked) {
-                apply(checked);
-                this->dispatch(ChangeValidationFilter, {});
-            });
-        };
-        auto& data = *this->runtimeData;
-        addToggle(tr("Errors"), data.hideErrors == false, [&data](bool shown) { data.hideErrors = (shown == false); });
-        addToggle(tr("Warnings"), data.hideWarnings == false, [&data](bool shown) { data.hideWarnings = (shown == false); });
-        filterMenu->addSeparator();
-        for(const auto& lang : this->setting->languages)
-        {
-            if(lang.enable == false) { continue; }
-            const auto name = lang.languageName;
-            addToggle(langscore::languageDisplayName(name) + "(" + name + ")", data.hiddenErrorLanguages.contains(name) == false, [&data, name](bool shown) {
-                if(shown) { data.hiddenErrorLanguages.remove(name); }
-                else { data.hiddenErrorLanguages.insert(name); }
-            });
-        }
-    });
+    auto* filterButton = new ValidationFilterButton(this, this);
 
     // レイアウトには検索バーと設定ボタンを追加する
     searchLayout->addWidget(searchLineEdit);
@@ -1168,14 +1149,11 @@ void FileTree::setFileProgress(const QString& fileName, int translatedRows, int 
 
 void FileTree::receive(DispatchType type, const QVariantList& args)
 {
-    if(type == DispatchType::ValidateCSV || type == DispatchType::ValidateAll)
+    if(type == DispatchType::NotifyFinishValidateCSV)
     {
-        //前回の検証結果の表示を消す
-        this->clearErrors();
-    }
-    else if(type == DispatchType::NotifyFinishValidateCSV)
-    {
-        this->updateErrorTree();
+        //検証したファイルの結果だけが新しくなるため、検証結果の表示をすべて作り直す
+        //（検証結果そのものは ValidationService が検証の前に消す）
+        this->rebuildErrorTree();
     }
     else if(type == DispatchType::ChangeValidationFilter)
     {
@@ -1588,58 +1566,116 @@ QTreeWidgetItem* FileTree::findTreeItemRecursive(QTreeWidgetItem* parent, const 
     return nullptr;
 }
 
+//スクリプトの検証結果は editing/Scripts.csv の行で届くため、その行の原文を含むスクリプトの項目に付ける。
+//ファイル全体の結果と、どのスクリプトにも無い原文の結果は「Script」の見出しに付ける
+std::vector<std::pair<QTreeWidgetItem*, QString>> FileTree::scriptErrorTargets(const ValidationErrorInfo& info, const langscore::FastCSVContainer& scriptsCsv)
+{
+    QTreeWidgetItem* scriptRoot = nullptr;
+    for(int i = 0; i < this->treeWidget->topLevelItemCount(); ++i) {
+        auto* top = this->treeWidget->topLevelItem(i);
+        if(top->data(TreeColIndex::CheckBox, UserRole::ITEM_TYPE) == TreeItemType::Script) { scriptRoot = top; }
+    }
+    if(scriptRoot == nullptr) { return {}; }
+
+    const auto csvRow = info.row - 1;
+    if(info.row < 1 || std::cmp_greater_equal(csvRow, scriptsCsv.rowCount()) || scriptsCsv.hasColumn("original") == false) {
+        return {{scriptRoot, QString()}};
+    }
+    const auto original = scriptsCsv.at(static_cast<size_t>(csvRow), QString("original"));
+    std::vector<std::pair<QTreeWidgetItem*, QString>> targets;
+    for(const auto& script : this->setting->writeObj.scriptInfo)
+    {
+        if(script.isIgnore()) { continue; }
+        const bool contains = std::ranges::any_of(script.lines, [&original](const auto& line) {
+            return line.ignore == false && line.originalText == original;
+        });
+        if(contains == false) { continue; }
+        if(auto* item = this->findTreeItemRecursive(scriptRoot, langscore::withoutAllExtension(script.fileName))) {
+            targets.emplace_back(item, original);
+        }
+    }
+    if(targets.empty()) { targets.emplace_back(scriptRoot, original); }
+    return targets;
+}
+
 void FileTree::updateErrorTree()
 {
     std::lock_guard<std::mutex> locker(this->errorMutex);
-    //項目が多いと1件ずつ追加・再描画するのが重いため、ファイルごとにまとめて追加する
+    //項目が多いと1件ずつ追加・再描画するのが重いため、項目ごとにまとめて追加する
+    struct TargetState {
+        QList<QTreeWidgetItem*> children;
+        bool hasError = false;
+        bool hasWarning = false;
+    };
+    std::map<QTreeWidgetItem*, TargetState> targetStates;
+
     this->treeWidget->setUpdatesEnabled(false);
     for(auto& [fileName, needUpdate] : this->runtimeData->updateList)
     {
         if(needUpdate == false) { continue; }
         needUpdate = false;
 
-        QTreeWidgetItem* targetItem = this->findTreeItemByFileName(fileName);
-        if(targetItem == nullptr) { continue; }
+        const bool isScripts = fileName == "Scripts";
+        langscore::FastCSVContainer scriptsCsv;
+        QTreeWidgetItem* fileItem = nullptr;
+        if(isScripts) {
+            scriptsCsv.loadFromFile(this->setting->langscoreProjectDirectory + "/editing/Scripts.csv");
+        }
+        else {
+            fileItem = this->findTreeItemByFileName(fileName);
+            if(fileItem == nullptr) { continue; }
+            targetStates[fileItem];
+        }
 
         auto& infoList = this->runtimeData->errors[fileName];
-        bool hasError = false;
-        bool hasWarning = false;
-        QList<QTreeWidgetItem*> children;
         for(auto& info : infoList)
         {
             const bool isShown = this->runtimeData->isErrorShown(info);
-            if(isShown) {
-                hasError |= (info.type == ValidationErrorInfo::Error);
-                hasWarning |= (info.type == ValidationErrorInfo::Warning);
-            }
             //shown は「ツリーに追加済み」の印。絞り込みで隠したものも、絞り込みを変えるまで追加しない
-            if(info.shown) { continue; }
+            const bool alreadyAdded = info.shown;
             info.shown = true;
             if(isShown == false) { continue; }
 
-            // エラー表示用の子アイテムを構築する
-            QTreeWidgetItem* child = new QTreeWidgetItem();
-            if(info.type == ValidationErrorInfo::Warning)
+            const auto targets = isScripts
+                ? this->scriptErrorTargets(info, scriptsCsv)
+                : std::vector<std::pair<QTreeWidgetItem*, QString>>{{fileItem, QString()}};
+            for(const auto& [target, original] : targets)
             {
-                child->setIcon(TreeColIndex::Name, this->warningIcon);
-                child->setForeground(TreeColIndex::Name, QColor(240, 227, 0));
-            }
-            else if(info.type == ValidationErrorInfo::Error)
-            {
-                child->setIcon(TreeColIndex::Name, this->attentionIcon);
-                child->setForeground(TreeColIndex::Name, QColor(236, 11, 0));
-            }
-            child->setText(TreeColIndex::Name, tr("Line") + QString::number(info.row) + " : " + info.getErrorText());
-            child->setData(TreeColIndex::Name, UserRole::ERROR_ID, info.id);
-            child->setData(TreeColIndex::Name, UserRole::ERROR_ITEM, true); // エラーアイテムとしての識別用フラグ
-            children.append(child);
-        }
+                auto& state = targetStates[target];
+                state.hasError |= (info.type == ValidationErrorInfo::Error);
+                state.hasWarning |= (info.type == ValidationErrorInfo::Warning);
+                if(alreadyAdded) { continue; }
 
+                // エラー表示用の子アイテムを構築する
+                QTreeWidgetItem* child = new QTreeWidgetItem();
+                if(info.type == ValidationErrorInfo::Warning)
+                {
+                    child->setIcon(TreeColIndex::Name, this->warningIcon);
+                    child->setForeground(TreeColIndex::Name, QColor(240, 227, 0));
+                }
+                else if(info.type == ValidationErrorInfo::Error)
+                {
+                    child->setIcon(TreeColIndex::Name, this->attentionIcon);
+                    child->setForeground(TreeColIndex::Name, QColor(236, 11, 0));
+                }
+                //スクリプトは editing のCSVの行番号では場所が分からないため、原文を出す
+                const auto place = original.isEmpty() ? tr("Line") + QString::number(info.row) : original.left(30);
+                child->setText(TreeColIndex::Name, place + " : " + info.getErrorText());
+                child->setData(TreeColIndex::Name, UserRole::ERROR_ID, info.id);
+                child->setData(TreeColIndex::Name, UserRole::ERROR_ITEM, true); // エラーアイテムとしての識別用フラグ
+                child->setData(TreeColIndex::Name, UserRole::ERROR_ORIGINAL, original);
+                state.children.append(child);
+            }
+        }
+    }
+
+    for(auto& [targetItem, state] : targetStates)
+    {
         // アイコンの設定（エラー優先で、警告は次点とする）
-        targetItem->setIcon(TreeColIndex::Name, hasError ? this->attentionIcon : hasWarning ? this->warningIcon : QIcon());
-        if(children.isEmpty() == false)
+        targetItem->setIcon(TreeColIndex::Name, state.hasError ? this->attentionIcon : state.hasWarning ? this->warningIcon : QIcon());
+        if(state.children.isEmpty() == false)
         {
-            targetItem->addChildren(children);
+            targetItem->addChildren(state.children);
             targetItem->setExpanded(true); // エラーが発生したアイテムは展開して見やすくする
         }
     }

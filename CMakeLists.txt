@@ -118,6 +118,10 @@ set(PROJECT_SOURCES
     src/ui/ClipDetectSettingTree.h
     src/ui/FileTree.cpp
     src/ui/FileTree.h
+    src/ui/ValidationFilterButton.cpp
+    src/service/OldTranslations.cpp
+    src/service/OldTranslations.h
+    src/ui/ValidationFilterButton.h
     ColorDialog.cpp
     ColorDialog.h
     src/translation/TranslationService.h

@@ -7,6 +7,9 @@
 #include <QFile>
 #include <QImage>
 #include "FileTree.h"
+#include "ValidationFilterButton.h"
+#include <QToolButton>
+#include <QMenu>
 #include "EditDataManager.h"
 
 // FileTree.cpp の UserRole::FILE_NAME / VISIBLE と同じ値
@@ -70,7 +73,7 @@ TEST_F(FileTreeTest, SearchShowsVisibleItems)
 TEST_F(FileTreeTest, ValidationErrorShownOnFileWithExtension)
 {
     // 検証結果は拡張子なしの名前（Actors）で届くが、拡張子付きの項目（Actors.json）に表示されること。
-    // 次の検証を始めたら、前回の表示は消えること
+    // 次の検証が終わったら、前回の表示は消えること
     auto* treeWidget = tree->findChild<QTreeWidget*>();
     ASSERT_NE(treeWidget, nullptr);
     auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
@@ -89,8 +92,11 @@ TEST_F(FileTreeTest, ValidationErrorShownOnFileWithExtension)
     component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
     EXPECT_EQ(actors->childCount(), 1) << "Actors.json の項目に検証結果が表示されていません";
 
-    component->dispatch(ComponentBase::ValidateCSV, {});
-    EXPECT_EQ(actors->childCount(), 0) << "次の検証を始めても前回の検証結果が残っています";
+    //次の検証で結果が無くなったら（ValidationService が消す）、終わったときに表示も消えること
+    component->runtimeData->errors.clear();
+    component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
+    EXPECT_EQ(actors->childCount(), 0) << "次の検証の後も前回の検証結果が残っています";
+    EXPECT_TRUE(actors->icon(0).isNull());
 }
 
 TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat)
@@ -265,4 +271,92 @@ TEST_F(FileTreeTest, ShowUntranslatedOnly)
     untranslatedOnly->setChecked(false);
     EXPECT_FALSE(actors->isHidden());
     untranslatedOnly->setChecked(before);   //アプリの設定を元に戻す
+}
+
+TEST_F(FileTreeTest, ScriptErrorsShownUnderScripts)
+{
+    // スクリプトの検証結果（editing/Scripts.csv の行）は、その原文を含むスクリプトの項目に付くこと。
+    // ファイル全体の結果は「Script」の見出しに付く
+    QTemporaryDir tempDir;
+    component->setting->langscoreProjectDirectory = tempDir.path();
+    QDir().mkpath(tempDir.filePath("editing"));
+    QFile csv(tempDir.filePath("editing/Scripts.csv"));
+    ASSERT_TRUE(csv.open(QFile::WriteOnly));
+    csv.write("original,en\nHello,\nBye,\n");
+    csv.close();
+    for(const auto& [fileName, originals] : std::vector<std::pair<QString, QStringList>>{{"A.js", {"Hello"}}, {"B.js", {"Hello", "Bye"}}})
+    {
+        settings::ScriptInfo info;
+        info.fileName = fileName;
+        for(const auto& original : originals) {
+            langscore::ScriptTextPosition line;
+            line.originalText = original;
+            info.lines.push_back(line);
+        }
+        component->setting->writeObj.scriptInfo.push_back(info);
+    }
+
+    auto* treeWidget = tree->findChild<QTreeWidget*>();
+    ASSERT_NE(treeWidget, nullptr);
+    auto* top = new QTreeWidgetItem(treeWidget, {"Script"});
+    top->setData(0, ItemTypeRole, FileTree::Script);
+    auto* a = new QTreeWidgetItem(top, {"A"});
+    a->setData(0, FileNameRole, "A");
+    auto* b = new QTreeWidgetItem(top, {"B"});
+    b->setData(0, FileNameRole, "B");
+
+    ValidationErrorInfo info;
+    info.type = ValidationErrorInfo::Warning;
+    info.summary = ValidationErrorInfo::EmptyCol;
+    for(const auto row : {0, 1, 2}) {
+        info.row = row;
+        component->runtimeData->errors["Scripts"].push_back(info);
+    }
+    component->runtimeData->updateList["Scripts"] = true;
+    component->addDispatch(tree.get());
+    component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
+
+    EXPECT_EQ(a->childCount(), 1);
+    EXPECT_EQ(b->childCount(), 2);
+    EXPECT_EQ(top->childCount(), 3);
+}
+
+TEST_F(FileTreeTest, ValidationFilterIsSaved)
+{
+    // 検証結果の絞り込みはアプリの設定に保存され、次に作ったボタン（次の起動）でも使われること
+    QToolButton* filterButton = nullptr;
+    for(auto* b : tree->findChildren<QToolButton*>()) {
+        if(b->menu() != nullptr) { filterButton = b; }
+    }
+    ASSERT_NE(filterButton, nullptr);
+    emit filterButton->menu()->aboutToShow();
+    auto actions = filterButton->menu()->actions();
+    ASSERT_FALSE(actions.isEmpty());
+    actions[0]->toggle();   //「エラー」を隠す
+    EXPECT_TRUE(component->runtimeData->hideErrors);
+
+    TestComponent other;
+    ValidationFilterButton reloaded(&other, nullptr);
+    EXPECT_TRUE(other.runtimeData->hideErrors);
+
+    //他のテストに残さない
+    actions[0]->toggle();
+}
+
+TEST_F(FileTreeTest, MainFileNameWithoutChildCount)
+{
+    // 子の数「(n/n)」が付いた項目を選んでも、表に渡す名前には付かないこと
+    auto* treeWidget = tree->findChild<QTreeWidget*>();
+    ASSERT_NE(treeWidget, nullptr);
+    auto* top = new QTreeWidgetItem(treeWidget, {"Main"});
+    top->setData(0, ItemTypeRole, FileTree::Map);
+    auto* map = new QTreeWidgetItem(top, {"Map001 (1/2)"});
+    map->setData(0, FileNameRole, "Map001.json");
+    map->setData(0, Qt::UserRole + 8, "Map001");   // BASE_TEXT_ITEM
+
+    QString shownName;
+    QObject::connect(tree.get(), &FileTree::showMainFile, [&shownName](const QString& name, const QString&) { shownName = name; });
+    treeWidget->setCurrentItem(map);
+    map->setSelected(true);
+    EXPECT_EQ(shownName, "Map001");
 }

@@ -1,4 +1,4 @@
-#include "test_common.h"
+﻿#include "test_common.h"
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
@@ -66,18 +66,50 @@ TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
 
 TEST(ValidationServiceTest, ValidateAllChecksEditingFolder)
 {
-    // 全検証では、書き出し先ではなく editing フォルダのCSVを検証すること（編集表と行をそろえるため）
+    // 全検証では、書き出し先ではなく editing フォルダのCSVを検証すること（編集表と行をそろえるため）。
+    // ゲームから消したファイル（解析結果が無い）と、翻訳から除外したファイルのCSVは検証しない
     QTemporaryDir tempDir;
     ValidationTestComponent component;
     SetupProject(component, tempDir.filePath("Game"));
     langscore::ValidationService service(&component);
+
+    const auto editingFolder = component.setting->langscoreProjectDirectory + "/editing";
+    const auto analyzeFolder = component.setting->analyzeDirectoryPath();
+    QDir().mkpath(editingFolder);
+    QDir().mkpath(analyzeFolder);
+    for(const auto& name : {"Actors", "Items", "Deleted"}) {
+        QFile(editingFolder + "/" + name + ".csv").open(QFile::WriteOnly);
+    }
+    for(const auto& name : {"Actors", "Items"}) {
+        QFile(analyzeFolder + "/" + name + ".lsjson").open(QFile::WriteOnly);
+    }
+    component.setting->fetchBasicDataInfo("Actors");
+    component.setting->fetchBasicDataInfo("Items").ignore = true;
+    component.setting->fetchBasicDataInfo("Deleted");
 
     service.receive(ComponentBase::ValidateAll, {});
     QCoreApplication::processEvents();
 
     const auto nameList = ReadValidateNameList(component);
     ASSERT_EQ(nameList.size(), 1);
-    EXPECT_EQ(nameList[0].toString(), component.setting->langscoreProjectDirectory + "/editing");
+    EXPECT_EQ(nameList[0].toString(), editingFolder + "/Actors.csv");
+}
+
+TEST(ValidationServiceTest, ValidateCsvKeepsOtherFileResults)
+{
+    // 1ファイルだけ検証するとき、他のファイルの検証結果は消さないこと
+    QTemporaryDir tempDir;
+    ValidationTestComponent component;
+    SetupProject(component, tempDir.filePath("Game"));
+    langscore::ValidationService service(&component);
+    component.runtimeData->errors["Actors"].emplace_back();
+    component.runtimeData->errors["Items"].emplace_back();
+
+    service.receive(ComponentBase::ValidateCSV, {component.setting->langscoreProjectDirectory + "/editing/Actors.csv"});
+    QCoreApplication::processEvents();
+
+    EXPECT_FALSE(component.runtimeData->errors.contains("Actors"));
+    EXPECT_TRUE(component.runtimeData->errors.contains("Items"));
 }
 
 TEST(ValidationServiceTest, IgnoreRequestWhileRunning)

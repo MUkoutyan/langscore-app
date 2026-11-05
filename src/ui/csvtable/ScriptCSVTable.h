@@ -5,6 +5,8 @@
 #include <QToolButton>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QCheckBox>
+#include <QSpinBox>
 #include <vector>
 #include <QString>
 #include <QPersistentModelIndex>
@@ -54,10 +56,12 @@ signals:
 
 public slots:
     void changeScriptTableItemCheck(QString scriptName, Qt::CheckState);
-
-private slots:
+    //検証結果を選んだとき、そのスクリプトの原文の行を選ぶ
+    void selectRowByOriginal(const QString& scriptFileName, const QString& original);
     void onScriptTableScrollToRow(const QString& scriptFileName);
     void onScriptTableSelectRow(const QString& scriptFileName);
+
+private slots:
     void onScriptTableSelected();
 
 private:
@@ -85,7 +89,7 @@ private:
 
     void receive(DispatchType type, const QVariantList& args) override;
     void restoreColumnWidths();
-    void showLanguageColumnMenu();
+    QModelIndex firstVisibleRowOfScript(const QString& scriptFileName) const;
 
     std::weak_ptr<EditDataManager> loadFileManager;
     QLabel*    scriptFileName;
@@ -95,6 +99,9 @@ private:
     QToolButton* settingButton;
     QWidget*     settingPane;
     QPushButton* hideLanguageColumnsAction;
+    QCheckBox*   languageFontCheck;
+    QCheckBox*   fixedWidthCheck;
+    QSpinBox*    fixedWidthSpinBox;
     QLineEdit*   filterEdit;
     CSVEditor*   csvEditor;
     ScriptCSVTableModel* currentModel;

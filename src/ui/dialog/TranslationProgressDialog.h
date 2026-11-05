@@ -19,7 +19,7 @@ public:
     void updateProgress(int completed, int total);
     void setCurrentText(const QString& text);
     void showError(const QString& errorMessage);
-    void showCompletion(int successCount, int totalCount);
+    void showCompletion(int successCount, int totalCount, const QString& errorMessage = {});
 
 signals:
     void cancelled();

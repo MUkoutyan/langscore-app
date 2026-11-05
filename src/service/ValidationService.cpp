@@ -3,6 +3,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QFileInfo>
+#include <QDir>
+#include "../utility.hpp"
 
 using namespace langscore;
 
@@ -32,6 +34,15 @@ ValidationService::ValidationService(ComponentBase* t)
             this->dispatch(StatusMessage, {tr("Validation failed. Please check the log."), 5000});
         }
         this->_finishInvoke = true;
+        //結果の1件ずつはログに出さないため、件数だけ出す
+        size_t numErrors = 0, numWarnings = 0;
+        for(const auto& [fileName, errors] : this->runtimeData->errors) {
+            for(const auto& error : errors) {
+                if(error.type == ValidationErrorInfo::Error) { ++numErrors; }
+                else if(error.type == ValidationErrorInfo::Warning) { ++numWarnings; }
+            }
+        }
+        this->dispatch(SendLog, {tr("Validation finished. Errors: %1, Warnings: %2").arg(numErrors).arg(numWarnings)});
         this->dispatch(NotifyFinishValidateCSV, {});
     });
 }
@@ -44,26 +55,58 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
     if(this->_finishInvoke == false) { return; }
 
     QStringList checkFileList;
+    this->_pendingText.clear();
+    this->runtimeData->updateList.clear();
     if(type == DispatchType::ValidateCSV) {
+        //検証するファイルの結果だけを消し、他のファイルの結果は残す
         for(const auto& var : args) {
             checkFileList.append(var.toString());
+            this->runtimeData->errors.erase(QFileInfo(var.toString()).baseName());
         }
     }
     else {
         //編集表と行がそろうよう、書き出し先ではなくアプリ側エディターのCSVを検証する
-        checkFileList.append(this->setting->langscoreProjectDirectory + "/editing");
+        checkFileList = ValidationTargetFiles(*this->setting);
+        this->runtimeData->errors.clear();
     }
-
-    this->_pendingText.clear();
-    this->runtimeData->errors.clear();
-    this->runtimeData->updateList.clear();
     this->runtimeData->errorsRevision++;
+    if(checkFileList.isEmpty()) {
+        this->dispatch(NotifyFinishValidateCSV, {});
+        return;
+    }
     this->_finishInvoke = false;
 
     this->setting->validateObj.csvNameList = checkFileList;
     this->setting->saveForProject();
     _invoker->validate();
     this->setting->validateObj.csvNameList.clear();
+}
+
+//editing にあるCSVのうち、今のゲームにあり、翻訳から除外していないファイルだけを返す。
+//ゲームから消したファイルや除外したファイルのCSVは editing に残るが、検証はしない
+QStringList ValidationService::ValidationTargetFiles(const settings& setting)
+{
+    const auto editingFolder = setting.langscoreProjectDirectory + "/editing";
+    const auto analyzeFolder = setting.analyzeDirectoryPath();
+    QSet<QString> targetNames;
+    const auto addTargets = [&](const auto& infoList) {
+        for(const auto& info : infoList) {
+            if(info.ignore) { continue; }
+            const auto name = withoutAllExtension(info.fileName);
+            if(QFile::exists(analyzeFolder + "/" + name + ".lsjson")) { targetNames.insert(name); }
+        }
+    };
+    addTargets(setting.writeObj.basicDataInfo);
+    addTargets(setting.writeObj.mapDataInfo);
+    if(std::ranges::any_of(setting.writeObj.scriptInfo, [](const auto& script) { return script.isIgnore() == false; })) {
+        targetNames.insert("Scripts");
+    }
+
+    QStringList files;
+    for(const auto& fileInfo : QDir(editingFolder).entryInfoList({"*.csv"}, QDir::Files, QDir::Name)) {
+        if(targetNames.contains(fileInfo.completeBaseName())) { files.append(fileInfo.absoluteFilePath()); }
+    }
+    return files;
 }
 
 ValidationErrorInfo ValidationService::convertErrorInfo(std::vector<QString> csvText)
@@ -268,5 +311,13 @@ void ValidationService::addErrorText(QString text)
     }
     if(infos.empty() == false) { this->runtimeData->errorsRevision++; }
 
-    this->dispatch(DispatchType::SendLog, {text});
+    //検証結果（JSON の行）は件数が多いとログが重くなるため、それ以外の行だけをログに出す
+    QStringList logLines;
+    for(const auto& line : input.left(input.size() - pendingLength).split(QChar(0x0A))) {
+        const auto trimmed = line.trimmed();
+        if(trimmed.isEmpty() == false && trimmed.startsWith('{') == false) { logLines.append(line); }
+    }
+    if(logLines.isEmpty() == false) {
+        this->dispatch(DispatchType::SendLog, {logLines.join(QChar(0x0A))});
+    }
 }

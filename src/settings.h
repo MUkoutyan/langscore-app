@@ -186,6 +186,8 @@ public:
     std::uint32_t getDefaultFontSize() const;
 
     QString translateDirectoryPath() const;
+    void useGameTranslateFolderForExport();
+    bool isExportDirectoryInLangscoreFolder() const;
     QString analyzeDirectoryPath() const;
     QString tempScriptFileDirectoryPath() const;
     QString tempGraphicsFileDirectoryPath() const;

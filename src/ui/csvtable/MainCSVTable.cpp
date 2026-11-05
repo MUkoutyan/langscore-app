@@ -24,6 +24,10 @@
 #include "MainCSVTableModel.h"
 #include "service/LanguageNames.h"
 #include "service/TranslationCsvImporter.h"
+#include "../ValidationFilterButton.h"
+#include "service/OldTranslations.h"
+#include <QMessageBox>
+#include <QDialogButtonBox>
 
 using namespace langscore;
 
@@ -42,9 +46,10 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     , languageFontCheck(new QCheckBox(tr("Apply language font"), this))
     , fixedWidthCheck(new QCheckBox(tr("Fixed cell width"), this))
     , fixedWidthSpinBox(new QSpinBox(this))
-, hideLanguageColumnsAction(new QPushButton(tr("Filter Columns")))
+    , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns")))
     , validateButton(new QPushButton(tr("Validate")))
     , validateResultListButton(new QPushButton(tr("Show validate result")))
+    , oldTranslationsButton(new QPushButton(tr("Old Translations")))
     , validateResultDialog(new QDialog(this))
     , validateResultTable(new QTableWidget(this))
     , settingButton(new QToolButton(this))
@@ -116,6 +121,10 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 
     {
         auto layout = new QVBoxLayout();
+        auto* filterLayout = new QHBoxLayout();
+        filterLayout->addStretch();
+        filterLayout->addWidget(new ValidationFilterButton(this, validateResultDialog));
+        layout->addLayout(filterLayout);
         layout->addWidget(this->validateResultTable);
         validateResultDialog->setLayout(layout);
     }
@@ -160,25 +169,28 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 
     auto* vLayout = new QVBoxLayout();
     vLayout->setContentsMargins(0, 0, 0, 0);
-    vLayout->setSpacing(0);
+    vLayout->setSpacing(2);
 
+    //スクリプトの表と同じく、1行目にファイル名とボタン、2行目に検索を置く
     auto* hLayout = new QHBoxLayout();
     hLayout->setContentsMargins(0, 0, 0, 0);
     hLayout->addWidget(this->mainFileName);
     hLayout->addSpacing(10);
-    hLayout->addWidget(this->searchEdit, 1);
-    hLayout->addWidget(this->hideTranslatedCheck);
-    hLayout->addStretch(1);
     hLayout->addWidget(this->mainFileWordCount);
-    hLayout->addSpacing(20);
+    hLayout->addStretch(1);
+    hLayout->addWidget(this->hideTranslatedCheck);
     hLayout->addWidget(this->validateButton);
     hLayout->addWidget(this->validateResultListButton);
+    this->oldTranslationsButton->setToolTip(tr("Translations of text whose original was changed or deleted in the game. They are not exported."));
+    hLayout->addWidget(this->oldTranslationsButton);
+    this->oldTranslationsButton->setVisible(false);
 
     this->settingButton->setIcon(QIcon(":/images/resources/image/settings.png"));
     this->settingButton->setToolTip(tr("Display settings"));
     hLayout->addWidget(this->settingButton);
 
     vLayout->addLayout(hLayout);
+    vLayout->addWidget(this->searchEdit);
     vLayout->addWidget(this->csvEditor, 2);
     vLayout->addWidget(this->cellErrorLog, 0);
     this->cellErrorLog->setVisible(false);
@@ -197,6 +209,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
         this->validateButton->setEnabled(false);
         this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
     });
+
+    connect(oldTranslationsButton, &QPushButton::clicked, this, &MainCSVTable::showOldTranslationsDialog);
 
     connect(validateResultListButton, &QPushButton::clicked, this, [this]()
     {
@@ -425,8 +439,96 @@ void MainCSVTable::fillModelFromFiles(langscore::CSVEditorTableModel& model, con
 
     //editing側に保存した翻訳を適用する
     if(loadedFromAnalyzeResult && QFile::exists(editedData)) {
+        //原文が変わった・消えた行の訳は、保存すると消えてしまうため古い翻訳として残す
+        int originalColumn = 0;
+        for(int column = 0; column < model.columnCount(); ++column) {
+            if(model.headerData(column, Qt::Horizontal, Qt::UserRole).toString() == "original") { originalColumn = column; }
+        }
+        QSet<QString> originals;
+        for(int row = 0; row < model.rowCount(); ++row) {
+            originals.insert(model.getCell(row, originalColumn).value_or(""));
+        }
+        langscore::KeepOldTranslations(editedData, originals);
         model.mergeTranslationsFromCsv(editedData);
     }
+}
+
+//原文が変わった・消えた行の訳（古い翻訳）を一覧にし、削除できるようにする
+void MainCSVTable::showOldTranslationsDialog()
+{
+    const auto editingFolder = this->setting->langscoreProjectDirectory + "/editing";
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Old Translations"));
+    dialog.resize(800, 500);
+    auto* table = new QTableWidget(&dialog);
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    auto* fileLabel = new QLabel(&dialog);
+    fileLabel->setWordWrap(true);
+
+    const auto reload = [this, table, fileLabel]()
+    {
+        table->clear();
+        table->setRowCount(0);
+        langscore::FastCSVContainer old;
+        const auto oldPath = langscore::OldTranslationsPath(this->currentFileName);
+        if(this->currentModel == nullptr || QFile::exists(oldPath) == false || old.loadFromFile(oldPath) == false) {
+            fileLabel->setText(tr("There are no old translations in this file."));
+            return;
+        }
+        fileLabel->setText(tr("Translations of text whose original was changed or deleted in the game. They are kept in the editing folder but are not exported."));
+        table->setColumnCount(static_cast<int>(old.columnCount()));
+        table->setHorizontalHeaderLabels(old.headers());
+        table->setRowCount(static_cast<int>(old.rowCount()));
+        for(size_t row = 0; row < old.rowCount(); ++row) {
+            for(size_t column = 0; column < old.columnCount(); ++column) {
+                table->setItem(static_cast<int>(row), static_cast<int>(column), new QTableWidgetItem(old.at(row, column)));
+            }
+        }
+        table->resizeColumnsToContents();
+    };
+    reload();
+
+    auto* removeSelectedButton = new QPushButton(tr("Delete Selected"), &dialog);
+    auto* removeFileButton = new QPushButton(tr("Delete All in This File"), &dialog);
+    auto* removeAllButton = new QPushButton(tr("Delete All Old Translations"), &dialog);
+    removeAllButton->setToolTip(tr("Deletes the old translations of all files."));
+    connect(removeSelectedButton, &QPushButton::clicked, &dialog, [this, table, reload]()
+    {
+        QStringList originals;
+        for(const auto& index : table->selectionModel()->selectedRows(0)) {
+            originals.append(table->item(index.row(), 0)->text());
+        }
+        if(originals.isEmpty()) { return; }
+        langscore::RemoveOldTranslations(this->currentFileName, originals);
+        reload();
+    });
+    connect(removeFileButton, &QPushButton::clicked, &dialog, [this, &dialog, reload]()
+    {
+        if(QMessageBox::question(&dialog, tr("Old Translations"), tr("Delete all old translations in this file?")) != QMessageBox::Yes) { return; }
+        langscore::RemoveOldTranslations(this->currentFileName);
+        reload();
+    });
+    connect(removeAllButton, &QPushButton::clicked, &dialog, [&dialog, editingFolder, reload]()
+    {
+        if(QMessageBox::question(&dialog, tr("Old Translations"), tr("Delete the old translations of all files?")) != QMessageBox::Yes) { return; }
+        langscore::RemoveAllOldTranslations(editingFolder);
+        reload();
+    });
+
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    auto* buttonLayout = new QHBoxLayout();
+    buttonLayout->addWidget(removeSelectedButton);
+    buttonLayout->addWidget(removeFileButton);
+    buttonLayout->addWidget(removeAllButton);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(buttons);
+    auto* layout = new QVBoxLayout(&dialog);
+    layout->addWidget(fileLabel);
+    layout->addWidget(table);
+    layout->addLayout(buttonLayout);
+    dialog.exec();
 }
 
 //ファイルの進捗（すべての言語が埋まった行の数, 全体の行数）
@@ -785,9 +887,8 @@ void MainCSVTable::updateValidateResultTable()
         };
         {
             //info内のrowはCSVファイルの行数が格納される。
-            //CSVにはヘッダーが含まれるため、実質1インデックスとなる。
-            //エディターで表示する際はヘッダーはセルには存在しないため、0インデックスとなる。
-            auto item = createItem((1 <= info.row) ? QString::number(info.row - 1) : tr("File"));
+            //CSVにはヘッダーが含まれるため実質1インデックスとなり、エディターの行の番号（垂直ヘッダー）と同じになる。
+            auto item = createItem((1 <= info.row) ? QString::number(info.row) : tr("File"));
             this->validateResultTable->setItem(row, col++, item);
         }
         {

@@ -376,10 +376,11 @@ Qt::ItemFlags CSVEditorTableModel::flags(const QModelIndex& index) const
     return Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsEnabled;
 }
 
-QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientation, int role) const 
+QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if(orientation != Qt::Horizontal) {
-        return QVariant();
+        //行の番号は1から。検証結果の行（CSVのヘッダーを0行目とした行）と同じ番号になる
+        return role == Qt::DisplayRole ? QVariant(section + 1) : QVariant();
     }
     //headerAt は範囲外で例外を投げるため、先に範囲を確認する
     if(section < 0 || section >= static_cast<int>(csvContainer.columnCount())) {

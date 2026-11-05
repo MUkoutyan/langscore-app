@@ -203,11 +203,12 @@ QTreeView::item {
 
 
     // --- signal/slot接続 ---
-    //connect(scriptTreeManager, &FileTree::scriptTableScrollToRow, this, &WriteModeComponent::onScriptTableScrollToRow);
-    //connect(scriptTreeManager, &FileTree::scriptTableSelectRow, this, &WriteModeComponent::onScriptTableSelectRow);
+    connect(fileTree, &FileTree::scriptTableScrollToRow, this->scriptTable, &ScriptCSVTable::onScriptTableScrollToRow);
+    connect(fileTree, &FileTree::scriptTableSelectRow, this->scriptTable, &ScriptCSVTable::onScriptTableSelectRow);
     connect(fileTree, &FileTree::showGraphicsImage, this, &WriteModeComponent::onShowGraphicsImage);
     connect(fileTree, &FileTree::showMainFile, this, &WriteModeComponent::onShowMainFile);
     connect(fileTree, &FileTree::selectMainError, this->mainTable, &MainCSVTable::selectError);
+    connect(fileTree, &FileTree::selectScriptError, this->scriptTable, &ScriptCSVTable::selectRowByOriginal);
     connect(this->mainTable, &MainCSVTable::fileProgressChanged, fileTree, &FileTree::setFileProgress);
 connect(fileTree, &FileTree::showScriptFile, this, &WriteModeComponent::onShowScriptFile);
     connect(fileTree, &FileTree::setScriptFileNameLabel, this, &WriteModeComponent::onSetScriptFileNameLabel);
@@ -241,8 +242,6 @@ void WriteModeComponent::show()
 
 void WriteModeComponent::clear()
 {
-    this->ui->mainFileName->setText("");
-    this->ui->mainFileWordCount->setText("");
 
     this->showAllScriptContents = true;
     //ツリー・表を作り直すと Undo 履歴が保持している項目が削除されるため、履歴も破棄する
@@ -559,12 +558,15 @@ void WriteModeComponent::finishExport()
 //中止した場合は false を返す
 bool WriteModeComponent::confirmOverwriteReadOnlyPlugins()
 {
-    if(this->setting->projectType == settings::VXAce) { return true; }
     if(this->setting->writeObj.overwriteLangscore == false) { return true; }
 
+    //VXAce のプラグインは Data/Scripts.rvdata2 に書き込まれる
+    const QStringList pluginFiles = this->setting->projectType == settings::VXAce
+        ? QStringList{"Data/Scripts.rvdata2"}
+        : QStringList{"js/plugins/Langscore.js", "js/plugins/Langscore_ObserverBridge.js"};
     QStringList readOnlyFiles;
-    for(const auto& name : {QString("Langscore.js"), QString("Langscore_ObserverBridge.js")}) {
-        QFileInfo info(this->setting->gameProjectPath + "/js/plugins/" + name);
+    for(const auto& name : pluginFiles) {
+        QFileInfo info(this->setting->gameProjectPath + "/" + name);
         if(info.exists() && info.isWritable() == false) {
             readOnlyFiles.append(QDir::toNativeSeparators(info.absoluteFilePath()));
         }

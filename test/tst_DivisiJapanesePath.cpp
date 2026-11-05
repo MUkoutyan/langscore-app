@@ -135,6 +135,8 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
     setting.write(configPath);
     const auto validate= RunDivisi(configPath, "--validate");
     EXPECT_EQ(validate.exitCode, 0) << validate.output.toStdString();
+    //editing のCSVには言語の後に種類の列（type）があるが、言語の列とは数えないこと（NotEQLang = 4 が出ない）
+    EXPECT_FALSE(validate.output.contains(R"("Summary":4)")) << validate.output.toStdString();
 
     //書き出し（アプリと同じく、divisiの書き出し後にアプリ側の翻訳を反映してからパッキングする）。
     //ゲームのフォルダの Data/Translate に、原文と翻訳が化けずに入り、訳の改行が原文と同じ \r\n になること
@@ -163,3 +165,49 @@ INSTANTIATE_TEST_SUITE_P(
     DivisiJapanesePathTest,
     ::testing::Values(u"日本語 フォルダ/ゲーム", u"日本語 フォルダ/ゲーム_한글")
 );
+
+class DivisiReadOnlyTest : public ::testing::TestWithParam<bool> {};
+
+TEST_P(DivisiReadOnlyTest, VXAceReadOnlyScriptsIsOverwritten)
+{
+    // VXAce のプラグインは Data/Scripts.rvdata2 に書き込まれる。
+    // このファイルが読み取り専用でも、プラグインの書き出しが失敗せず、ファイルが書き換わること
+    if(QFile::exists(LANGSCORE_DIVISI_PATH) == false) {
+        GTEST_SKIP() << "divisi.exe がありません。アプリをビルドしてから実行してください";
+    }
+
+    QTemporaryDir tempDir;
+    const auto gameDir = tempDir.filePath("Game");
+    CopyDirectory(QString(LANGSCORE_TEST_SOURCE_DIR) + "/Project1", gameDir);
+
+    settings setting;
+    setting.setGameProjectPath(gameDir);
+    setting.defaultLanguage = "ja";
+    setting.languages = {
+        settings::Language{.languageName = "ja", .enable = true},
+        settings::Language{.languageName = "en", .enable = true},
+    };
+    setting.writeObj.overwriteLangscore = true;
+    const auto configPath = setting.langscoreProjectDirectory + "/config.json";
+    QDir().mkpath(setting.langscoreProjectDirectory);
+    setting.write(configPath);
+    const auto analyze = RunDivisi(configPath, "--analyze");
+    ASSERT_EQ(analyze.exitCode, 0) << analyze.output.toStdString();
+
+    const auto scriptsPath = gameDir + "/Data/Scripts.rvdata2";
+    const auto before = QFileInfo(scriptsPath).size();
+    if(GetParam()) {
+        ASSERT_TRUE(QFile::setPermissions(scriptsPath, QFileDevice::ReadOwner | QFileDevice::ReadUser));
+        ASSERT_FALSE(QFileInfo(scriptsPath).isWritable());
+    }
+
+    const auto update = RunDivisi(configPath, "--updatePlugin");
+    //後片付けで消せるよう、結果に関係なく書き込みできるように戻す
+    QFile::setPermissions(scriptsPath, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser);
+
+    EXPECT_EQ(update.exitCode, 0) << update.output.toStdString();
+    EXPECT_NE(QFileInfo(scriptsPath).size(), before) << "Scripts.rvdata2 にプラグインが書き込まれていません: " << update.output.toStdString();
+}
+
+//false: 読み取り専用にしない場合（比べるため）
+INSTANTIATE_TEST_SUITE_P(ReadOnly, DivisiReadOnlyTest, ::testing::Values(false, true));

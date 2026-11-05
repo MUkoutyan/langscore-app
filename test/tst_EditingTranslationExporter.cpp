@@ -159,8 +159,8 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
     QTemporaryDir tempDir;
     auto setting = std::make_shared<settings>(MakeSetting(tempDir.path()));
     setting->projectType = settings::MZ;
-    setting->writeObj.enableFillDefaultLanguage = false;
-    //同じ原文が2つのスクリプトにあっても、訳は1行にまとまる
+    setting->writeObj.enableFillDefaultLanguage = true;
+    //同じ原文が2つのスクリプトにあっても、訳は1行にまとまる。A.js にはプラグインのパラメータもある
     for(const auto& fileName : {QString("A.js"), QString("B.js")})
     {
         settings::ScriptInfo info;
@@ -171,6 +171,14 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
         line.originalText = "Hello";
         line.d = langscore::ScriptTextPosition::RowCol{1, 2};
         info.lines.push_back(line);
+        if(fileName == "A.js")
+        {
+            langscore::ScriptTextPosition param;
+            param.type = langscore::ScriptTextPosition::Type::Argument;
+            param.originalText = QString(u"外に出る");
+            param.d = langscore::ScriptTextPosition::ScriptArg{"Exit Command"};
+            info.lines.push_back(param);
+        }
         setting->writeObj.scriptInfo.push_back(info);
     }
 
@@ -179,13 +187,23 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
     const auto editingFolder = tempDir.filePath("editing");
     QDir().mkpath(editingFolder);
     model.loadFromEditJSONWithSettings(editingFolder);
-    ASSERT_EQ(model.rowCount(), 2);
-    //言語は ja, en の順。B.js の行の en に入力する
-    ASSERT_TRUE(model.setData(model.index(1, Columns::LangColumnStart + 1), "Translated", Qt::EditRole));
+    ASSERT_EQ(model.rowCount(), 3);
+    //言語は ja, en の順。B.js の "Hello" とパラメータの en に入力する
+    for(int row = 0; row < model.rowCount(); ++row)
+    {
+        const auto original = model.getOriginalText(row);
+        if(original == "Hello" && model.getScriptFileName(row) == "B.js") {
+            ASSERT_TRUE(model.setData(model.index(row, Columns::LangColumnStart + 1), "Translated", Qt::EditRole));
+        }
+        else if(original == QString(u"外に出る")) {
+            ASSERT_TRUE(model.setData(model.index(row, Columns::LangColumnStart + 1), "Go outside", Qt::EditRole));
+        }
+    }
     ASSERT_TRUE(model.saveToFile(editingFolder + "/Scripts.lsjson"));
 
+    //divisi の Scripts.csv は、1列目が「ファイル名:行:列」か「ファイル名:パラメータ名」のキーで、プラグインはこのキーで訳を引く
     const auto exportPath = tempDir.filePath("Data/Translate/Scripts.csv");
-    WriteBytes(exportPath, Bom + "original,ja,en\nHello,,");
+    WriteBytes(exportPath, Bom + QString(u"original,ja,en\nA:1:2,Hello,\nA:Exit Command,外に出る,\nB:1:2,Hello,").toUtf8());
     langscore::ApplyEditingTranslations(*setting);
-    EXPECT_EQ(ReadBytes(exportPath), Bom + "original,ja,en\nHello,,Translated");
+    EXPECT_EQ(QString::fromUtf8(ReadBytes(exportPath)), QString::fromUtf8(Bom) + QString(u"original,ja,en\nA:1:2,Hello,Translated\nA:Exit Command,外に出る,Go outside\nB:1:2,Hello,Translated"));
 }

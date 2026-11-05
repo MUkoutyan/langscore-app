@@ -19,6 +19,7 @@
 #include "../ComponentBase.h"
 #include "../editor/FastCSVContainer.h"
 #include "service/LanguageNames.h"
+#include "service/OldTranslations.h"
 
 using namespace langscore;
 
@@ -157,6 +158,11 @@ bool ScriptCSVTableModel::saveToFile(const QString& editJsonFile) const
 bool ScriptCSVTableModel::saveToEditCsvFile(const QString& csvPath) const
 {
     if(_rows.isEmpty()) { return true; }
+
+    //原文が変わった・消えた行の訳は、上書きすると消えてしまうため古い翻訳として残す
+    QSet<QString> originals;
+    for(const auto& rd : _rows) { originals.insert(rd.originalText); }
+    KeepOldTranslations(csvPath, originals);
 
     std::vector<std::vector<QString>> csvData;
     auto& header = csvData.emplace_back();
@@ -372,6 +378,12 @@ int ScriptCSVTableModel::rowCount(const QModelIndex& parent) const
 int ScriptCSVTableModel::columnCount(const QModelIndex& parent) const
 {
     if(parent.isValid()) { return 0; }
+    return textPointColumn() + 1;
+}
+
+//テキストの位置は、言語の列の後の最後の列に置く
+int ScriptCSVTableModel::textPointColumn() const
+{
     return Columns::LangColumnStart + static_cast<int>(_languages.size());
 }
 
@@ -422,10 +434,10 @@ QVariant ScriptCSVTableModel::data(const QModelIndex& idx, int role) const
 
     if(role != Qt::DisplayRole && role != Qt::EditRole) { return QVariant(); }
 
+    if(col == textPointColumn()) { return rd.textPoint; }
     switch(col) {
     case Columns::Include:      return QVariant();          // テキストなし（チェックボックスのみ）
     case Columns::ScriptName:   return rd.scriptDisplayName;
-    case Columns::TextPoint:    return rd.textPoint;
     case Columns::OriginalText: return rd.originalText;
     default:
     {
@@ -485,12 +497,12 @@ bool ScriptCSVTableModel::setData(const QModelIndex& idx, const QVariant& value,
 Qt::ItemFlags ScriptCSVTableModel::flags(const QModelIndex& idx) const
 {
     if(!idx.isValid()) { return Qt::NoItemFlags; }
+    if(idx.column() == textPointColumn()) { return Qt::ItemIsEnabled | Qt::ItemIsSelectable; }
 
     switch(idx.column()) {
     case Columns::Include:
         return Qt::ItemIsUserCheckable | Qt::ItemIsEnabled | Qt::ItemIsSelectable;
     case Columns::ScriptName:
-    case Columns::TextPoint:
     case Columns::OriginalText:
         return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
     default:
@@ -500,13 +512,15 @@ Qt::ItemFlags ScriptCSVTableModel::flags(const QModelIndex& idx) const
 
 QVariant ScriptCSVTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if(orientation != Qt::Horizontal) { return QVariant(); }
+    if(orientation != Qt::Horizontal) {
+        return role == Qt::DisplayRole ? QVariant(section + 1) : QVariant();
+    }
 
     if(role == Qt::DisplayRole) {
+        if(section == textPointColumn()) { return tr("Text Point"); }
         switch(section) {
         case Columns::Include:      return tr("Include");
         case Columns::ScriptName:   return tr("Script Name");
-        case Columns::TextPoint:    return tr("Text Point");
         case Columns::OriginalText: return tr("Original");
         default:
         {
@@ -533,10 +547,10 @@ QVariant ScriptCSVTableModel::headerData(int section, Qt::Orientation orientatio
 
     // UserRole: proxy モデルの列フィルタリングに使用する識別子
     if(role == DataType::FilterText) {
+        if(section == textPointColumn()) { return Column_ID_TextPoint; }
         switch(section) {
         case Columns::Include:      return Column_ID_Include;
         case Columns::ScriptName:   return Column_ID_ScriptName;
-        case Columns::TextPoint:    return Column_ID_TextPoint;
         case Columns::OriginalText: return Column_ID_Original;
         default:
         {

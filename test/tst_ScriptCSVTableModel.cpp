@@ -1,4 +1,4 @@
-#include "test_common.h"
+﻿#include "test_common.h"
 #include <QTemporaryDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -57,7 +57,10 @@ TEST_F(ScriptCSVTableModelTest, LoadRows)
     model.setSettings(setting);
     model.loadFromEditJSONWithSettings(tempDir.path());
     EXPECT_EQ(model.rowCount(), 1);
-    EXPECT_EQ(model.columnCount(), Columns::LangColumnStart + 2);
+    //言語の列の後の最後の列はテキストの位置
+    EXPECT_EQ(model.columnCount(), Columns::LangColumnStart + 2 + 1);
+    EXPECT_EQ(model.textPointColumn(), model.columnCount() - 1);
+    EXPECT_FALSE(model.flags(model.index(0, model.textPointColumn())) & Qt::ItemIsEditable);
     EXPECT_EQ(model.getOriginalText(0), QString("Hello"));
 }
 
@@ -144,7 +147,7 @@ TEST_F(ScriptCSVTableModelTest, RefreshLanguagesKeepsTranslations)
     setting->languages[0].enable = false;
     setting->languages.push_back(settings::Language{"fr", {}, true});
     model.refreshLanguages();
-    EXPECT_EQ(model.columnCount(), Columns::LangColumnStart + 2);
+    EXPECT_EQ(model.columnCount(), Columns::LangColumnStart + 2 + 1);
     EXPECT_EQ(LangCell(model, 0), QString("Hi"));
 
     //ja を戻しても、入力済みの訳は失われない
