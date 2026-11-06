@@ -129,6 +129,36 @@ TEST(EditingTranslationExporter, LanguagePatchFolders)
     EXPECT_TRUE(ReadBytes(exportPath).contains("\"Line1\r\nLine2\""));
 }
 
+TEST(EditingTranslationExporter, UnexportedFilesAreDetectedByContent)
+{
+    //書き出したときから内容が変わったファイルだけを未書き出しとし、指定したファイルだけに反映する
+    QTemporaryDir tempDir;
+    const auto setting = MakeSetting(tempDir.path());
+    WriteBytes(tempDir.filePath("editing/Actors.csv"), EditingCsv);
+    WriteBytes(tempDir.filePath("editing/Items.csv"), EditingCsv);
+    WriteBytes(tempDir.filePath("Data/Translate/Actors.csv"), ExportedCsv);
+    WriteBytes(tempDir.filePath("Data/Translate/Items.csv"), ExportedCsv);
+
+    //一度も書き出していなければ、すべて未書き出し
+    EXPECT_EQ(langscore::UnexportedEditingFiles(setting), QStringList({"Actors.csv", "Items.csv"}));
+    langscore::ApplyEditingTranslations(setting);
+    EXPECT_TRUE(langscore::UnexportedEditingFiles(setting).isEmpty());
+
+    //同じ内容で保存し直しても未書き出しにはしない
+    WriteBytes(tempDir.filePath("editing/Actors.csv"), EditingCsv);
+    EXPECT_TRUE(langscore::UnexportedEditingFiles(setting).isEmpty());
+
+    WriteBytes(tempDir.filePath("editing/Items.csv"), Utf8(u"original,ja,en,type\n名前,,changed,name\n"));
+    const auto files = langscore::UnexportedEditingFiles(setting);
+    EXPECT_EQ(files, QStringList({"Items.csv"}));
+
+    const auto updated = langscore::ApplyEditingTranslations(setting, files);
+    ASSERT_EQ(updated.size(), 1);
+    EXPECT_TRUE(updated[0].endsWith("Items.csv"));
+    EXPECT_TRUE(ReadBytes(tempDir.filePath("Data/Translate/Items.csv")).contains("changed"));
+    EXPECT_TRUE(langscore::UnexportedEditingFiles(setting).isEmpty());
+}
+
 TEST(FastCSVContainer, LineBreakInCellIsSavedOnceAndReadAsLF)
 {
     //セル内の \r\n が \r\r\n にならずに保存され、読むと \n にそろうこと。

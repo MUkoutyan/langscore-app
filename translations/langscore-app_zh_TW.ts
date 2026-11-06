@@ -474,123 +474,128 @@ No need to enter &quot;\&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="87"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="88"/>
         <source>File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="88"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="89"/>
         <source>Open Game Project...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="89"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="90"/>
         <source>Save Langscore Project...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="90"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="91"/>
         <source>Recent Project</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="93"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="94"/>
         <source>Quit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="99"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="100"/>
         <source>Open Game Project Folder...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="109"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="110"/>
         <source>Edit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="110"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="111"/>
         <source>Undo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="113"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="114"/>
         <source>Redo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="117"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="118"/>
         <source>Show Undo View...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="119"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="120"/>
         <source>Validation all file...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="124"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="125"/>
         <source>Import Translation CSV...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="136"/>
-        <location filename="../src/ui/FormTaskBar.cpp" line="142"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="137"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="143"/>
         <source>System</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="137"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="138"/>
         <source>Theme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="138"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="139"/>
         <source>Light</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="140"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="141"/>
         <source>Dark</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="155"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="156"/>
         <source>Translation API Settings...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="158"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="159"/>
         <source>Cell Editing Keys...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="174"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="164"/>
+        <source>RPG Maker Location...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FormTaskBar.cpp" line="180"/>
         <source>Color</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="182"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="188"/>
         <source>Help</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="184"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="190"/>
         <source>Manual... (Web site)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="190"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="196"/>
         <source>History... (Web site)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="196"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="202"/>
         <source>Version : </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="245"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="251"/>
         <source>Not Found Directory. Delete this item from the history at the end of the project.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1257,6 +1262,26 @@ If not, the changes will be discarded.</source>
     </message>
 </context>
 <context>
+    <name>RPGMakerPathDialog</name>
+    <message>
+        <location filename="../src/ui/dialog/RPGMakerPathDialog.cpp" line="25"/>
+        <location filename="../src/ui/dialog/RPGMakerPathDialog.cpp" line="33"/>
+        <source>RPG Maker Location</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/RPGMakerPathDialog.cpp" line="31"/>
+        <source>Browse...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/RPGMakerPathDialog.cpp" line="47"/>
+        <source>Specify the folder where RPG Maker is installed.
+VX Ace does not need to be specified because the Game.exe in the game project is used.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ScriptCSVTable</name>
     <message>
         <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="57"/>
@@ -1742,124 +1767,155 @@ If not, the changes will be discarded.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="278"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="619"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="657"/>
+        <source>Test Play</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.ui" line="295"/>
         <source>Update Plugin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.ui" line="303"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="541"/>
+        <location filename="../src/ui/WriteModeComponent.ui" line="320"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="545"/>
         <source>Write Translate CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="84"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="85"/>
         <source>Text Clipping Detect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="114"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="116"/>
         <source>Update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="118"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="120"/>
         <source>When updated, the displayed content will be changed to the latest content.
 This process cannot be undone.
 Note:The translation file will not be changed until it is exported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="133"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="135"/>
         <source>Update Projects...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="135"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="137"/>
         <source>Update to the latest content...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="150"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="152"/>
         <source>Failed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="151"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="153"/>
         <source>Failed. Please check the log.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="157"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="161"/>
         <source>Packing failed. The CSV files have been exported, but the game may still use the previous translations.
 Fix the cause and run &quot;Write Translate CSV&quot; again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="163"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="167"/>
         <source>Done.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="170"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="174"/>
         <source> Complete.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="186"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="190"/>
         <source>Removed %1 packed CSV files.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="298"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="302"/>
         <source>Imported %1 translations.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="300"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="304"/>
         <source>Save the project to keep the imported translations.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="303"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="307"/>
         <source>The following files were skipped because no matching file was found in the project:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="379"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="383"/>
         <source>Update Plugin...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="438"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="442"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="635"/>
         <source>Write Translate Files...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="484"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="488"/>
         <source>Write Translate Files(First)...
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="537"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="541"/>
         <source>To export CSV, please select a language</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="580"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="584"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="644"/>
         <source>Applied the edited translations to %1 files.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="617"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="619"/>
+        <source>There are unsaved or unexported edits.
+Do you want to export them before the test play?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="620"/>
+        <source>Export and Play</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="621"/>
+        <source>Play without Exporting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="657"/>
+        <source>Failed to start the test play.
+%1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="681"/>
         <source>Overwrite read-only files</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="618"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="682"/>
         <source>The following files are read-only. Do you want to overwrite them?</source>
         <translation type="unfinished"></translation>
     </message>

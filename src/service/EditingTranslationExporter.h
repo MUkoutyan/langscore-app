@@ -11,8 +11,13 @@ namespace langscore {
 //・writeMode が 0（新しい内容で上書き）の場合はアプリ側の内容で置き換える。それ以外はアプリ側で空の訳を残す
 //・言語ごとのフォルダに書き出す設定なら、それぞれのフォルダのCSVに反映する
 //・セル内の改行はゲームに合わせる（ToGameLineBreak）
+//fileNames を指定した場合は、editing にあるそのファイル（"Map001.csv" など）だけを反映する。
+//反映したファイルの内容は書き出し済みとして記録する（UnexportedEditingFiles）。
 //反映したファイルのパスを返す
-QStringList ApplyEditingTranslations(const settings& setting);
+QStringList ApplyEditingTranslations(const settings& setting, const QStringList& fileNames = {});
+
+//editing にあるCSVのうち、最後に書き出したときから内容が変わったファイルの名前を返す
+QStringList UnexportedEditingFiles(const settings& setting);
 
 //VXAce のパッキング後に、書き出したCSVのうち .rvdata2 にパッキングできたものを削除する。
 //パッキングの出力先は divisi と同じく Data/Translate（パッチモードは言語ごとのフォルダ）。

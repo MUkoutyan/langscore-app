@@ -72,6 +72,8 @@ set(PROJECT_SOURCES
     src/ui/dialog/TranslationProgressDialog.h
     src/ui/dialog/EditKeySettingsDialog.h
     src/ui/dialog/EditKeySettingsDialog.cpp
+    src/ui/dialog/RPGMakerPathDialog.h
+    src/ui/dialog/RPGMakerPathDialog.cpp
     src/ui/dialog/TranslationProgressDialog.cpp
     src/ui/dialog/TranslationProgressDialog.ui
     src/ui/dialog/LanguageColumnSelectionDialog.h

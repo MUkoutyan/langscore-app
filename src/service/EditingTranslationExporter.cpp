@@ -9,12 +9,34 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QHash>
+#include <QCryptographicHash>
 #include <algorithm>
 
 namespace langscore {
 
 namespace
 {
+    //書き出したときの editing のCSVの内容（ハッシュ）を記録するファイル。
+    //保存では開いたファイルをすべて書き直すため、更新日時ではなく内容で変更を判定する
+    QString ExportedHashesPath(const settings& setting)
+    {
+        return setting.langscoreProjectDirectory + "/editing/exported.json";
+    }
+
+    QJsonObject LoadExportedHashes(const settings& setting)
+    {
+        QFile file(ExportedHashesPath(setting));
+        if(file.open(QIODevice::ReadOnly) == false) { return {}; }
+        return QJsonDocument::fromJson(file.readAll()).object();
+    }
+
+    QString FileHash(const QString& path)
+    {
+        QFile file(path);
+        if(file.open(QIODevice::ReadOnly) == false) { return {}; }
+        return QCryptographicHash::hash(file.readAll(), QCryptographicHash::Md5).toHex();
+    }
+
     //divisi の書き出し先（config::exportDirectory と同じ）。言語ごとに書き出す場合は言語ごとのフォルダ
     QStringList ExportFolders(const settings& setting)
     {
@@ -154,15 +176,32 @@ QStringList RemovePackedCsvFiles(const settings& setting)
     return removedFiles;
 }
 
-QStringList ApplyEditingTranslations(const settings& setting)
+QStringList UnexportedEditingFiles(const settings& setting)
+{
+    const auto editingFolder = setting.langscoreProjectDirectory + "/editing";
+    const auto exportedHashes = LoadExportedHashes(setting);
+    QStringList files;
+    for(const auto& fileName : QDir(editingFolder).entryList({"*.csv"}, QDir::Files))
+    {
+        if(exportedHashes.value(fileName).toString() != FileHash(editingFolder + "/" + fileName)) {
+            files.append(fileName);
+        }
+    }
+    return files;
+}
+
+QStringList ApplyEditingTranslations(const settings& setting, const QStringList& fileNames)
 {
     const auto editingFolder = setting.langscoreProjectDirectory + "/editing";
     const auto exportFolders = ExportFolders(setting);
+    auto exportedHashes = LoadExportedHashes(setting);
     QStringList updatedFiles;
     for(const auto& fileName : QDir(editingFolder).entryList({"*.csv"}, QDir::Files))
     {
+        if(fileNames.isEmpty() == false && fileNames.contains(fileName) == false) { continue; }
         FastCSVContainer editing;
         if(editing.loadFromFile(editingFolder + "/" + fileName) == false) { continue; }
+        exportedHashes[fileName] = FileHash(editingFolder + "/" + fileName);
         if(editing.hasColumn("original") == false) { continue; }
 
         //原文からアプリ側エディターの行を参照できるようにする
@@ -182,6 +221,11 @@ QStringList ApplyEditingTranslations(const settings& setting)
                 updatedFiles.append(exportPath);
             }
         }
+    }
+
+    QFile hashFile(ExportedHashesPath(setting));
+    if(hashFile.open(QIODevice::WriteOnly)) {
+        hashFile.write(QJsonDocument(exportedHashes).toJson());
     }
     return updatedFiles;
 }

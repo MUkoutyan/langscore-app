@@ -6,6 +6,7 @@
 #include "ColorDialog.h"
 #include "dialog/TranslationApiSettingsDialog.h"
 #include "dialog/EditKeySettingsDialog.h"
+#include "dialog/RPGMakerPathDialog.h"
 
 #include <QActionGroup>
 #include <QMenuBar>
@@ -158,6 +159,11 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     auto editKeySettings = systemMenu->addAction(tr("Cell Editing Keys..."));
     connect(editKeySettings, &QAction::triggered, this, [this]() {
         EditKeySettingsDialog(this->window()).exec();
+    });
+
+    auto rpgMakerPath = systemMenu->addAction(tr("RPG Maker Location..."));
+    connect(rpgMakerPath, &QAction::triggered, this, [this]() {
+        RPGMakerPathDialog(this->window()).exec();
     });
 
     {

@@ -5,6 +5,7 @@
 #include "dialog/WriteDialog.h"
 #include "dialog/UpdatePluginDialog.h"
 #include "dialog/MessageDialog.h"
+#include "dialog/RPGMakerPathDialog.h"
 #include "ScriptViewer.h"
 #include "ClipDetectSettingTree.h"
 #include "src/invoker.h"
@@ -106,6 +107,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     connect(this->ui->writeCSVAndPluginButton, &QPushButton::clicked, this, &WriteModeComponent::firstExportTranslateFiles);
     connect(this->ui->writeButton, &QPushButton::clicked, this, &WriteModeComponent::exportTranslateFiles);
     connect(this->ui->updatePluginButton, &QPushButton::clicked, this, &WriteModeComponent::exportPlugin);
+    connect(this->ui->testPlayButton, &QPushButton::clicked, this, &WriteModeComponent::testPlay);
 
     connect(this->ui->updateButton, &QPushButton::clicked, this, [this]()
     {
@@ -149,6 +151,8 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             //失敗した処理を完了扱いにしない（初回書き出し済みフラグの保存なども行わない）
             this->ui->logText->insertPlainText(tr("Failed."));
             this->dispatch(StatusMessage, {tr("Failed. Please check the log."), 5000});
+            //書き出しに失敗したら、古い翻訳のままテストプレイしない
+            testPlayAfterExport = false;
             //パッキングの前に CSV とプラグインの書き出しは終わっているため、書き出し済みとして扱う。
             //パッキングは「翻訳CSVを書き出し」でやり直せる
             if(invokeType == InvokeType::PackingAfterExport) {
@@ -582,7 +586,8 @@ void WriteModeComponent::applyEditingTranslationsToExport()
 
 void WriteModeComponent::finishExport(bool openExportFolder)
 {
-    if(openExportFolder) {
+    //テストプレイのための書き出しでは、フォルダーを開かずにゲームを起動する
+    if(openExportFolder && testPlayAfterExport == false) {
         QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
     }
     this->setting->isFirstExported = true;
@@ -592,6 +597,65 @@ void WriteModeComponent::finishExport(bool openExportFolder)
     this->ui->writeButton->setVisible(true);
 
     this->dispatch(SaveProject,{});
+
+    if(testPlayAfterExport) {
+        testPlayAfterExport = false;
+        this->launchTestPlay();
+    }
+}
+
+//ツクールのテストプレイでゲームを起動する。未保存・未書き出しの編集があれば、書き出すかを確認する
+void WriteModeComponent::testPlay()
+{
+    const auto type = this->setting->projectType;
+    //MV・MZ はツクールの場所が分からなければ、指定してもらってから続ける
+    while(type != settings::VXAce && QFileInfo::exists(RPGMakerPathDialog::testPlayCommand(type, "", RPGMakerPathDialog::rpgMakerPath(type)).first) == false) {
+        if(RPGMakerPathDialog(this->window()).exec() != QDialog::Accepted) { return; }
+    }
+
+    //初回の書き出し前はゲームにプラグインが無いため、書き出しの確認はしない
+    if(this->setting->isFirstExported && (this->history->isClean() == false || langscore::UnexportedEditingFiles(*this->setting).isEmpty() == false))
+    {
+        QMessageBox box(QMessageBox::Question, tr("Test Play"), tr("There are unsaved or unexported edits.\nDo you want to export them before the test play?"), QMessageBox::NoButton, this);
+        auto* exportButton = box.addButton(tr("Export and Play"), QMessageBox::AcceptRole);
+        auto* playButton = box.addButton(tr("Play without Exporting"), QMessageBox::DestructiveRole);
+        box.addButton(QMessageBox::Cancel);
+        box.setDefaultButton(exportButton);
+        box.exec();
+        if(box.clickedButton() == exportButton)
+        {
+            this->dispatch(SaveProject, {});
+            const auto files = langscore::UnexportedEditingFiles(*this->setting);
+            //VXAce は書き出したCSVをパッキング後に消しているため、divisi で書き出し直してからパッキングする
+            if(type == settings::VXAce && files.isEmpty() == false)
+            {
+                this->changeEnabledUIState(false);
+                this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
+                this->ui->logText->clear();
+                this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
+                testPlayAfterExport = true;
+                _invoker->exportCSV();
+                invokeType = InvokeType::ExportCSV;
+                return;
+            }
+            //MV・MZ は書き出したCSVが残っているため、内容が変わったファイルにだけ編集を反映する
+            if(files.isEmpty() == false) {
+                const auto updatedFiles = langscore::ApplyEditingTranslations(*this->setting, files);
+                this->ui->logText->writeText("\n" + tr("Applied the edited translations to %1 files.").arg(updatedFiles.size()) + "\n");
+            }
+        }
+        else if(box.clickedButton() != playButton) { return; }
+    }
+    this->launchTestPlay();
+}
+
+void WriteModeComponent::launchTestPlay()
+{
+    const auto type = this->setting->projectType;
+    const auto [program, args] = RPGMakerPathDialog::testPlayCommand(type, this->setting->gameProjectPath, RPGMakerPathDialog::rpgMakerPath(type));
+    if(QProcess::startDetached(program, args, this->setting->gameProjectPath) == false) {
+        QMessageBox::warning(this, tr("Test Play"), tr("Failed to start the test play.\n%1").arg(QDir::toNativeSeparators(program)));
+    }
 }
 
 //上書きされる読み取り専用のプラグインがあれば、上書きしてよいかを確認する。
@@ -662,6 +726,7 @@ void WriteModeComponent::changeEnabledUIState(bool enable)
     this->fileTree->setEnabled(enable);
     this->ui->writeCSVAndPluginButton->setEnabled(enable);
     this->ui->updatePluginButton->setEnabled(enable);
+    this->ui->testPlayButton->setEnabled(enable);
     this->ui->updateButton->setEnabled(enable);
     //言語が1つも選ばれていない場合は、処理が終わっても書き出しボタンを無効のままにする
     const bool hasEnabledLanguage = std::ranges::any_of(this->setting->languages, [](const settings::Language& lang) {

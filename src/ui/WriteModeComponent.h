@@ -44,6 +44,7 @@ public slots:
     //void scriptTableItemChanged(QTableWidgetItem *item);
 
     void exportPlugin();
+    void testPlay();
     void exportTranslateFiles();
     void firstExportTranslateFiles();
     void onScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
@@ -100,6 +101,9 @@ private:
 
     void applyEditingTranslationsToExport();
     void finishExport(bool openExportFolder = true);
+    void launchTestPlay();
+    //テストプレイの前に書き出している間は true。書き出しが終わったらゲームを起動する
+    bool testPlayAfterExport = false;
 
     void changeUIColor();
 

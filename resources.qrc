@@ -8,6 +8,7 @@
         <file>resources/image/warning.svg</file>
         <file>resources/image/attention.svg</file>
         <file>resources/image/settings.png</file>
+        <file>resources/image/play.svg</file>
     </qresource>
     <qresource prefix="/fonts">
         <file alias="1m_reg">resources/fonts/mplus-1m-regular.ttf</file>
