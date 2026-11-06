@@ -20,6 +20,9 @@ public:
     void setCurrentText(const QString& text);
     void showError(const QString& errorMessage);
     void showCompletion(int successCount, int totalCount, const QString& errorMessage = {});
+    //翻訳中のエラー・警告。1件でもあれば、完了しても自動では閉じない
+    void addMessage(const QString& message);
+    bool hasMessages() const;
 
 signals:
     void cancelled();

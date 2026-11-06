@@ -15,15 +15,15 @@ struct ProxyListener : public CSVEditCommand::CellEditsListener
     }
 };
 
-// setData を QStandardItemModel に転送し、呼び出し時の抑制フラグを記録する
+// setData を QStandardItemModel に転送し、呼ばれた回数を記録する
 struct ModelListener : public CSVEditCommand::CellEditsListener
 {
     QStandardItemModel model{2, 2};
-    bool suppressedDuringSet = false;
+    int setCount = 0;
 
     void setData(QModelIndex index, QVariant value, int role) override
     {
-        suppressedDuringSet = _suppressUndoTracking;
+        setCount++;
         model.setData(index, value, role);
     }
 };
@@ -50,23 +50,12 @@ TEST(CSVEditCommand, RedoUndo)
     EXPECT_EQ(b.data().toString(), QString("newB"));
 }
 
-TEST(CSVEditCommand, Flags)
-{
-    ModelListener listener;
-    auto a = listener.model.index(0, 0);
-    CSVEditCommand cmd(&listener, {{a, "", "x"}});
-    cmd.redo();
-    EXPECT_TRUE(listener.suppressedDuringSet);
-    EXPECT_FALSE(listener._suppressUndoTracking);
-    EXPECT_TRUE(listener._isModified);
-}
-
 TEST(CSVEditCommand, InvalidIndexSkipped)
 {
     ModelListener listener;
     CSVEditCommand cmd(&listener, {{QModelIndex(), "", "x"}});
     cmd.redo();
-    EXPECT_FALSE(listener.suppressedDuringSet);
+    EXPECT_EQ(listener.setCount, 0);
 }
 
 TEST(CSVEditCommand, Text)

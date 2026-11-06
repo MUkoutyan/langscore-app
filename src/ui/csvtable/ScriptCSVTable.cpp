@@ -59,7 +59,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
     , fixedWidthCheck(new QCheckBox(tr("Fixed cell width"), this))
     , fixedWidthSpinBox(new QSpinBox(this))
     , filterEdit(new QLineEdit(this))
-    , csvEditor(new CSVEditor(this->loadFileManager, this, this))
+    , csvEditor(new CSVEditor(this, this))
     , currentModel(nullptr)
     , _proxyModel(nullptr)
     , showAllAction(nullptr)
@@ -471,7 +471,7 @@ void ScriptCSVTable::onScriptTableSelectRow(const QString& scriptFileName)
 {
     const auto prox = firstVisibleRowOfScript(scriptFileName);
     if(prox.isValid() == false || csvEditor->selectionModel() == nullptr) { return; }
-    csvEditor->selectionModel()->select(prox, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    csvEditor->selectionModel()->setCurrentIndex(prox, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
 }
 
 void ScriptCSVTable::selectRowByOriginal(const QString& scriptFileName, const QString& original)
@@ -484,7 +484,7 @@ void ScriptCSVTable::selectRowByOriginal(const QString& scriptFileName, const QS
         const auto prox = _proxyModel->mapFromSource(currentModel->index(r, Columns::OriginalText));
         if(prox.isValid() == false) { return; }
         csvEditor->scrollTo(prox, QAbstractItemView::PositionAtCenter);
-        csvEditor->selectionModel()->select(prox, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        csvEditor->selectionModel()->setCurrentIndex(prox, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
         return;
     }
 }

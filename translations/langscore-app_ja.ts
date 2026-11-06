@@ -47,130 +47,165 @@
 <context>
     <name>CSVEditor</name>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="94"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="155"/>
         <source>Cut</source>
         <translation>切り取り</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="98"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="159"/>
         <source>Copy</source>
         <translation>コピー</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="102"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="850"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="890"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="163"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="915"/>
         <source>Paste</source>
         <translation>貼り付け</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="106"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="167"/>
         <source>Delete</source>
         <translation>削除</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="110"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="171"/>
         <source>Select All</source>
         <translation>全てを選択</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="115"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="181"/>
         <source>Translation Settings...</source>
         <translation>翻訳設定...</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="118"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="196"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="184"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="262"/>
         <source>Translate Selected Cells</source>
         <translation>選択したセルを翻訳</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="121"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="187"/>
         <source>Retranslate Selected Cells (Overwrite)</source>
         <translation>選択したセルを翻訳し直す（上書き）</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="125"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="191"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="126"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="192"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="129"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="233"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="195"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="299"/>
         <source>Hide Language Columns...</source>
         <translation>言語列を非表示...</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="893"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="588"/>
+        <source>[%1] Row %2 (%3): %4</source>
+        <translation>[%1] %2行目 (%3): %4</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="595"/>
+        <source>Error</source>
+        <translation>エラー</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="595"/>
+        <source>Unknown error</source>
+        <translation>不明なエラー</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="599"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="603"/>
+        <source>Warning</source>
+        <translation>警告</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="599"/>
+        <source>The translation result was empty.</source>
+        <translation>翻訳結果が空でした。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="603"/>
+        <source>The table was changed during translation, so the result was not applied.</source>
+        <translation>翻訳中に表が切り替わったため、結果を反映できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="702"/>
+        <source>The change was undone or redone in cells that are not displayed.</source>
+        <translation>表示していないセルを変更しました。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="918"/>
         <source>Some of the pasted cells were outside the table and were not pasted.</source>
         <translation>表の範囲外になったため、一部のセルは貼り付けられませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="132"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="198"/>
         <source>Show All Columns</source>
         <translation>全ての列を表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="170"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="338"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="344"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="355"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="362"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="431"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="236"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="404"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="410"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="421"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="428"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="497"/>
         <source>Translation</source>
         <translation>翻訳</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="178"/>
         <location filename="../src/ui/editor/CSVEditor.cpp" line="244"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="310"/>
         <source>Column Visibility</source>
         <translation>列を表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="198"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="264"/>
         <source>Translate Selected Cells (Set up translation service first)</source>
         <translation>選択したセルを翻訳（先に翻訳サービスを設定してください）</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="201"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="267"/>
         <source>Translate %1 Empty Cell(s)</source>
         <translation>%1個の空のセルを翻訳</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="230"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="296"/>
         <source>Hide Language Columns (%1)</source>
         <translation>言語列を非表示(%1)</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="244"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="310"/>
         <source>No recognizable language columns found.</source>
         <translation>認識可能な言語の列が見つかりませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="338"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="355"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="404"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="421"/>
         <source>Translation is in progress.</source>
         <translation>翻訳中です.</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="363"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="429"/>
         <source>The existing translations of %1 cell(s) will be overwritten.
 Do you want to continue?</source>
         <translation>%1 個のセルの翻訳を上書きします。
 続けますか？</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="374"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="440"/>
         <source>Could not find &apos;Original&apos; column for source text.(no use api)</source>
         <translation>ソーステキストの「original」列が見つかりませんでした。（APIは使用しませんでした）</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="423"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="489"/>
         <source>No valid translation requests could be prepared.(no use api)</source>
         <translation>有効な翻訳リクエストを準備できませんでした。（APIは使用しませんでした）</translation>
     </message>
@@ -183,45 +218,39 @@ Do you want to continue?</source>
         <translation type="vanished">種類</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="345"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="411"/>
         <source>No empty cells selected for translation.</source>
         <translation>翻訳対象として選択された空のセルはありません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="373"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="422"/>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="551"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="439"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="488"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="634"/>
         <source>Translation Error</source>
         <translation>翻訳エラー</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="431"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="497"/>
         <source>There are cells where the source language and the target language are the same.
 Do you want to continue?</source>
         <translation>ソース言語とターゲット言語が同じであるセルが存在します。
 続行しますか？</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="536"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="616"/>
         <source>Translate Cells</source>
         <translation>翻訳セル</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="744"/>
         <source>SaveCSVFile</source>
-        <translation>CSVファイルを保存</translation>
-    </message>
-    <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="745"/>
-        <source>CSV Files (*.csv)</source>
-        <translation></translation>
+        <translation type="vanished">CSVファイルを保存</translation>
     </message>
     <message>
         <source>Original</source>
         <translation type="vanished">原文</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditor.cpp" line="786"/>
+        <location filename="../src/ui/editor/CSVEditor.cpp" line="820"/>
         <source>Clear Cells</source>
         <translation>セルをクリア</translation>
     </message>
@@ -335,11 +364,34 @@ No need to enter &quot;\&quot;</source>
     </message>
 </context>
 <context>
+    <name>EditKeySettingsDialog</name>
+    <message>
+        <location filename="../src/ui/dialog/EditKeySettingsDialog.cpp" line="13"/>
+        <location filename="../src/ui/dialog/EditKeySettingsDialog.cpp" line="36"/>
+        <location filename="../src/ui/dialog/EditKeySettingsDialog.cpp" line="41"/>
+        <source>Cell Editing Keys</source>
+        <translation>セルの編集のキー</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/EditKeySettingsDialog.cpp" line="36"/>
+        <source>Please assign a key to &quot;%1&quot;.</source>
+        <translation>「%1」にキーを割り当ててください。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialog/EditKeySettingsDialog.cpp" line="41"/>
+        <source>The same key is assigned to the following actions.</source>
+        <translation>次の動作に同じキーが割り当てられています。</translation>
+    </message>
+    <message>
+        <source>Click a field and press the key to assign. The change applies from the next cell you edit.</source>
+        <translation type="vanished">欄をクリックして、割り当てるキーを押してください。変更は次に編集するセルから使われます。</translation>
+    </message>
+</context>
+<context>
     <name>EditorWidgetWrapper</name>
     <message>
-        <location filename="../src/ui/editor/MultiLineEditDelegate.cpp" line="43"/>
         <source>Ctrl+Enter: Confirm  Shift+Enter: Confirm and move down  Tab: Confirm and move right  Esc: Cancel</source>
-        <translation>Ctrl+Enter: 確定  Shift+Enter: 確定して下へ  Tab: 確定して右へ  Esc: 取り消し</translation>
+        <translation type="vanished">Ctrl+Enter: 確定  Shift+Enter: 確定して下へ  Tab: 確定して右へ  Esc: 取り消し</translation>
     </message>
 </context>
 <context>
@@ -535,118 +587,123 @@ No need to enter &quot;\&quot;</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="86"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="87"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="87"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="88"/>
         <source>Open Game Project...</source>
         <translation>ゲームプロジェクトを開く...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="88"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="89"/>
         <source>Save Langscore Project...</source>
         <translation>Langscoreプロジェクトを保存...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="89"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="90"/>
         <source>Recent Project</source>
         <translation>最近開いたプロジェクト</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="92"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="93"/>
         <source>Quit</source>
         <translation>終了</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="98"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="99"/>
         <source>Open Game Project Folder...</source>
         <translation>ゲームプロジェクトのフォルダを開く...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="108"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="109"/>
         <source>Edit</source>
         <translation>編集</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="109"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="110"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="112"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="113"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="116"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="117"/>
         <source>Show Undo View...</source>
         <translation>操作履歴を表示...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="118"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="119"/>
         <source>Validation all file...</source>
         <translation>全てのファイルを検証...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="123"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="124"/>
         <source>Import Translation CSV...</source>
         <translation>翻訳CSVの取り込み...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="135"/>
-        <location filename="../src/ui/FormTaskBar.cpp" line="141"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="136"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="142"/>
         <source>System</source>
         <translation>システム</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="136"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="137"/>
         <source>Theme</source>
         <translation>テーマ</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="137"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="138"/>
         <source>Light</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="139"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="140"/>
         <source>Dark</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="154"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="155"/>
         <source>Translation API Settings...</source>
         <translation>翻訳API設定...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="168"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="158"/>
+        <source>Cell Editing Keys...</source>
+        <translation>セルの編集のキー...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/FormTaskBar.cpp" line="174"/>
         <source>Color</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="176"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="182"/>
         <source>Help</source>
         <translation>ヘルプ</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="178"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="184"/>
         <source>Manual... (Web site)</source>
         <translation>マニュアル...(Webサイト)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="184"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="190"/>
         <source>History... (Web site)</source>
         <translation>更新履歴...(Webサイト)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="190"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="196"/>
         <source>Version : </source>
         <translation>バージョン : </translation>
     </message>
     <message>
-        <location filename="../src/ui/FormTaskBar.cpp" line="239"/>
+        <location filename="../src/ui/FormTaskBar.cpp" line="245"/>
         <source>Not Found Directory. Delete this item from the history at the end of the project.</source>
         <translation>ディレクトリが見つかりません。プロジェクト終了時に履歴からこの項目を削除します。</translation>
     </message>
@@ -973,7 +1030,7 @@ No need to enter &quot;\&quot;</source>
         <translation type="obsolete">原文</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="824"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="830"/>
         <source>Type</source>
         <translation>種類</translation>
     </message>
@@ -993,7 +1050,7 @@ No need to enter &quot;\&quot;</source>
         <translation>検証結果を表示</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="189"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="194"/>
         <source>Display settings</source>
         <translation>表示設定</translation>
     </message>
@@ -1018,122 +1075,126 @@ No need to enter &quot;\&quot;</source>
     </message>
     <message>
         <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="52"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="461"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="508"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="467"/>
         <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="514"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="520"/>
         <source>Old Translations</source>
         <translation>古い翻訳</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="134"/>
+        <source>Cell Editing Keys...</source>
+        <translation type="vanished">セルの編集のキー...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="139"/>
         <source>F8: Next error  Shift+F8: Previous error</source>
         <translation>F8: 次のエラー  Shift+F8: 前のエラー</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="139"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="144"/>
         <source>Search</source>
         <translation>検索</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="184"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="189"/>
         <source>Translations of text whose original was changed or deleted in the game. They are not exported.</source>
         <translation>ゲームで原文が変わった・消えた文章の翻訳です。書き出しはされません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="336"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="342"/>
         <source>There are unsaved changes.</source>
         <translation>保存していない変更があります。</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="348"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="354"/>
         <source>Translated: %1 / %2 (%3%)</source>
         <translation>翻訳済み: %1 / %2 行（%3%）</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="476"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="482"/>
         <source>There are no old translations in this file.</source>
         <translation>このファイルに古い翻訳はありません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="479"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="485"/>
         <source>Translations of text whose original was changed or deleted in the game. They are kept in the editing folder but are not exported.</source>
         <translation>ゲームで原文が変わった・消えた文章の翻訳です。editing フォルダに残しますが、書き出しはされません。</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="492"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="498"/>
         <source>Delete Selected</source>
         <translation>選んだ翻訳を削除</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="493"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="499"/>
         <source>Delete All in This File</source>
         <translation>このファイルの古い翻訳をすべて削除</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="494"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="500"/>
         <source>Delete All Old Translations</source>
         <translation>すべての古い翻訳を削除</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="495"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="501"/>
         <source>Deletes the old translations of all files.</source>
         <translation>すべてのファイルの古い翻訳を削除します。</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="508"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="514"/>
         <source>Delete all old translations in this file?</source>
         <translation>このファイルの古い翻訳をすべて削除しますか？</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="514"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="520"/>
         <source>Delete the old translations of all files?</source>
         <translation>すべてのファイルの古い翻訳を削除しますか？</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="727"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="733"/>
         <source>[Error] </source>
         <translation>[エラー] </translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="730"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="736"/>
         <source>[Warning] </source>
         <translation>[警告] </translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="824"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="830"/>
         <source>Row</source>
         <translation>行</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="824"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="830"/>
         <source>Language</source>
         <translation>言語</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="824"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="830"/>
         <source>Description</source>
         <translation>内容</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="891"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="897"/>
         <source>File</source>
         <translation>ファイル</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="950"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="969"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="956"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="975"/>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="971"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="958"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="977"/>
         <source>Change Table State : Row %1</source>
         <translation>テーブルの状態を変更 : 行 %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="956"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="975"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="962"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="981"/>
         <source>Change Table State</source>
         <translation>テーブルの状態を変更</translation>
     </message>
@@ -1514,7 +1575,7 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="vanished">文章の表示長</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditCommand.h" line="25"/>
+        <location filename="../src/ui/editor/CSVEditCommand.h" line="24"/>
         <source>Edit Cells</source>
         <translation>セルを編集</translation>
     </message>
@@ -1581,6 +1642,31 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <source>Change Table State : %1</source>
         <translation>テーブルの状態を変更 : %1</translation>
     </message>
+    <message>
+        <location filename="../src/ui/editor/MultiLineEditDelegate.cpp" line="322"/>
+        <source>Confirm</source>
+        <translation>確定</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/MultiLineEditDelegate.cpp" line="323"/>
+        <source>Confirm and move down</source>
+        <translation>確定して下へ移動</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/MultiLineEditDelegate.cpp" line="324"/>
+        <source>Confirm and move right</source>
+        <translation>確定して右へ移動</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/MultiLineEditDelegate.cpp" line="325"/>
+        <source>New line</source>
+        <translation>改行</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/editor/MultiLineEditDelegate.cpp" line="326"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
 </context>
 <context>
     <name>ScriptCSVTable</name>
@@ -1608,6 +1694,10 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="58"/>
         <source>Apply language font</source>
         <translation>言語のフォントを使う</translation>
+    </message>
+    <message>
+        <source>Cell Editing Keys...</source>
+        <translation type="vanished">セルの編集のキー...</translation>
     </message>
     <message>
         <location filename="../src/ui/csvtable/ScriptCSVTable.cpp" line="129"/>
@@ -1674,7 +1764,7 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
 <context>
     <name>ScriptCSVTableModel</name>
     <message>
-        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="524"/>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="521"/>
         <source>Original</source>
         <translation>原文</translation>
     </message>
@@ -1683,22 +1773,22 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation type="vanished">種類</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="118"/>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="119"/>
         <source>Parameter</source>
         <translation>パラメータ</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="522"/>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="519"/>
         <source>Include</source>
         <translation>有効</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="523"/>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="520"/>
         <source>Script Name</source>
         <translation>スクリプト名</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="520"/>
+        <location filename="../src/ui/editor/ScriptCSVTableModel.cpp" line="517"/>
         <source>Text Point</source>
         <translation>位置</translation>
     </message>
@@ -1870,9 +1960,9 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation>翻訳の準備をしています...</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.ui" line="81"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="36"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="89"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.ui" line="94"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="38"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="103"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
@@ -1882,45 +1972,50 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation>翻訳を始めています...</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="44"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="46"/>
         <source>Translating... %1 of %2 completed</source>
         <translation>翻訳中... %2件中 %1件完了</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="62"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="67"/>
         <source>Translating: %1</source>
         <translation>翻訳中: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="67"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="72"/>
         <source>Translation error: %1</source>
         <translation>翻訳のエラー: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="69"/>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="83"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="74"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="88"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="109"/>
         <source>Close</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="75"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="80"/>
         <source>Translation completed successfully! %1 texts translated.</source>
         <translation>翻訳が終わりました。%1件を翻訳しました。</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="78"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="83"/>
         <source>Translation completed with errors. %1 of %2 texts translated successfully.</source>
         <translation>翻訳が終わりましたが、失敗したものがあります。%2件中 %1件を翻訳しました。</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="79"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="84"/>
         <source>Error: %1</source>
         <translation>エラー: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="92"/>
+        <location filename="../src/ui/dialog/TranslationProgressDialog.cpp" line="108"/>
+        <source>Translation cancelled.</source>
+        <translation>翻訳を中止しました。</translation>
+    </message>
+    <message>
         <source>Cancelling translation...</source>
-        <translation>翻訳を中止しています...</translation>
+        <translation type="vanished">翻訳を中止しています...</translation>
     </message>
 </context>
 <context>
@@ -2068,28 +2163,24 @@ may be the cause.(csv:%2 line, text:%3 line)</source>
         <translation>新しい内容で上書き(既存の内容は消されます)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="227"/>
         <source>If you check this box, the same content as the original column will be reflected in the default language as well.</source>
         <extracomment>チェックを付けた場合、オリジナル列と同じ内容がデフォルト言語にも反映されます。</extracomment>
-        <translation>チェックを入れると、原文の列と同じ内容をデフォルト言語にも反映します。</translation>
+        <translation type="vanished">チェックを入れると、原文の列と同じ内容をデフォルト言語にも反映します。</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="230"/>
         <source>Fill in the column for the default language.</source>
-        <translation>デフォルト言語の列を埋める</translation>
+        <translation type="vanished">デフォルト言語の列を埋める</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="237"/>
         <source>If checked, newly added text will be appended to the end.
 If unchecked, the order will depend on the event sequence.</source>
         <extracomment>チェックを付けた場合、新しく追加された文章は末尾に追加されます。 チェックを付けない場合、イベント順に依存します。</extracomment>
-        <translation>チェックを入れると、新しく追加された文章を末尾に追加します。
+        <translation type="vanished">チェックを入れると、新しく追加された文章を末尾に追加します。
 チェックを外すと、イベントの順番に従って並びます。</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.ui" line="241"/>
         <source>Add new text to the end</source>
-        <translation>新しい文章を末尾に追加</translation>
+        <translation type="vanished">新しい文章を末尾に追加</translation>
     </message>
     <message>
         <location filename="../src/ui/dialog/WriteDialog.cpp" line="21"/>
@@ -2110,7 +2201,7 @@ If unchecked, the order will depend on the event sequence.</source>
         <translation>出力先ディレクトリを選択</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.cpp" line="118"/>
+        <location filename="../src/ui/dialog/WriteDialog.cpp" line="106"/>
         <source>The path must be a directory!</source>
         <translation>パスはディレクトリである必要があります！</translation>
     </message>
@@ -2209,7 +2300,7 @@ Unchecked text and images are excluded from translation.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="303"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="503"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="541"/>
         <source>Write Translate CSV</source>
         <translation>翻訳CSVの書き出し</translation>
     </message>
@@ -2271,56 +2362,68 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation>失敗しました。ログを確認してください。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="162"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="157"/>
+        <source>Packing failed. The CSV files have been exported, but the game may still use the previous translations.
+Fix the cause and run &quot;Write Translate CSV&quot; again.</source>
+        <translation>パッキングに失敗しました。CSVは書き出されていますが、ゲームでは以前の翻訳が使われる場合があります。
+原因を取り除いてから「翻訳CSVの書き出し」をもう一度実行してください。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="170"/>
         <source> Complete.</source>
         <translation> 完了。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="360"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="186"/>
+        <source>Removed %1 packed CSV files.</source>
+        <translation>パッキング済みのCSVを %1 個削除しました。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="379"/>
         <source>Update Plugin...
 </source>
         <translation>プラグインを更新...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="446"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="484"/>
         <source>Write Translate Files(First)...
 </source>
         <translation>翻訳ファイルの書き出し(初回)...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="499"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="537"/>
         <source>To export CSV, please select a language</source>
         <translation>CSVを書き出すには言語を選択して下さい</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="542"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="580"/>
         <source>Applied the edited translations to %1 files.</source>
         <translation>編集した翻訳を %1 個のファイルに反映しました。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="287"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="298"/>
         <source>Imported %1 translations.</source>
         <translation>%1 個の翻訳を取り込みました。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="289"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="300"/>
         <source>Save the project to keep the imported translations.</source>
         <translation>取り込んだ翻訳を残すには、プロジェクトを保存して下さい。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="292"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="303"/>
         <source>The following files were skipped because no matching file was found in the project:</source>
         <translation>次のファイルは、プロジェクトに同じ名前のファイルが無いため取り込みませんでした：</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="577"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="617"/>
         <source>Overwrite read-only files</source>
         <translation>読み取り専用ファイルの上書き</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="578"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="618"/>
         <source>The following files are read-only. Do you want to overwrite them?</source>
         <translation>次のファイルは読み取り専用です。上書きしますか？</translation>
     </message>
@@ -2353,14 +2456,14 @@ Note:The translation file will not be changed until it is exported.</source>
         <translation type="vanished">スクリプトテーブルのチェックを変更</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="401"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="438"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
 </translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="155"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="163"/>
         <source>Done.</source>
         <translation>完了。</translation>
     </message>
@@ -2396,67 +2499,67 @@ Note:The translation file will not be changed until it is exported.</source>
 <context>
     <name>langscore::CSVEditorTableModel</name>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="268"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="278"/>
         <source>[Error] </source>
         <translation>[エラー] </translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="268"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="278"/>
         <source>[Warning] </source>
         <translation>[警告] </translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="281"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="291"/>
         <source>Characters: %1 (Original: %2)</source>
         <translation>文字数: %1（原文: %2）</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="311"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="321"/>
         <source>name</source>
         <translation>名前</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="312"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="322"/>
         <source>description</source>
         <translation>説明文</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="313"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="323"/>
         <source>messageWithIcon</source>
         <translation>アイコン付き文章</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="314"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="324"/>
         <source>battleName</source>
         <translation>名前(バトル)</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="315"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="325"/>
         <source>battleMessage</source>
         <translation>バトルメッセージ</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="316"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="326"/>
         <source>message</source>
         <translation>文章</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="317"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="327"/>
         <source>note</source>
         <translation>メモ</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="318"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="328"/>
         <source>other</source>
         <translation>その他</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="395"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="417"/>
         <source>Original</source>
         <translation>原文</translation>
     </message>
     <message>
-        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="398"/>
+        <location filename="../src/ui/editor/CSVEditorTableModel.cpp" line="420"/>
         <source>Type</source>
         <translation>種類</translation>
     </message>

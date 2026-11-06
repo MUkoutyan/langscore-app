@@ -168,8 +168,6 @@ void settings::load(QString path)
     writeObj.exportByLanguage           = write[key(JsonKey::ExportByLang)].toBool(false);
     writeObj.enableLanguagePatch        = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
     writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
-    writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(true);
-    writeObj.enableAddNewTextToEnd      = write[key(JsonKey::AddNewContentToEnd)].toBool(true);
     writeObj.overwriteLangscore         = write[key(JsonKey::OverwriteLangscore)].toBool(false);
     writeObj.overwriteLangscoreCustom   = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
     writeObj.writeMode                  = write[key(JsonKey::WriteType)].toInt(-1);
@@ -241,8 +239,6 @@ QJsonObject serializeWrite(const settings* s) {
     write[key(JsonKey::OverwriteLangscoreCustom)]   = s->writeObj.overwriteLangscoreCustom;
     write[key(JsonKey::EnableLanguagePatch)]        = s->writeObj.enableLanguagePatch;
     write[key(JsonKey::EnableTranslationDefLang)]   = s->writeObj.enableTranslateDefLang;
-    write[key(JsonKey::FillDefaultLanguageColumn)]  = s->writeObj.enableFillDefaultLanguage;
-    write[key(JsonKey::AddNewContentToEnd)]         = s->writeObj.enableAddNewTextToEnd;
     write[key(JsonKey::WriteType)]                  = s->writeObj.writeMode;
     write[key(JsonKey::RPGMakerBasicData)]          = serializeBasicDataList(s->writeObj);
     write[key(JsonKey::IsFirstExported)]            = s->isFirstExported;

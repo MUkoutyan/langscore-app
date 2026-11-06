@@ -98,9 +98,6 @@ namespace
                     const auto& edited = editing.at(editingRow.value(), language);
                     if(overwriteAll || edited.isEmpty() == false) { text = edited; }
                 }
-                if(text.isEmpty() && setting.writeObj.enableFillDefaultLanguage && language == setting.defaultLanguage) {
-                    text = original;
-                }
                 fields[column] = csvFormat.escapeCSVField(ToGameLineBreak(text, original, isVXAce));
             }
         }
@@ -125,6 +122,36 @@ QString ToGameLineBreak(QString text, const QString& original, bool isVXAce)
     const bool useCrLf = original.contains("\r\n") || (original.contains('\n') == false && isVXAce);
     if(useCrLf) { text.replace("\n", "\r\n"); }
     return text;
+}
+
+QStringList RemovePackedCsvFiles(const settings& setting)
+{
+    const QDir langscoreProjectDir(setting.langscoreProjectDirectory);
+    const auto exportRoot = QDir::cleanPath(langscoreProjectDir.absoluteFilePath(setting.writeObj.exportDirectory));
+    const auto packedRoot = setting.gameProjectPath + "/Data/Translate";
+
+    //{書き出したCSVのフォルダ, パッキングの出力先}。divisi の packingVXAce と同じ組み合わせ
+    QList<std::pair<QString, QString>> folderPairs;
+    if(setting.writeObj.enableLanguagePatch) {
+        for(const auto& language : setting.languages) {
+            if(language.enable == false) { continue; }
+            folderPairs.append({exportRoot + "/" + language.languageName, packedRoot + "/" + language.languageName});
+        }
+    }
+    else {
+        folderPairs.append({exportRoot, packedRoot});
+    }
+
+    QStringList removedFiles;
+    for(const auto& [csvFolder, packedFolder] : folderPairs)
+    {
+        for(const auto& csv : QDir(csvFolder).entryInfoList({"*.csv"}, QDir::Files))
+        {
+            if(QFile::exists(packedFolder + "/" + csv.completeBaseName() + ".rvdata2") == false) { continue; }
+            if(QFile::remove(csv.absoluteFilePath())) { removedFiles.append(csv.absoluteFilePath()); }
+        }
+    }
+    return removedFiles;
 }
 
 QStringList ApplyEditingTranslations(const settings& setting)

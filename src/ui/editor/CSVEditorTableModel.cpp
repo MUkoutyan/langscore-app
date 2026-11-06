@@ -30,6 +30,7 @@ bool CSVEditorTableModel::loadFromEditCSVFile(const QString& csv_path)
 {
     beginResetModel();
     bool success = csvContainer.loadFromFile(csv_path);
+    forgetSavedValues();
     endResetModel();
     if(success) {
         currentShowFileName = langscore::getFileNameWithoutExtension(csv_path);
@@ -92,6 +93,7 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
     // FastCSVContainerにデータを読み込み
     bool success = csvContainer.loadFromCsvData(csvData);
 
+    forgetSavedValues();
     endResetModel();
     return success;
 }
@@ -100,6 +102,8 @@ bool CSVEditorTableModel::saveToFile(const QString& path)
 {
     const bool success = csvContainer.saveToFile(path);
     if(success) {
+        _savedValues.clear();
+        _modifiedWithoutRecord = false;
         setModified(false);
     }
     return success;
@@ -110,6 +114,12 @@ void CSVEditorTableModel::setModified(bool modified)
     if(_modified == modified) { return; }
     _modified = modified;
     emit modifiedChanged(modified);
+}
+
+void CSVEditorTableModel::forgetSavedValues()
+{
+    if(_savedValues.isEmpty() == false) { _modifiedWithoutRecord = true; }
+    _savedValues.clear();
 }
 
 void CSVEditorTableModel::clearEditedSinceValidation()
@@ -344,11 +354,23 @@ bool CSVEditorTableModel::setData(const QModelIndex& index, const QVariant& valu
 
     int row = index.row();
     int col = index.column();
+    const auto newValue = value.toString();
+    QString oldValue;
+    csvContainer.getValue(static_cast<size_t>(row), static_cast<size_t>(col), oldValue);
 
-    if(csvContainer.setValue(static_cast<size_t>(row), static_cast<size_t>(col), value.toString()))
+    if(csvContainer.setValue(static_cast<size_t>(row), static_cast<size_t>(col), newValue))
     {
         _editedSinceValidation.insert({row, col});
-        setModified(true);
+        //保存したときの値に戻ったセルは、変更なしとして扱う
+        const auto key = std::pair(row, col);
+        const auto saved = _savedValues.constFind(key);
+        if(saved == _savedValues.cend()) {
+            if(oldValue != newValue) { _savedValues.insert(key, oldValue); }
+        }
+        else if(saved.value() == newValue) {
+            _savedValues.erase(saved);
+        }
+        setModified(_modifiedWithoutRecord || _savedValues.isEmpty() == false);
         emit dataChanged(index, index);
         return true;
     }
@@ -457,6 +479,7 @@ void CSVEditorTableModel::insertColumn(size_t index, const QString& columnName)
 {
     beginResetModel();
     csvContainer.insertColumn(index, columnName, "");
+    forgetSavedValues();
     endResetModel();
 }
 
@@ -468,6 +491,7 @@ void CSVEditorTableModel::removeColumn(int column)
 
     beginResetModel();
     csvContainer.removeColumn(static_cast<size_t>(column));
+    forgetSavedValues();
     endResetModel();
 }
 
@@ -520,6 +544,7 @@ bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
             csvContainer[row][column] = saved[savedRow.value()][static_cast<size_t>(savedColumn)];
         }
     }
+    forgetSavedValues();
     endResetModel();
     return true;
 }

@@ -145,8 +145,6 @@ public:
         bool overwriteLangscoreCustom = false;
         bool enableTranslateDefLang = true;
         bool enableLanguagePatch = false;
-        bool enableFillDefaultLanguage = true;
-        bool enableAddNewTextToEnd = false;
         std::vector<BasicData> basicDataInfo;
         std::vector<MapInfo> mapDataInfo;
         std::vector<ScriptInfo> scriptInfo;

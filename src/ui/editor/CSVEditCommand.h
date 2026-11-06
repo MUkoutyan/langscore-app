@@ -8,13 +8,12 @@ struct CSVEditCommand : public QUndoCommand
         virtual void setData(QModelIndex index, QVariant value, int role) = 0;
         //編集を反映した後に呼ぶ。変更したセルを表示するために使う
         virtual void cellEditsApplied(const QModelIndex& firstIndex) { Q_UNUSED(firstIndex); }
-        bool _suppressUndoTracking = false;
-        bool _isModified = false;
     };
 
     struct CellEdit {
         //並べ替え・絞り込みで行が移動しても同じセルを指すよう、永続インデックスで保持する。
-        //表示ファイルの切り替えなどでモデルが変わった場合は無効になり、Undo/Redo の対象外になる。
+        //CSVEditor は表示用の proxy ではなく元のモデルのセルを入れるため、ファイルの切り替えや列を隠した後も有効のまま。
+        //モデルの作り直し（言語の列の追加など）で無効になった場合は、Undo/Redo の対象外になる。
         QPersistentModelIndex index;
         QVariant oldValue;
         QVariant newValue;
@@ -32,5 +31,6 @@ struct CSVEditCommand : public QUndoCommand
 private:
     CellEditsListener* parent;
     QList<CellEdit> edits;
+    bool notifyApplied = false;
     void applyCellEdits(bool isUndo);
 };

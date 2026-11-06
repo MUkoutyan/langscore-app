@@ -78,10 +78,10 @@ TEST(ValidationServiceTest, ValidateAllChecksEditingFolder)
     QDir().mkpath(editingFolder);
     QDir().mkpath(analyzeFolder);
     for(const auto& name : {"Actors", "Items", "Deleted"}) {
-        QFile(editingFolder + "/" + name + ".csv").open(QFile::WriteOnly);
+        ASSERT_TRUE(QFile(editingFolder + "/" + name + ".csv").open(QFile::WriteOnly));
     }
     for(const auto& name : {"Actors", "Items"}) {
-        QFile(analyzeFolder + "/" + name + ".lsjson").open(QFile::WriteOnly);
+        ASSERT_TRUE(QFile(analyzeFolder + "/" + name + ".lsjson").open(QFile::WriteOnly));
     }
     component.setting->fetchBasicDataInfo("Actors");
     component.setting->fetchBasicDataInfo("Items").ignore = true;

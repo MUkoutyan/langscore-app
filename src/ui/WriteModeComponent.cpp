@@ -149,6 +149,14 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             //失敗した処理を完了扱いにしない（初回書き出し済みフラグの保存なども行わない）
             this->ui->logText->insertPlainText(tr("Failed."));
             this->dispatch(StatusMessage, {tr("Failed. Please check the log."), 5000});
+            //パッキングの前に CSV とプラグインの書き出しは終わっているため、書き出し済みとして扱う。
+            //パッキングは「翻訳CSVを書き出し」でやり直せる
+            if(invokeType == InvokeType::PackingAfterExport) {
+                //パッキングに失敗しました。CSVは書き出されていますが、ゲームでは以前の翻訳が使われる場合があります。
+                //原因を取り除いてから「翻訳CSVを書き出し」をもう一度実行してください。
+                this->ui->logText->writeText("\n" + tr("Packing failed. The CSV files have been exported, but the game may still use the previous translations.\nFix the cause and run \"Write Translate CSV\" again.") + "\n");
+                this->finishExport(false);
+            }
             invokeType = InvokeType::None;
             return;
         }
@@ -173,6 +181,9 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             this->finishExport();
         }
         else if(invokeType == InvokeType::PackingAfterExport){
+            //ゲームは .rvdata2 を読むため、パッキング済みのCSVは残さない
+            const auto removedFiles = langscore::RemovePackedCsvFiles(*this->setting);
+            this->ui->logText->writeText("\n" + tr("Removed %1 packed CSV files.").arg(removedFiles.size()) + "\n");
             this->finishExport();
         }
         invokeType = InvokeType::None;
@@ -331,17 +342,25 @@ void WriteModeComponent::exportPlugin()
     //this->setGraphicsEffect(new QGraphicsBlurEffect);
     this->changeEnabledUIState(false);
 
+    //ダイアログはチェックのたびに設定を書き換えるため、中止したときに戻せるよう控えておく
+    const auto prevWriteObj = this->setting->writeObj;
     UpdatePluginDialog dialog(this->setting, this);
 
     auto execCode = dialog.exec();
     this->dispatch(DisableBlur, {});
     //this->setGraphicsEffect(nullptr);
     if(execCode == QDialog::Rejected){
+        this->setting->writeObj = prevWriteObj;
         this->changeEnabledUIState(true);
         return;
     }
 
+    //パッチモードを切り替えるとCSVの置き場所が変わるため、CSVも書き出し直す
+    const bool patchModeChanged = prevWriteObj.enableLanguagePatch != dialog.isEnableLanguagePatch();
+    if(patchModeChanged) { this->setting->writeObj.overwriteLangscore = true; }
+
     if(this->confirmOverwriteReadOnlyPlugins() == false) {
+        this->setting->writeObj = prevWriteObj;
         this->changeEnabledUIState(true);
         return;
     }
@@ -360,6 +379,12 @@ void WriteModeComponent::exportPlugin()
     this->ui->logText->insertPlainText(tr("Update Plugin...\n"));
 
     this->dispatch(SaveProject,{});
+    if(patchModeChanged) {
+        //CSV の書き出し後は通常の書き出しと同じく、編集内容の反映とパッキングを行う
+        _invoker->exportFirstTime();
+        invokeType = InvokeType::ExportCSV;
+        return;
+    }
     _invoker->updatePlugin();
     invokeType = InvokeType::UpdatePlugin;
 }
@@ -383,13 +408,25 @@ void WriteModeComponent::exportTranslateFiles()
         return;
     }
 
+    //パッチモードを切り替えると、プラグインも更新しないとゲームが新しい置き場所のCSVを読まない。
+    //VXAce のパッチモードの設定は langscore.rb に書き込まれるため、langscore.rb を上書きする
+    const bool patchModeChanged = this->setting->writeObj.enableLanguagePatch != dialog.writeByLanguagePatch();
+    if(patchModeChanged)
+    {
+        const bool prevOverwriteLangscore = this->setting->writeObj.overwriteLangscore;
+        this->setting->writeObj.overwriteLangscore = true;
+        if(this->confirmOverwriteReadOnlyPlugins() == false) {
+            this->setting->writeObj.overwriteLangscore = prevOverwriteLangscore;
+            this->changeEnabledUIState(true);
+            return;
+        }
+    }
+
     QDir lsProjDir(this->setting->langscoreProjectDirectory);
     lastWritePath = dialog.outputPath();
     auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
     this->setting->writeObj.exportDirectory = relativePath;
     this->setting->writeObj.enableLanguagePatch = dialog.writeByLanguagePatch();
-    this->setting->writeObj.enableFillDefaultLanguage = dialog.fillDefaultLanguage();
-    this->setting->writeObj.enableAddNewTextToEnd = dialog.addNewTextToEnd();
     this->setting->writeObj.writeMode = dialog.writeMode();
     this->setting->setPackingDirectory(relativePath);
 
@@ -401,7 +438,8 @@ void WriteModeComponent::exportTranslateFiles()
     this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
 
     this->dispatch(SaveProject,{});
-    _invoker->exportCSV();
+    if(patchModeChanged) { _invoker->exportFirstTime(); }
+    else { _invoker->exportCSV(); }
     invokeType = InvokeType::ExportCSV;
 
 }
@@ -542,9 +580,11 @@ void WriteModeComponent::applyEditingTranslationsToExport()
     this->ui->logText->writeText("\n" + tr("Applied the edited translations to %1 files.").arg(updatedFiles.size()) + "\n");
 }
 
-void WriteModeComponent::finishExport()
+void WriteModeComponent::finishExport(bool openExportFolder)
 {
-    QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
+    if(openExportFolder) {
+        QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
+    }
     this->setting->isFirstExported = true;
 
     this->ui->writeCSVAndPluginButton->setVisible(false);

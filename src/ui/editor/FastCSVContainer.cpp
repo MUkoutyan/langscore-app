@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <QFile>
+#include <QSaveFile>
 #include <QFileInfo>
 #include <QDir>
 #include <QTextStream>
@@ -61,18 +62,15 @@ bool FastCSVContainer::saveToFile(const CellData& filePath) const
         return false;
     }
 
-    // ファイルを開く
-    QFile file(filePath);
     //ディレクトリがなければ作成
-    if(file.exists() == false) {
-        QFileInfo fileInfo(file);
-        QDir dir = fileInfo.absoluteDir();
-        if(dir.exists() == false) {
-            dir.mkpath(".");
-        }
+    QDir dir = QFileInfo(filePath).absoluteDir();
+    if(dir.exists() == false) {
+        dir.mkpath(".");
     }
 
+    //一時ファイルに書いてから置き換える。途中で失敗しても元のファイルは残る
     //Text モードはセル内の \r\n を \r\r\n にしてしまうため、バイナリで書く
+    QSaveFile file(filePath);
     if(file.open(QIODevice::WriteOnly) == false) {
         return false;
     }
@@ -106,7 +104,13 @@ bool FastCSVContainer::saveToFile(const CellData& filePath) const
         stream << "\n";
     }
 
-    return stream.status() == QTextStream::Ok;
+    //書き残しを出し切ってから確認する。失敗した場合は commit せず、元のファイルを残す
+    stream.flush();
+    if(stream.status() != QTextStream::Ok) {
+        file.cancelWriting();
+        return false;
+    }
+    return file.commit();
 }
 
 FastCSVContainer::CellData FastCSVContainer::unescapeCSVField(const CellData& field) const

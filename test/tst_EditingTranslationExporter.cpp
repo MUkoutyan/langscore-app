@@ -50,7 +50,6 @@ namespace
         };
         setting.writeObj.exportDirectory = "Data/Translate";
         setting.writeObj.writeMode = 2;
-        setting.writeObj.enableFillDefaultLanguage = true;
         return setting;
     }
 
@@ -87,11 +86,11 @@ TEST(EditingTranslationExporter, KeepExistingWhenEditingIsEmpty)
     const auto updated = langscore::ApplyEditingTranslations(setting);
     ASSERT_EQ(updated.size(), 1);
 
-    //原文はそのまま、訳は原文と同じ \r\n、editing で空の訳は書き出し済みの訳を残す、既定言語の列は原文で埋める
+    //原文はそのまま、訳は原文と同じ \r\n、editing で空の訳は書き出し済みの訳を残す
     const QByteArray expected = Bom + Utf8(
         u"original,ja,en\n"
-        u"\"説明\r\n2行目\",\"説明\r\n2行目\",\"Line1\r\nLine2\"\n"
-        u"名前,名前,keep");
+        u"\"説明\r\n2行目\",,\"Line1\r\nLine2\"\n"
+        u"名前,,keep");
     EXPECT_EQ(ReadBytes(exportPath), expected);
 }
 
@@ -100,7 +99,6 @@ TEST(EditingTranslationExporter, OverwriteModeReplacesWithEditing)
     QTemporaryDir tempDir;
     auto setting = MakeSetting(tempDir.path());
     setting.writeObj.writeMode = 0;
-    setting.writeObj.enableFillDefaultLanguage = false;
     WriteBytes(tempDir.filePath("editing/Actors.csv"), EditingCsv);
     const auto exportPath = tempDir.filePath("Data/Translate/Actors.csv");
     WriteBytes(exportPath, ExportedCsv);
@@ -159,7 +157,6 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
     QTemporaryDir tempDir;
     auto setting = std::make_shared<settings>(MakeSetting(tempDir.path()));
     setting->projectType = settings::MZ;
-    setting->writeObj.enableFillDefaultLanguage = true;
     //同じ原文が2つのスクリプトにあっても、訳は1行にまとまる。A.js にはプラグインのパラメータもある
     for(const auto& fileName : {QString("A.js"), QString("B.js")})
     {
@@ -206,4 +203,38 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
     WriteBytes(exportPath, Bom + QString(u"original,ja,en\nA:1:2,Hello,\nA:Exit Command,外に出る,\nB:1:2,Hello,").toUtf8());
     langscore::ApplyEditingTranslations(*setting);
     EXPECT_EQ(QString::fromUtf8(ReadBytes(exportPath)), QString::fromUtf8(Bom) + QString(u"original,ja,en\nA:1:2,Hello,Translated\nA:Exit Command,外に出る,Go outside\nB:1:2,Hello,Translated"));
+}
+
+TEST(EditingTranslationExporter, RemovePackedCsvFiles)
+{
+    //パッキングできたCSVだけを削除し、.rvdata2 が無いCSVは残す
+    QTemporaryDir tempDir;
+    auto setting = MakeSetting(tempDir.path());
+    setting.gameProjectPath = tempDir.path();
+    WriteBytes(tempDir.filePath("Data/Translate/Actors.csv"), "original,ja,en");
+    WriteBytes(tempDir.filePath("Data/Translate/Actors.rvdata2"), "packed");
+    WriteBytes(tempDir.filePath("Data/Translate/Items.csv"), "original,ja,en");
+
+    const auto removed = langscore::RemovePackedCsvFiles(setting);
+    EXPECT_EQ(removed.size(), 1);
+    EXPECT_FALSE(QFile::exists(tempDir.filePath("Data/Translate/Actors.csv")));
+    EXPECT_TRUE(QFile::exists(tempDir.filePath("Data/Translate/Actors.rvdata2")));
+    EXPECT_TRUE(QFile::exists(tempDir.filePath("Data/Translate/Items.csv")));
+}
+
+TEST(EditingTranslationExporter, RemovePackedCsvFilesLanguagePatch)
+{
+    //パッチモードでは、言語ごとのフォルダにパッキングしたものを見る
+    QTemporaryDir tempDir;
+    auto setting = MakeSetting(tempDir.path());
+    setting.gameProjectPath = tempDir.path();
+    setting.writeObj.enableLanguagePatch = true;
+    WriteBytes(tempDir.filePath("Data/Translate/en/Actors.csv"), "original,en");
+    WriteBytes(tempDir.filePath("Data/Translate/en/Actors.rvdata2"), "packed");
+    WriteBytes(tempDir.filePath("Data/Translate/ja/Actors.csv"), "original,ja");
+
+    const auto removed = langscore::RemovePackedCsvFiles(setting);
+    EXPECT_EQ(removed.size(), 1);
+    EXPECT_FALSE(QFile::exists(tempDir.filePath("Data/Translate/en/Actors.csv")));
+    EXPECT_TRUE(QFile::exists(tempDir.filePath("Data/Translate/ja/Actors.csv")));
 }

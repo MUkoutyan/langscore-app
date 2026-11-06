@@ -22,12 +22,10 @@ class CSVEditor : public QTableView, public ComponentBase, public CSVEditCommand
     Q_OBJECT
 
 public:
-    explicit CSVEditor(std::weak_ptr<EditDataManager> loadFileManager, ComponentBase* component, QWidget* parent = nullptr);
+    explicit CSVEditor(ComponentBase* component, QWidget* parent = nullptr);
 
     void setModel(QAbstractItemModel* model) override;
-
-    bool saveCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
-    bool saveAsCSV(const QString& filePath = QString(), langscore::CSVEditorTableModel* csvModel = nullptr);
+    using QTableView::edit;
 
     void setText(QModelIndex index, QString newText);
 
@@ -42,30 +40,28 @@ public:
     // Undo/Redo
     void undo();
     void redo();
-    bool canUndo() const;
-    bool canRedo() const;
 
     // Selection operations
     void selectAll();
 
-    bool isModified() const { return _isModified; }
+    //文字を打って編集を始めたところか。そのときは元の文章を置き換える
+    bool isReplacingTextOnEdit() const { return _replaceTextOnEdit; }
 
-    //今のセルから行・列方向に進んだ、次の編集できるセルを編集する
-    void selectAndEditNextCell(int rowStep, int columnStep);
+    //from のセルから行・列方向に進んだ、次の編集できるセルを編集する
+    void selectAndEditNextCell(const QModelIndex& from, int rowStep, int columnStep);
     void hideLanguageColumns();
     bool isLanguageColumnHidden(const QString& language) const;
-    void loadColumnFilterSettings();
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
+    bool edit(const QModelIndex& index, EditTrigger trigger, QEvent* event) override;
 
     bool isEditableIndex(const QModelIndex& index);
     void cellEditsApplied(const QModelIndex& firstIndex) override;
 
 private slots:
     void onCustomContextMenuRequested(const QPoint& pos);
-    void onModelDataChanged();
     void openTranslationSettings();
     void translateSelectedCells();
     void retranslateSelectedCells();
@@ -99,15 +95,12 @@ private:
     // Private helper methods
     void executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits, const QString& description);
     QModelIndexList getSelectedIndexes() const;
-    QString formatCSVField(const QString& field) const;
-    QStringList parseCSVLine(const QString& line) const;
-    QStringList parseCSVRows(const QString& text) const;
-    QString getSelectedCellsAsText() const;
+    QString getSelectedCellsAsText(QChar separator) const;
 
     void setData(QModelIndex index, QVariant value, int role) override;
 
-    std::weak_ptr<EditDataManager> loadFileManager;
-    
+    bool _replaceTextOnEdit = false;
+
     // Actions
     QAction* cutAction;
     QAction* copyAction;
@@ -133,11 +126,6 @@ private:
     // 翻訳要求時の (行, 列) → 書き込み先のセル。
     // 翻訳中に並べ替え・絞り込み・ファイル切り替えが行われても、正しいセルに書き込む（または破棄する）ため
     QMap<std::pair<int, int>, QPersistentModelIndex> pendingTranslationCells;
-    
-    QString currentFilePath;
 
-    // Sorting state: 0 = none, 1 = ascending, -1 = descending
-    int currentSortedColumn = -1;
-    int currentSortOrder = 0;
     void onHeaderSectionClicked(int logicalIndex);
 };

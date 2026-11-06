@@ -52,10 +52,6 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
 
     this->ui->exportByLangCheck->setChecked(settings->writeObj.enableLanguagePatch);
 
-    this->ui->fillDefaultColumn->setChecked(settings->writeObj.enableFillDefaultLanguage);
-
-    this->ui->addNewTextToEnd->setChecked(settings->writeObj.enableAddNewTextToEnd);
-
     this->update();
 }
 
@@ -80,14 +76,6 @@ QString WriteDialog::outputPath() const
 
 bool WriteDialog::writeByLanguagePatch() const {
     return this->ui->exportByLangCheck->isChecked();
-}
-
-bool WriteDialog::fillDefaultLanguage() const {
-    return this->ui->fillDefaultColumn->isChecked();
-}
-
-bool WriteDialog::addNewTextToEnd() const {
-    return this->ui->addNewTextToEnd->isChecked();
 }
 
 int WriteDialog::writeMode() const

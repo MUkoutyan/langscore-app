@@ -3,6 +3,26 @@
 #include <QStyledItemDelegate>
 #include <QTextEdit>
 #include <QKeyEvent>
+#include <QKeySequence>
+#include <array>
+
+//セルの編集で使うキー。アプリの設定（settings.ini）に保存する
+struct EditKeyBindings
+{
+    enum Action { Confirm, ConfirmAndMoveDown, ConfirmAndMoveRight, NewLine, Cancel, Count };
+    std::array<QKeySequence, Count> keys;
+
+    static EditKeyBindings defaults();
+    static EditKeyBindings load();
+    void save() const;
+    static QString actionName(Action action);
+    //押したキーに割り当てた動作。無ければ Count
+    Action find(const QKeyEvent* event) const;
+    //テンキーの Enter と Enter、Shift+Tab の記録のされ方の違いをそろえたキー（同じキーかの比較に使う）
+    static QKeySequence normalized(const QKeySequence& key);
+    //エディタの下に出す、キーの説明（動作ごと）
+    QStringList guideItems() const;
+};
 
 class MultiLineEditDelegate : public QStyledItemDelegate {
     Q_OBJECT
@@ -19,11 +39,6 @@ public:
                      const QModelIndex& index) const override;
     void updateEditorGeometry(QWidget* editor, const QStyleOptionViewItem& option, 
                              const QModelIndex& index) const override;
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
-
-private slots:
-    void commitAndCloseEditor();
-
 };
 
 class MultiLineEditDelegate::MultiLineTextEdit : public QTextEdit {
@@ -34,6 +49,7 @@ public:
     enum class MoveTo { None, Down, Right };
 
     explicit MultiLineTextEdit(QWidget* parent = nullptr);
+    void setKeyBindings(const EditKeyBindings& bindings) { _keys = bindings; }
 
 protected:
     bool event(QEvent* event) override;
@@ -41,6 +57,10 @@ protected:
     void focusOutEvent(QFocusEvent* event) override;
 
 private:
+    EditKeyBindings _keys = EditKeyBindings::defaults();
+    //割り当てたキーなら、その動作をして true を返す
+    bool handleKey(QKeyEvent* event);
+
     // 編集終了を1度だけ通知する（確定でエディタを閉じる際の FocusOut で二重に通知しないため）
     void finishEditing(MoveTo moveTo);
     bool _finished = false;

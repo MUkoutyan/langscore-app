@@ -196,7 +196,6 @@ TEST_F(SettingsTest, WriteLoadRoundTrip)
     s.fetchLanguage("ja").enable = false;
     s.writeObj.exportByLanguage = true;
     s.writeObj.enableLanguagePatch = true;
-    s.writeObj.enableAddNewTextToEnd = false;
     s.packingInputDirectory = "packing";
 
     auto configPath = WriteConfig(s);
@@ -215,7 +214,6 @@ TEST_F(SettingsTest, WriteLoadRoundTrip)
     EXPECT_FALSE(loaded.languages[1].enable);
     EXPECT_TRUE(loaded.writeObj.exportByLanguage);
     EXPECT_TRUE(loaded.writeObj.enableLanguagePatch);
-    EXPECT_FALSE(loaded.writeObj.enableAddNewTextToEnd);
     EXPECT_EQ(loaded.packingInputDirectory, QString("packing"));
 }
 

@@ -67,6 +67,7 @@ public:
     void clearAll() {
         beginResetModel();
         csvContainer.clear();
+        forgetSavedValues();
         endResetModel();
     }
 
@@ -76,11 +77,17 @@ signals:
 
 private:
     void setModified(bool modified);
+    //表を作り直すとセルの位置が変わるため、保存したときの値の記録を捨てる（変更ありのまま残す）
+    void forgetSavedValues();
     //表示中のファイルの検証結果。セルの索引を必要なら作り直してから返す。無ければ nullptr
     const std::vector<ValidationErrorInfo>* indexedFileErrors() const;
 
     langscore::FastCSVContainer csvContainer;
     bool _modified = false;
+    //保存してから書き換えたセルの、保存したときの値。すべて元に戻すと「変更あり」を解除する
+    QHash<std::pair<int, int>, QString> _savedValues;
+    //記録を捨てた変更があるか（forgetSavedValues）。あれば保存するまで「変更あり」のままにする
+    bool _modifiedWithoutRecord = false;
     QSet<std::pair<int, int>> _editedSinceValidation;
     QString currentShowFileName;
     bool useLanguageFont = false;

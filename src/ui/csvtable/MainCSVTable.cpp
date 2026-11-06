@@ -55,13 +55,18 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     , settingButton(new QToolButton(this))
     , settingPane(new QWidget(this))
     , currentModel(nullptr)
-    , csvEditor(new CSVEditor(this->loadFileManager, this, this))
+    , csvEditor(new CSVEditor(this, this))
     , cellErrorLog(new QTextEdit(this))
     , _invoker(new invoker(this))
-    , updateTimer(nullptr)
+    , updateTimer(new QTimer(this))
     , _finishInvoke(false)
     , _showAllScriptContents(false)
 {
+    //進捗の計算は全行を数えるため、まとめて編集したとき（貼り付け・削除・Undoなど）は最後に1回だけ行う
+    this->updateTimer->setSingleShot(true);
+    this->updateTimer->setInterval(0);
+    connect(this->updateTimer, &QTimer::timeout, this, &MainCSVTable::updateProgressLabel);
+
     this->cellErrorLog->setReadOnly(true);
     this->cellErrorLog->setMaximumHeight(60);
 
@@ -251,7 +256,8 @@ void MainCSVTable::selectCell(int row, int column)
     auto sourceIdx = this->currentModel->index(row, column);
     QModelIndex selectIdx = _proxyModel ? _proxyModel->mapFromSource(sourceIdx) : QModelIndex(sourceIdx);
     if(selectIdx.isValid()) {
-        this->csvEditor->selectionModel()->select(selectIdx, QItemSelectionModel::ClearAndSelect);
+        //今のセルも移す。移さないと、Enter や文字の入力で前のセルが編集される
+        this->csvEditor->selectionModel()->setCurrentIndex(selectIdx, QItemSelectionModel::ClearAndSelect);
         this->csvEditor->scrollTo(selectIdx, QTableWidget::ScrollHint::PositionAtCenter);
     }
 }
@@ -651,7 +657,7 @@ if(mainModel == nullptr) {
 
     //未保存の印と進捗を、編集や保存に合わせて更新する
     this->modelConnections.append(connect(mainModel, &MainCSVTableModel::modifiedChanged, this, &MainCSVTable::updateFileNameLabel));
-    this->modelConnections.append(connect(mainModel, &QAbstractItemModel::dataChanged, this, &MainCSVTable::updateProgressLabel));
+    this->modelConnections.append(connect(mainModel, &QAbstractItemModel::dataChanged, this->updateTimer, qOverload<>(&QTimer::start)));
     this->modelConnections.append(connect(mainModel, &QAbstractItemModel::modelReset, this, &MainCSVTable::updateProgressLabel));
 
     this->csvEditor->horizontalHeader()->blockSignals(true);

@@ -5,6 +5,7 @@
 
 #include "ColorDialog.h"
 #include "dialog/TranslationApiSettingsDialog.h"
+#include "dialog/EditKeySettingsDialog.h"
 
 #include <QActionGroup>
 #include <QMenuBar>
@@ -153,6 +154,11 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     systemMenu->addSeparator();
     auto translationApiSettings = systemMenu->addAction(tr("Translation API Settings..."));
     connect(translationApiSettings, &QAction::triggered, this, &FormTaskBar::openTranslationApiSettings);
+
+    auto editKeySettings = systemMenu->addAction(tr("Cell Editing Keys..."));
+    connect(editKeySettings, &QAction::triggered, this, [this]() {
+        EditKeySettingsDialog(this->window()).exec();
+    });
 
     {
         auto theme = ComponentBase::getColorTheme().getCurrentTheme();

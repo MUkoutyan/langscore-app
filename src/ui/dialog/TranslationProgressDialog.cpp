@@ -32,6 +32,8 @@ void TranslationProgressDialog::startProgress(int totalRequests)
     //前回の結果の色（エラー・一部失敗）が残らないようにする
     ui->statusLabel->setStyleSheet(QString());
     ui->currentTextLabel->clear();
+    ui->messageText->clear();
+    ui->messageText->setVisible(false);
     ui->cancelButton->setEnabled(true);
     ui->cancelButton->setText(tr("Cancel"));
 }
@@ -42,15 +44,18 @@ void TranslationProgressDialog::updateProgress(int completed, int total)
     
     ui->progressBar->setValue(completed);
     ui->statusLabel->setText(tr("Translating... %1 of %2 completed").arg(completed).arg(total));
-    
-    // Auto-close if completed
-    if (completed >= total) {
-        QTimer::singleShot(1000, this, [this]() {
-            if (!isCancelled) {
-                accept();
-            }
-        });
-    }
+    //閉じるかどうかは、エラー・警告が出たかを見て showCompletion で決める
+}
+
+void TranslationProgressDialog::addMessage(const QString& message)
+{
+    ui->messageText->appendPlainText(message);
+    ui->messageText->setVisible(true);
+}
+
+bool TranslationProgressDialog::hasMessages() const
+{
+    return ui->messageText->document()->isEmpty() == false;
 }
 
 void TranslationProgressDialog::setCurrentText(const QString& text)
@@ -82,15 +87,30 @@ void TranslationProgressDialog::showCompletion(int successCount, int totalCount,
     }
     ui->cancelButton->setText(tr("Close"));
     ui->currentTextLabel->clear();
+
+    //表示するものが無ければ、結果を少し見せてから閉じる
+    if (successCount == totalCount && hasMessages() == false) {
+        QTimer::singleShot(1000, this, [this]() {
+            if (!isCancelled) {
+                accept();
+            }
+        });
+    }
 }
 
 void TranslationProgressDialog::onCancelClicked()
 {
     if (ui->cancelButton->text() == tr("Cancel")) {
         isCancelled = true;
-        ui->cancelButton->setEnabled(false);
-        ui->statusLabel->setText(tr("Cancelling translation..."));
         emit cancelled();
+        //中止までに出たエラー・警告は確認できるよう残す
+        if (hasMessages()) {
+            ui->statusLabel->setText(tr("Translation cancelled."));
+            ui->cancelButton->setText(tr("Close"));
+            ui->currentTextLabel->clear();
+            return;
+        }
+        reject();
     } else {
         reject();
     }

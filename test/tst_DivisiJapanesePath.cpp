@@ -124,7 +124,7 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
         reopened.insertColumn(2, "en");
         ASSERT_TRUE(reopened.mergeTranslationsFromCsv(editingDir + "/Actors.csv"));
         QFile savedFile(editingDir + "/Actors.csv");
-        savedFile.open(QFile::ReadOnly);
+        ASSERT_TRUE(savedFile.open(QFile::ReadOnly));
         const int plainRow = multiLineRow == 0 ? 1 : 0;
         EXPECT_EQ(reopened.getCell(plainRow, 2).value_or(""), translated) << QString::fromUtf8(savedFile.readAll()).toStdString();
         EXPECT_EQ(reopened.getCell(multiLineRow, 2).value_or(""), QString(u"一行目\n二行目"));

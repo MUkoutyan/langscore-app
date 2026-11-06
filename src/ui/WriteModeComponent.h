@@ -99,7 +99,7 @@ private:
     bool confirmOverwriteReadOnlyPlugins();
 
     void applyEditingTranslationsToExport();
-    void finishExport();
+    void finishExport(bool openExportFolder = true);
 
     void changeUIColor();
 

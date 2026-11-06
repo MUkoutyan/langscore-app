@@ -28,15 +28,76 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QLabel>
+#include <QAbstractProxyModel>
 
 using namespace langscore;
 
+namespace
+{
+    //エディター内でコピーした表。貼り付けるときは表の形をそのまま使う
+    const QString CellsMimeType = "application/x-langscore-cells";
+
+    //区切り文字・"・改行を含む値は " で囲み、" は "" にする
+    QString FormatCell(const QString& field, QChar separator)
+    {
+        if(field.contains(separator) || field.contains('"') || field.contains('\n') || field.contains('\r')) {
+            return QString('"') + QString(field).replace("\"", "\"\"") + '"';
+        }
+        return field;
+    }
+
+    //区切り文字と改行で区切った表を読む。
+    //" で始まる値は次の " までを1つの値とし（区切り文字・改行を含められる）、"" は " にする。値の途中の " はそのまま残す
+    QList<QStringList> ParseCells(const QString& text, QChar separator)
+    {
+        QList<QStringList> rows;
+        QStringList row;
+        QString field;
+        bool inQuotes = false;
+        bool fieldStart = true;
+        for(qsizetype i = 0; i < text.size(); ++i)
+        {
+            const QChar ch = text[i];
+            if(inQuotes)
+            {
+                if(ch != '"') { field += ch; }
+                else if(i + 1 < text.size() && text[i + 1] == '"') { field += '"'; ++i; }
+                else { inQuotes = false; }
+                continue;
+            }
+            if(ch == '"' && fieldStart) {
+                inQuotes = true;
+                fieldStart = false;
+            }
+            else if(ch == separator || ch == '\n')
+            {
+                row.append(field);
+                field.clear();
+                fieldStart = true;
+                if(ch == '\n') {
+                    rows.append(row);
+                    row.clear();
+                }
+            }
+            else {
+                field += ch;
+                fieldStart = false;
+            }
+        }
+        //改行で終わっていない最後の行
+        if(fieldStart == false || row.isEmpty() == false) {
+            row.append(field);
+            rows.append(row);
+        }
+        return rows;
+    }
+}
+
 
 // CSVEditor implementation
-CSVEditor::CSVEditor(std::weak_ptr<EditDataManager> loadFileManager, ComponentBase* component, QWidget* parent)
+CSVEditor::CSVEditor(ComponentBase* component, QWidget* parent)
     : QTableView(parent)
     , ComponentBase(component)
-    , loadFileManager(loadFileManager)
     , contextMenu(nullptr)
     , translationMenu(nullptr)
     , columnVisibilityMenu(nullptr)
@@ -110,7 +171,12 @@ void CSVEditor::setupActions()
     selectAllAction = new QAction(tr("Select All"), this);
     selectAllAction->setShortcut(QKeySequence::SelectAll);
     connect(selectAllAction, &QAction::triggered, this, &CSVEditor::selectAll);
-    
+
+    //ファイルツリーなど、表の外にフォーカスがあるときは反応しないようにする
+    for(auto* action : {cutAction, copyAction, pasteAction, deleteAction, selectAllAction}) {
+        action->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    }
+
     // Translation actions
     translationSettingsAction = new QAction(tr("Translation Settings..."), this);
     connect(translationSettingsAction, &QAction::triggered, this, &CSVEditor::openTranslationSettings);
@@ -432,6 +498,8 @@ void CSVEditor::translateCells(const QList<QModelIndex>& targetCells)
             QMessageBox::Yes, QMessageBox::No
         );
         if(button == QMessageBox::No) {
+            //登録したセルを残すと、翻訳中と判定されて次の翻訳ができなくなる
+            pendingTranslationCells.clear();
             return;
         }
     }
@@ -512,23 +580,35 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     
     QList<CSVEditCommand::CellEdit> edits;
     int successCount = 0;
-    QString errorMessage;
-    
+    //どのセルで何が起きたかを、進捗ダイアログに1行ずつ出す
+    const auto addMessage = [this](const QString& kind, const TranslationManager::BatchTranslationResult& result, const QString& message) {
+        if(progressDialog == nullptr) { return; }
+        const auto language = model()->headerData(result.column, Qt::Horizontal, Qt::DisplayRole).toString();
+        //[エラー] 3行目 (en): メッセージ
+        progressDialog->addMessage(tr("[%1] Row %2 (%3): %4").arg(kind).arg(result.row + 1).arg(language, message));
+    };
+
     for (const auto& result : results) {
         //表示が変更されても同一のセルを参照できるように、QPersistentModelIndexを使用すること。
         const QPersistentModelIndex cellIndex = pendingTranslationCells.take({result.row, result.column});
-        if (result.success && !result.translatedText.isEmpty()) {
-            if (cellIndex.isValid() && cellIndex.model() == model()) {
-                CSVEditCommand::CellEdit edit;
-                edit.index = cellIndex;
-                edit.oldValue = model()->data(cellIndex, Qt::EditRole);
-                edit.newValue = result.translatedText;
-                edits.append(edit);
-                successCount++;
-            }
+        if (result.success == false) {
+            addMessage(tr("Error"), result, result.errorMessage.isEmpty() ? tr("Unknown error") : result.errorMessage);
         }
-        else if(errorMessage.isEmpty()) {
-            errorMessage = result.errorMessage;
+        else if (result.translatedText.isEmpty()) {
+            //翻訳結果が空でした
+            addMessage(tr("Warning"), result, tr("The translation result was empty."));
+        }
+        else if (cellIndex.isValid() == false || cellIndex.model() != model()) {
+            //翻訳中に表が切り替わったため、セルに反映できませんでした
+            addMessage(tr("Warning"), result, tr("The table was changed during translation, so the result was not applied."));
+        }
+        else {
+            CSVEditCommand::CellEdit edit;
+            edit.index = cellIndex;
+            edit.oldValue = model()->data(cellIndex, Qt::EditRole);
+            edit.newValue = result.translatedText;
+            edits.append(edit);
+            successCount++;
         }
     }
     
@@ -537,7 +617,8 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     }
     
     if (progressDialog) {
-        progressDialog->showCompletion(successCount, results.size(), errorMessage);
+        //個々の内容はメッセージ欄に出しているため、状態の欄には件数だけを出す
+        progressDialog->showCompletion(successCount, results.size());
     }
     
     updateTranslationMenu();
@@ -545,6 +626,8 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
 
 void CSVEditor::onBatchTranslationError(int batchId, const QString& errorMessage)
 {
+    //翻訳を始められなかった場合。登録したセルを残すと次の翻訳ができなくなる
+    pendingTranslationCells.clear();
     if (progressDialog) {
         progressDialog->showError(errorMessage);
     } else {
@@ -562,9 +645,6 @@ void CSVEditor::onTranslationProgress(int batchId, int completed, int total)
 void CSVEditor::connectModelSignals()
 {
     if(!model()) { return; }
-    connect(model(), &QAbstractItemModel::dataChanged,
-            this, &CSVEditor::onModelDataChanged, Qt::UniqueConnection);
-
     if(auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model())) {
         connect(proxy, &CSVEditorSortFilterProxyModel::sortStateChanged,
                 this,  &CSVEditor::sortStateChanged, Qt::UniqueConnection);
@@ -584,24 +664,14 @@ void CSVEditor::sortStateChanged(int col, SortOrder order)
     }
 }
 
-void CSVEditor::onModelDataChanged()
-{
-    if (_suppressUndoTracking == false) {
-        _isModified = true;
-    }
-    updateTranslationMenu(); // Update menu when data changes
-    updateColumnVisibilityMenu(); // Update column visibility menu when data changes
-}
-
-void CSVEditor::selectAndEditNextCell(int rowStep, int columnStep)
+void CSVEditor::selectAndEditNextCell(const QModelIndex& from, int rowStep, int columnStep)
 {
     if(model() == nullptr) { return; }
-    const auto current = this->currentIndex();
-    if(current.isValid() == false) { return; }
+    if(from.isValid() == false || from.model() != model()) { return; }
 
     //編集できない列（原文・種類）は飛ばす。表の端まで来たら何もしない
-    int row = current.row() + rowStep;
-    int column = current.column() + columnStep;
+    int row = from.row() + rowStep;
+    int column = from.column() + columnStep;
     while(0 <= row && row < model()->rowCount() && 0 <= column && column < model()->columnCount())
     {
         const auto nextIndex = model()->index(row, column);
@@ -620,8 +690,25 @@ void CSVEditor::selectAndEditNextCell(int rowStep, int columnStep)
 void CSVEditor::cellEditsApplied(const QModelIndex& firstIndex)
 {
     //Undo/Redo したセルが画面の外にあっても分かるように、見える位置まで移動する
-    if(firstIndex.model() != model()) { return; }
-    this->scrollTo(firstIndex);
+    auto viewIndex = firstIndex;
+    if(auto* proxy = qobject_cast<QAbstractProxyModel*>(model()); proxy && firstIndex.model() == proxy->sourceModel()) {
+        viewIndex = proxy->mapFromSource(firstIndex);
+    }
+    if(viewIndex.isValid() && viewIndex.model() == model()) {
+        this->scrollTo(viewIndex);
+        return;
+    }
+    //表示していないファイル、または絞り込みで隠れているセル
+    this->dispatch(StatusMessage, {tr("The change was undone or redone in cells that are not displayed."), 5000});
+}
+
+bool CSVEditor::edit(const QModelIndex& index, EditTrigger trigger, QEvent* event)
+{
+    //文字を打って編集を始めたときは、表計算ソフトと同じく元の文章を置き換える（MultiLineEditDelegate::setEditorData）
+    _replaceTextOnEdit = (trigger == AnyKeyPressed);
+    const bool result = QTableView::edit(index, trigger, event);
+    _replaceTextOnEdit = false;
+    return result;
 }
 
 bool CSVEditor::isEditableIndex(const QModelIndex& index)
@@ -632,27 +719,7 @@ bool CSVEditor::isEditableIndex(const QModelIndex& index)
 
 void CSVEditor::keyPressEvent(QKeyEvent* event)
 {
-    auto currentSelectedIndexes = getSelectedIndexes();
-    bool canEdit = true;
-    for(auto& index : currentSelectedIndexes)
-    {
-        if(index.isValid() == false) { continue; }
-
-        auto flag = model()->flags(index);
-        canEdit &= (flag & Qt::ItemIsEditable) != 0;
-    }
-
-    if(canEdit == false)
-    {
-        if(event->matches(QKeySequence::Cut) ||
-           event->matches(QKeySequence::Paste) ||
-           event->key() == Qt::Key_Delete)
-        {
-            QTableView::keyPressEvent(event);
-            return;
-        }
-    }
-
+    //編集できないセルは cut・paste・clearSelectedCells の中で飛ばすため、ここでは選択の内容を見ない
     if (event->matches(QKeySequence::Copy)) {
         copy();
         return;
@@ -676,8 +743,9 @@ void CSVEditor::keyPressEvent(QKeyEvent* event)
         return;
     }
     else if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-        if(currentSelectedIndexes.isEmpty() == false) {
-            edit(currentSelectedIndexes[0]);
+        //選択範囲の並びは選んだ順とは限らないため、今のセル（最後に選んだセル）を開く
+        if(currentIndex().isValid()) {
+            edit(currentIndex());
             return;
         }
     }
@@ -715,40 +783,6 @@ void CSVEditor::showContextMenu(const QPoint& globalPos)
 
         contextMenu->exec(globalPos);
     }
-}
-
-bool CSVEditor::saveCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel)
-{
-    if (!csvModel) {
-        return false;
-    }
-    
-    QString saveFilePath = filePath.isEmpty() ? currentFilePath : filePath;
-    if (saveFilePath.isEmpty()) {
-        return saveAsCSV(QString(), csvModel);
-    }
-    
-    bool success = csvModel->saveToFile(saveFilePath);
-    if (success) {
-        currentFilePath = saveFilePath;
-        _isModified = false;
-    }
-    
-    return success;
-}
-
-bool CSVEditor::saveAsCSV(const QString& filePath, langscore::CSVEditorTableModel* csvModel)
-{
-    QString saveFilePath = filePath;
-    if (saveFilePath.isEmpty()) {
-        saveFilePath = QFileDialog::getSaveFileName(this, tr("SaveCSVFile"), 
-                                                   currentFilePath, tr("CSV Files (*.csv)"));
-        if (saveFilePath.isEmpty()) {
-            return false;
-        }
-    }
-    
-    return saveCSV(saveFilePath, csvModel);
 }
 
 void CSVEditor::setText(QModelIndex index, QString newText)
@@ -796,102 +830,92 @@ void CSVEditor::cut()
 
 void CSVEditor::copy()
 {
-    QString text = getSelectedCellsAsText();
-    if (!text.isEmpty()) {
-        QClipboard* clipboard = QGuiApplication::clipboard();
-        clipboard->setText(text);
-    }
+    const auto indexes = getSelectedIndexes();
+    if(indexes.isEmpty()) { return; }
+
+    auto* mimeData = new QMimeData();
+    mimeData->setData(CellsMimeType, getSelectedCellsAsText(',').toUtf8());
+    //他のアプリには、1つのセルなら値そのもの、複数ならタブ区切り（Excel などと同じ形式）で渡す
+    mimeData->setText(indexes.size() == 1 ? model()->data(indexes.front(), Qt::DisplayRole).toString() : getSelectedCellsAsText('\t'));
+    QGuiApplication::clipboard()->setMimeData(mimeData);
 }
 
 void CSVEditor::paste()
 {
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    QString text = clipboard->text();
+    const auto* mimeData = QGuiApplication::clipboard()->mimeData();
+    if(mimeData == nullptr) { return; }
+    QModelIndexList indexes = getSelectedIndexes();
+    if(indexes.isEmpty()) { return; }
+
     //Windowsのクリップボードは改行が\r\nなので、\nにそろえてから分割する
-    text.replace("\r\n", "\n");
-
-    if (!text.isEmpty()) {
-        QModelIndexList indexes = getSelectedIndexes();
-        if (indexes.isEmpty()) return;
-
-        // 選択されたセルを行・列順にソート
-        std::sort(indexes.begin(), indexes.end(), [](const QModelIndex& a, const QModelIndex& b) {
-            if(a.row() != b.row()) {
-                return a.row() < b.row();
-            }
-            return a.column() < b.column();
-        });
-
-        // 選択範囲の情報を取得
-        int minRow = indexes.first().row();
-        int minCol = indexes.first().column();
-
-        // CSV形式のテキストを正しく行ごとに分割
-        QStringList lines = parseCSVRows(text);
-
-        QList<CSVEditCommand::CellEdit> edits;
-
-        //1つの値を複数のセルに貼り付けた場合は、選択したすべてのセルに入れる
-        if(lines.size() == 1 && 1 < indexes.size())
-        {
-            const auto fields = parseCSVLine(lines.front());
-            if(fields.size() == 1)
-            {
-                for(const auto& targetIndex : indexes)
-                {
-                    if(isEditableIndex(targetIndex) == false) { continue; }
-                    CSVEditCommand::CellEdit edit;
-                    edit.index = targetIndex;
-                    edit.oldValue = model()->data(targetIndex, Qt::EditRole);
-                    edit.newValue = fields.front();
-                    edits.append(edit);
-                }
-                if(edits.isEmpty() == false) {
-                    executeEditCommand(edits, tr("Paste"));
-                }
-                return;
-            }
+    const auto toLF = [](QString text) { return text.replace("\r\n", "\n"); };
+    QList<QStringList> cells;
+    if(mimeData->hasFormat(CellsMimeType))
+    {
+        cells = ParseCells(toLF(QString::fromUtf8(mimeData->data(CellsMimeType))), ',');
+    }
+    else
+    {
+        auto text = toLF(mimeData->text());
+        if(text.isEmpty()) { return; }
+        if(text.contains('\t')) {
+            //Excel などの表計算ソフトからコピーした表
+            cells = ParseCells(text, '\t');
         }
+        else {
+            //それ以外は、カンマや改行を含めて1つの値として扱う。コピーした際に付く末尾の改行は除く
+            if(text.endsWith('\n')) { text.chop(1); }
+            cells = {{text}};
+        }
+    }
+    if(cells.isEmpty()) { return; }
 
-        //表に入りきらなかった分は捨てて通知する。
-        bool overflowed = false;
+    QList<CSVEditCommand::CellEdit> edits;
+    const auto addEdit = [this, &edits](const QModelIndex& target, const QString& value) {
+        if(isEditableIndex(target) == false) { return; }
+        edits.append({target, model()->data(target, Qt::EditRole), value});
+    };
 
-        for(int lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
-            int targetRow = minRow + lineIndex;
+    //表に入りきらなかった分は捨てて通知する。
+    bool overflowed = false;
+    if(cells.size() == 1 && cells.front().size() == 1)
+    {
+        //1つの値は、選択したすべてのセルに入れる
+        for(const auto& targetIndex : indexes) {
+            addEdit(targetIndex, cells.front().front());
+        }
+    }
+    else
+    {
+        //表は、選択範囲の左上から貼り付ける
+        const int minRow = std::ranges::min(indexes, {}, &QModelIndex::row).row();
+        const int minColumn = std::ranges::min(indexes, {}, &QModelIndex::column).column();
+
+        for(int rowOffset = 0; rowOffset < cells.size(); ++rowOffset)
+        {
+            const int targetRow = minRow + rowOffset;
             if(targetRow >= model()->rowCount()) {
                 overflowed = true;
                 break;
             }
-
-            // CSV行を解析
-            QStringList fields = parseCSVLine(lines[lineIndex]);
-
-            for(int fieldIndex = 0; fieldIndex < fields.size(); ++fieldIndex) {
-                int targetColumn = minCol + fieldIndex;
+            const auto& fields = cells[rowOffset];
+            for(int columnOffset = 0; columnOffset < fields.size(); ++columnOffset)
+            {
+                const int targetColumn = minColumn + columnOffset;
                 if(targetColumn >= model()->columnCount()) {
                     overflowed = true;
                     break;
                 }
-
-                QModelIndex targetIndex = model()->index(targetRow, targetColumn);
-                if (isEditableIndex(targetIndex) == false) {
-                    continue;
-                }
-
-                CSVEditCommand::CellEdit edit;
-                edit.index = targetIndex;
-                edit.oldValue = model()->data(targetIndex, Qt::EditRole);
-                edit.newValue = fields[fieldIndex];
-                edits.append(edit);
+                addEdit(model()->index(targetRow, targetColumn), fields[columnOffset]);
             }
         }
+    }
 
-        if (!edits.isEmpty()) {
-            executeEditCommand(edits, tr("Paste"));
-        }
-        if(overflowed) {
-            this->dispatch(StatusMessage, {tr("Some of the pasted cells were outside the table and were not pasted."), 5000});
-        }
+    if(edits.isEmpty() == false) {
+        executeEditCommand(edits, tr("Paste"));
+    }
+    if(overflowed) {
+        this->dispatch(StatusMessage, {tr("Some of the pasted cells were outside the table and were not pasted."), 5000});
     }
 }
 
@@ -910,16 +934,6 @@ void CSVEditor::redo()
     }
 }
 
-bool CSVEditor::canUndo() const
-{
-    return history ? history->canUndo() : false;
-}
-
-bool CSVEditor::canRedo() const
-{
-    return history ? history->canRedo() : false;
-}
-
 // Selection operations
 void CSVEditor::selectAll()
 {
@@ -930,9 +944,15 @@ void CSVEditor::selectAll()
 void CSVEditor::executeEditCommand(const QList<CSVEditCommand::CellEdit>& edits, const QString& description)
 {
     if (edits.isEmpty() || !history) return;
-    
-    auto* command = new CSVEditCommand(this, edits, description);
-    history->push(command);
+
+    //表示用の proxy のセルは、ファイルの切り替えや列を隠したときに無効になるため、元のモデルのセルで記録する
+    auto sourceEdits = edits;
+    if(auto* proxy = qobject_cast<QAbstractProxyModel*>(model())) {
+        for(auto& edit : sourceEdits) {
+            if(edit.index.model() == proxy) { edit.index = proxy->mapToSource(edit.index); }
+        }
+    }
+    history->push(new CSVEditCommand(this, sourceEdits, description));
 }
 
 QModelIndexList CSVEditor::getSelectedIndexes() const
@@ -941,98 +961,8 @@ QModelIndexList CSVEditor::getSelectedIndexes() const
     return selectionModel()->selectedIndexes();
 }
 
-QString CSVEditor::formatCSVField(const QString& field) const
-{
-    // CSVフィールドをエスケープ
-    if(field.contains(',') || field.contains('"') || field.contains('\n') || field.contains('\r')) {
-        QString escaped = field;
-        escaped.replace("\"", "\"\"");  // ダブルクォートをエスケープ
-        return "\"" + escaped + "\"";
-    }
-    return field;
-}
-
-QStringList CSVEditor::parseCSVLine(const QString& line) const
-{
-    QStringList result;
-    QString currentField;
-    bool inQuotes = false;
-
-    for(int i = 0; i < line.length(); ++i) {
-        QChar ch = line.at(i);
-
-        if(ch == '"') {
-            if(inQuotes) {
-                // ダブルクォート内で次の文字もダブルクォートの場合はエスケープ
-                if(i + 1 < line.length() && line.at(i + 1) == '"') {
-                    currentField += '"';
-                    i++; // 次のダブルクォートをスキップ
-                }
-                else {
-                    inQuotes = false;
-                }
-            }
-            else {
-                inQuotes = true;
-            }
-        }
-        else if(ch == ',' && !inQuotes) {
-            result.append(currentField);
-            currentField.clear();
-        }
-        else {
-            currentField += ch;
-        }
-    }
-
-    result.append(currentField);
-    return result;
-}
-
-QStringList CSVEditor::parseCSVRows(const QString& text) const
-{
-    QStringList rows;
-    QString currentRow;
-    bool inQuotes = false;
-
-    for(int i = 0; i < text.length(); ++i) {
-        QChar ch = text.at(i);
-
-        if(ch == '"') {
-            currentRow += ch;
-            if(inQuotes) {
-                // ダブルクォート内で次の文字もダブルクォートの場合はエスケープ
-                if(i + 1 < text.length() && text.at(i + 1) == '"') {
-                    currentRow += text.at(i + 1);
-                    i++; // 次のダブルクォートをスキップ
-                }
-                else {
-                    inQuotes = false;
-                }
-            }
-            else {
-                inQuotes = true;
-            }
-        }
-        else if(ch == '\n' && !inQuotes) {
-            // クォート外の改行は行の区切り
-            rows.append(currentRow);
-            currentRow.clear();
-        }
-        else {
-            currentRow += ch;
-        }
-    }
-
-    // 最後の行を追加（改行で終わっていない場合）
-    if(!currentRow.isEmpty()) {
-        rows.append(currentRow);
-    }
-
-    return rows;
-}
-
-QString CSVEditor::getSelectedCellsAsText() const
+//選択したセルを、区切り文字で区切った表にする。各行は改行で終える（空の最後の行も残すため）
+QString CSVEditor::getSelectedCellsAsText(QChar separator) const
 {
     QModelIndexList indexes = getSelectedIndexes();
     if(indexes.isEmpty()) {
@@ -1072,13 +1002,10 @@ QString CSVEditor::getSelectedCellsAsText() const
         QStringList rowFields;
         for(int col = minCol; col <= maxCol; ++col) {
             QString cellText = cellData[row].value(col, QString());
-            rowFields.append(formatCSVField(cellText));
+            rowFields.append(FormatCell(cellText, separator));
         }
 
-        result += rowFields.join(",");
-        if(row < maxRow) {
-            result += "\n";
-        }
+        result += rowFields.join(separator) + "\n";
     }
 
     return result;
@@ -1086,15 +1013,8 @@ QString CSVEditor::getSelectedCellsAsText() const
 
 void CSVEditor::setData(QModelIndex index, QVariant value, int role)
 {
-    this->model()->setData(index, value, role);
-}
-
-void CSVEditor::loadColumnFilterSettings()
-{
-    auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model());
-    if(proxy) {
-        proxy->loadColumnFilterFromSettings();
-    }
+    //履歴のセルは元のモデルのもの（executeEditCommand）。表示していないファイルのセルも書き換えられる
+    const_cast<QAbstractItemModel*>(index.model())->setData(index, value, role);
 }
 
 void CSVEditor::onHeaderSectionClicked(int logicalIndex)

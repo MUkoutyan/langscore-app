@@ -3,6 +3,7 @@
 #include "EditorTableDefines.h"
 
 #include <QFile>
+#include <QSaveFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QBrush>
@@ -262,15 +263,11 @@ bool ScriptCSVTableModel::saveToEditJsonFile(const QString& editJsonFile) const
 
     }
 
-    QFile file(editJsonFile);
-    if(file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        file.write(QJsonDocument(jsonArray).toJson(QJsonDocument::Indented));
-    }
-    else {
-        return false;
-    }
-
-    return true;
+    //一時ファイルに書いてから置き換える。途中で失敗しても元のファイルは残る
+    QSaveFile file(editJsonFile);
+    if(file.open(QIODevice::WriteOnly | QIODevice::Text) == false) { return false; }
+    file.write(QJsonDocument(jsonArray).toJson(QJsonDocument::Indented));
+    return file.commit();
 }
 
 // ────────────────────────────────────────────────────────────
