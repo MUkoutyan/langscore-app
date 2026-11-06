@@ -1,31 +1,15 @@
 ﻿#include "settings.h"
 #include "utility.hpp"
-#include "csv.hpp"
-#include "application_config.h"
-#include <QJsonDocument>
-#include <QJsonValue>
-#include <QJsonObject>
-#include <QJsonArray>
 #include <QDir>
 #include <QFile>
 #include <QFontDatabase>
-#include <QVersionNumber>
 #include <QApplication>
 #include <assert.h>
-
-#include "config_keys.h"
+#include "csv.hpp"
 
 using namespace langscore;
 
-inline const char* key(JsonKey key)
-{
-    return configKey(key);
-}
-
 namespace {
-QString scriptExt(settings::ProjectType type){
-    return type==settings::ProjectType::VXAce?".rb":".js";
-}
 
 const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
     {"rvproj2",     settings::VXAce},
@@ -36,11 +20,12 @@ const static QMap<QString, settings::ProjectType> projectExtensionAndType = {
 }
 
 settings::settings()
-    : projectType(settings::VXAce)
+    : projectType(settings::None)
     , gameProjectPath("")
     , languages()
     , defaultLanguage("ja")
     , isFirstExported(false)
+    , isShowHiddenFilesOnTree(false)
     , langscoreProjectDirectory("")
 {
 }
@@ -57,14 +42,23 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     this->gameProjectPath = absoluteGameProjectPath;
     this->projectType = projType;
 
-    if(projType == ProjectType::VXAce){
-        this->writeObj.exportDirectory = "./Data/Translate";
-    }
-    else if(projType == ProjectType::MV || projType == ProjectType::MZ){
-        this->writeObj.exportDirectory = "./data/translate";
-    }
-
     updateLangscoreProjectPath();
+    this->useGameTranslateFolderForExport();
+}
+
+//書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（FirstWriteDialog・WriteDialog・divisi）
+void settings::useGameTranslateFolderForExport()
+{
+    this->writeObj.exportDirectory = QDir(this->langscoreProjectDirectory).relativeFilePath(this->translateDirectoryPath());
+}
+
+//以前のバージョンの既定の書き出し先（langscore プロジェクトのフォルダの中）のままか
+bool settings::isExportDirectoryInLangscoreFolder() const
+{
+    const QDir langscoreDir(this->langscoreProjectDirectory);
+    const auto root = QDir::cleanPath(langscoreDir.absolutePath());
+    const auto exportPath = QDir::cleanPath(langscoreDir.absoluteFilePath(this->writeObj.exportDirectory));
+    return exportPath.compare(root, Qt::CaseInsensitive) == 0 || exportPath.startsWith(root + "/", Qt::CaseInsensitive);
 }
 
 void settings::setupLanguages(const std::vector<QLocale>& locales)
@@ -86,6 +80,7 @@ void settings::setupFontList()
 {
     //フォントの設定
     QFontDatabase::removeAllApplicationFonts();
+    this->fontIndexList.clear();
 
     auto fontExtensions = QStringList() << "*.ttf" << "*.otf";
     {
@@ -169,10 +164,16 @@ settings::TextValidateTypeMap settings::getValidationCsvData(QString fileName)
 
 settings::TextValidateTypeMap& settings::getValidationCsvDataRef(QString fileName)
 {
-    auto it = std::ranges::find_if(writeObj.basicDataInfo, [&fileName](const auto& data) {
-        return data.name.contains(fileName);
-    });
-    if(it != writeObj.basicDataInfo.end()) {
+    //部分一致だと別のファイルに当たるため、拡張子を除いた名前で完全に一致させる
+    fileName = langscore::withoutAllExtension(fileName);
+    const auto isSameFile = [&fileName](const auto& data) {
+        return langscore::withoutAllExtension(data.fileName) == fileName;
+    };
+
+    if(auto it = std::ranges::find_if(writeObj.basicDataInfo, isSameFile); it != writeObj.basicDataInfo.end()) {
+        return it->validateInfo;
+    }
+    if(auto it = std::ranges::find_if(writeObj.mapDataInfo, isSameFile); it != writeObj.mapDataInfo.end()) {
         return it->validateInfo;
     }
     static settings::TextValidateTypeMap Invalid{};
@@ -297,6 +298,13 @@ void settings::removeLanguage(QString bcp47Name)
     this->languages.erase(result);
 }
 
+//Animations・Tilesets は翻訳する文章をほとんど含まないため、最初はツリーに表示しない
+bool settings::isBasicDataVisibleByDefault(const QString& fileName)
+{
+    const auto name = langscore::withoutAllExtension(fileName);
+    return name != "Animations" && name != "Tilesets";
+}
+
 settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
 {
     fileName = langscore::withoutAllExtension(fileName);
@@ -304,21 +312,52 @@ settings::BasicData& settings::fetchBasicDataInfo(QString fileName)
         throw "Load Invalid Basic Script Info";
     }
 
+    assert(fileName.contains("Map") == false);
+
     fileName += ".json";
     auto& list = writeObj.basicDataInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x){
-        return x.name == name;
+        return x.fileName == name;
     });
 
     if(result != list.end()){
         return *result;
     }
 
+    auto& info = list.emplace_back(settings::BasicData{fileName});
+    info.visible = settings::isBasicDataVisibleByDefault(fileName);
+    return info;
+}
+
+settings::MapInfo& settings::fetchMapInfo(QString _fileName)
+{
+    auto fileName = langscore::withoutAllExtension(_fileName);
+    if(fileName.isEmpty()) {
+        throw "Load Invalid Basic Script Info";
+    }
+
+    fileName += ".json";
+    auto filePath = this->analyzeDirectoryPath() + "/" + fileName;
+
+    if(QFileInfo::exists(filePath) == false) {
+        throw "Not exists json file";
+    }
+
+    auto& list = writeObj.mapDataInfo;
+    auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& x) {
+        return x.fileName == name;
+    });
+
+    if(result != list.end()) {
+        return *result;
+    }
+
     list.emplace_back(
-        settings::BasicData{fileName, false, 0}
+        settings::BasicData{fileName, filePath}
     );
     return list[list.size() - 1];
 }
+
 
 settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
 {
@@ -327,10 +366,10 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
         throw "Load Invalid Script Info";
     }
 
-    fileName += ::scriptExt(projectType);
+    fileName += scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
-        return script.name == name;
+        return script.fileName == name;
     });
 
     if(result != list.end()){
@@ -338,21 +377,25 @@ settings::ScriptInfo &settings::fetchScriptInfo(QString fileName)
     }
 
     list.emplace_back(
-        settings::ScriptInfo{{fileName, false, 0}, {}}
+        settings::ScriptInfo{fileName, this->tempScriptFileDirectoryPath() + "/" + fileName}
     );
     return list[list.size() - 1];
 }
 
-void settings::removeScriptInfoPoint(QString fileName, std::pair<size_t,size_t> point)
+void settings::removeScriptInfoPoint(QString fileName, langscore::ScriptTextPosition point)
 {
-    fileName = QFileInfo(fileName).completeBaseName() + ::scriptExt(projectType);
+    fileName = QFileInfo(fileName).completeBaseName() + scriptExt(projectType);
     auto& list = writeObj.scriptInfo;
     auto result = std::find_if(list.begin(), list.end(), [name = fileName](const auto& script){
-        return script.name == name;
+        return script.fileName == name;
     });
     if(result != list.end()){
-        auto rm_result = std::remove(result->ignorePoint.begin(), result->ignorePoint.end(), point);
-        result->ignorePoint.erase(rm_result, result->ignorePoint.end());
+        auto find_result = std::ranges::find_if(result->lines, [&point](auto& p) { 
+            return (p.type == point.type) && (p.d == point.d);
+        });
+        if(find_result != result->lines.end()) {
+            find_result->ignore = false;
+        }
     }
 }
 
@@ -381,388 +424,22 @@ void settings::setPackingDirectory(QString validatePath)
     this->packingInputDirectory = validatePath;
 }
 
-QByteArray settings::createJson()
-{
-    QJsonObject root;
-
-    root[key(JsonKey::ApplicationVersion)] = PROJECT_VER;
-    root[key(JsonKey::ConfigVersion)] = CONFIG_FILE_VERSION;
-
-    QJsonArray langs;
-    for(auto& l : this->languages){
-        QJsonObject langObj;
-        langObj[key(JsonKey::LanguageName)] = l.languageName;
-        langObj[key(JsonKey::FontName)] = l.font.name;
-        langObj[key(JsonKey::FontPath)] = l.font.filePath;
-        langObj[key(JsonKey::FontSize)] = int(l.font.size);
-        langObj[key(JsonKey::Enable)] = bool(l.enable);
-
-        QDir baseDir(qApp->applicationDirPath());
-        auto relativePath = baseDir.relativeFilePath(l.font.filePath);
-        if(relativePath != l.font.filePath){
-            langObj[key(JsonKey::FontPath)] = relativePath;
-        }
-        else{
-            QDir baseDir2(langscoreProjectDirectory);
-            auto relativePath2 = baseDir2.relativeFilePath(l.font.filePath);
-            langObj[key(JsonKey::FontPath)] = relativePath2;
-        }
-
-        langs.append(langObj);
-    }
-    root[key(JsonKey::Languages)] = langs;
-    root[key(JsonKey::DefaultLanguage)] = this->defaultLanguage;
-    root[key(JsonKey::Project)] = "./" + QDir(this->langscoreProjectDirectory).relativeFilePath(this->gameProjectPath);
-
-    QJsonObject analyze;
-    auto tempPath = QDir(this->langscoreProjectDirectory).relativeFilePath(this->analyzeDirectoryPath());
-    analyze[key(JsonKey::TmpDir)] = "./" + tempPath;
-    if(QFile::exists(this->langscoreProjectDirectory) == false){
-        QDir().mkdir(this->langscoreProjectDirectory);
-    }
-
-    root[key(JsonKey::Analyze)] = analyze;
-
-    QJsonObject write;
-    write[key(JsonKey::UsCustomFuncComment)]        = "Scripts/{0}#{1},{2}";
-    write[key(JsonKey::ExportDirectory)]            = QDir(this->langscoreProjectDirectory).relativeFilePath(writeObj.exportDirectory);
-    write[key(JsonKey::ExportByLang)]               = writeObj.exportByLanguage;
-    write[key(JsonKey::OverwriteLangscore)]         = writeObj.overwriteLangscore;
-    write[key(JsonKey::OverwriteLangscoreCustom)]   = writeObj.overwriteLangscoreCustom;
-    write[key(JsonKey::EnableLanguagePatch)]        = writeObj.enableLanguagePatch;
-    write[key(JsonKey::FillDefaultLanguageColumn)]  = writeObj.enableFillDefaultLanguage;
-    write[key(JsonKey::AddNewContentToEnd)]         = writeObj.enableAddNewTextToEnd;
-    write[key(JsonKey::EnableTranslationDefLang)]   = writeObj.enableTranslateDefLang;
-    write[key(JsonKey::WriteType)]                  = writeObj.writeMode;
-
-    QJsonArray basicDataList;
-    for(const auto& info : writeObj.basicDataInfo)
-    {
-        QJsonObject script;
-        script[key(JsonKey::Name)] = info.name;
-        script[key(JsonKey::Ignore)] = info.ignore;
-
-
-        QJsonObject jsonCsvDataList;
-        QJsonArray textCategory;
-        for(const auto& [typeName, lang_infos] : info.validateInfo)
-        {
-
-            QJsonObject typesObj;
-            typesObj[key(JsonKey::Name)] = typeName;
-
-            int numEmbededTypes = 0;
-            for(const auto& [lang, info] : lang_infos)
-            {
-                if(info.mode == ValidateTextMode::Ignore) { continue; }
-                if(info.count == 0 && info.width == 0) {
-                    continue;
-                }
-
-                QJsonObject validateTypeObj;
-                validateTypeObj[key(JsonKey::ValidateTextMode)] = info.mode;
-                QJsonObject validateSizeListObj;
-                validateSizeListObj[key(JsonKey::ValidateTextLength)] = info.count;
-                validateSizeListObj[key(JsonKey::ValidateTextWidth)] = info.width;
-                validateTypeObj[key(JsonKey::ValidateSizeList)] = validateSizeListObj;
-
-                typesObj[lang] = validateTypeObj;
-                numEmbededTypes++;
-            }
-            if(0 < numEmbededTypes){
-                textCategory.append(typesObj);
-            }
-        }
-        if(textCategory.empty() == false) {
-            script[key(JsonKey::ValidateTextCategory)] = textCategory;
-        }
-
-        basicDataList.append(script);
-    }
-
-    write[key(JsonKey::RPGMakerBasicData)] = basicDataList;
-    write[key(JsonKey::IsFirstExported)]   = this->isFirstExported;
-
-    QJsonArray scripts;
-    for(const auto& info : writeObj.scriptInfo)
-    {
-        QJsonObject script;
-        script[key(JsonKey::Name)] = info.name;
-        script[key(JsonKey::Ignore)] = info.ignore;
-        QJsonArray ignorePointArray;
-        for(auto& point : info.ignorePoint){
-            QJsonObject obj;
-            obj[key(JsonKey::Row)] = qint64(point.row);
-            obj[key(JsonKey::Col)] = qint64(point.col);
-            obj[key(JsonKey::Disable)] = false;
-            script[key(JsonKey::Ignore)] = point.ignore;
-            ignorePointArray.append(obj);
-        }
-        script[key(JsonKey::IgnorePoints)] = ignorePointArray;
-        scripts.append(script);
-    }
-
-    write[key(JsonKey::RPGMakerScripts)] = scripts;
-
-
-    QJsonArray ignorePictures;
-    for(const auto& path : writeObj.ignorePicturePath){
-        ignorePictures.append(path);
-    }
-    write[key(JsonKey::IgnorePictures)] = ignorePictures;
-
-    root[key(JsonKey::Write)] = write;
-
-    root[key(JsonKey::PackingInputDir)] = this->packingInputDirectory;
-
-    //ControlCharListへの書き込み
-    QJsonObject validateJsonObjs;
-    QJsonArray controlCharList;
-    for(const auto& controlChar : this->validateObj.controlCharList) {
-        controlCharList.append(controlChar);
-    }
-    validateJsonObjs[key(JsonKey::ControlCharList)] = controlCharList;
-
-    root[key(JsonKey::Validate)] = validateJsonObjs;
-
-    QJsonDocument doc(root);
-    return doc.toJson();
-}
-
-void settings::write(QString path)
-{
-    QFile file(path);
-
-    QFileInfo info(file);
-    QDir parentDir = info.dir();
-    if(parentDir.exists() == false){
-        parentDir.mkdir(parentDir.absolutePath());
-    }
-
-    if(file.open(QFile::WriteOnly)){
-        file.write(createJson());
-    }
-}
-
-void settings::saveForProject(){
-    write(this->langscoreProjectDirectory+"/config.json");
-}
-
-void settings::load(QString path)
-{
-    QFile file(path);
-    if(file.open(QFile::ReadOnly) == false){ return; }
-
-   if(projectType == ProjectType::None){
-        QFileInfo lsProjFile(path);
-        auto parentDir = lsProjFile.absolutePath();
-        parentDir.remove("_langscore");
-        this->setGameProjectPath(parentDir);
-
-        if(this->projectType == ProjectType::None){ return; }
-    }
-
-    QJsonDocument root = QJsonDocument::fromJson(QByteArray(file.readAll()));
-
-
-    auto projctVer = root[key(JsonKey::ApplicationVersion)].toString();
-    auto configVer = root[key(JsonKey::ConfigVersion)].toString();
-
-
-    this->languages.clear();
-    auto jsonLanguages = root[key(JsonKey::Languages)].toArray();
-    if(jsonLanguages.empty() == false)
-    {
-        if(QVersionNumber::fromString(configVer) <= QVersionNumber::fromString("1.0.0"))
-        {
-            for(auto l : jsonLanguages)
-            {
-                auto obj = l.toObject();
-                QFont fontData(obj[key(JsonKey::FontName)].toString());
-                fontData.setPixelSize(obj[key(JsonKey::FontSize)].toInt());
-                auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
-                                     Font{ obj[key(JsonKey::FontName)].toString(),
-                                           obj[key(JsonKey::FontPath)].toString(),
-                                           fontData,
-                                           static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
-                                     },
-                                     obj[key(JsonKey::Enable)].toBool(false)};
-                this->languages.emplace_back(data);
-            }
-            //フォント再登録のメッセージを出す？
-        }
-        else
-        {
-            for(auto l : jsonLanguages)
-            {
-                auto obj = l.toObject();
-                QFont fontData(obj[key(JsonKey::FontName)].toString());
-                fontData.setPixelSize(obj[key(JsonKey::FontSize)].toInt());
-                auto data = Language{obj[key(JsonKey::LanguageName)].toString(),
-                                     Font{ obj[key(JsonKey::FontName)].toString(),
-                                           obj[key(JsonKey::FontPath)].toString(),
-                                           fontData,
-                                           static_cast<uint32_t>(obj[key(JsonKey::FontSize)].toInt())
-                                     },
-                                     obj[key(JsonKey::Enable)].toBool(false)};
-                this->languages.emplace_back(data);
-            }
-        }
-    }
-    this->defaultLanguage = root[key(JsonKey::DefaultLanguage)].toString("ja");
-
-    auto write = root[key(JsonKey::Write)].toObject();
-
-    writeObj.exportDirectory            = write[key(JsonKey::ExportDirectory)].toString("");
-    writeObj.exportByLanguage           = write[key(JsonKey::ExportByLang)].toBool(false);
-    writeObj.enableLanguagePatch        = write[key(JsonKey::EnableLanguagePatch)].toBool(false);
-    writeObj.enableFillDefaultLanguage  = write[key(JsonKey::FillDefaultLanguageColumn)].toBool(true);
-    writeObj.enableAddNewTextToEnd      = write[key(JsonKey::AddNewContentToEnd)].toBool(false);
-    writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
-    //保存したいようなフラグではないため、設定値を読み込まない
-//    writeObj.isWriteCSV               = write[key(JsonKey::IsWriteCsv)].toBool(false);
-//    writeObj.overwriteLangscore       = write[key(JsonKey::OverwriteLangscore)].toBool(false);
-//    writeObj.overwriteLangscoreCustom = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
-//    writeObj.writeMode = -1;
-
-    this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
-
-    auto basicScripts = write[key(JsonKey::RPGMakerBasicData)].toArray();
-    for(auto jsonInfo : basicScripts)
-    {
-        auto jsonScript = jsonInfo.toObject();
-
-        auto name = jsonScript[key(JsonKey::Name)].toString();
-        auto isIgnore = jsonScript[key(JsonKey::Ignore)].toBool();
-
-        try{
-            auto& info = this->fetchBasicDataInfo(name);
-            info.ignore = isIgnore;
-            info.name = name;
-
-            if(jsonScript.contains(key(JsonKey::ValidateTextCategory)) && jsonScript[key(JsonKey::ValidateTextCategory)].isArray())
-            {
-                auto typesArray = jsonScript[key(JsonKey::ValidateTextCategory)].toArray();
-                for(const auto& valueTypesData : typesArray)
-                {
-                    if(valueTypesData.isObject() == false) { continue; }
-
-                    auto valueTypes = valueTypesData.toObject();
-                    auto keys = valueTypes.keys();
-                    QString typeName = "";
-                    TextValidateTypeMap validateTypeMap;
-                    TextValidationLangMap langMap;
-                    for(const auto& _key : keys)
-                    {
-                        if(_key == key(JsonKey::Name)) 
-                        {
-                            typeName = valueTypes[_key].toString();
-                        }
-                        else 
-                        {
-                            if(langMap.find(_key) == langMap.end()) {
-                                langMap[_key] = {};
-                            }
-
-                            auto langValue = valueTypes[_key].toObject();
-
-                            ValidateTextInfo validateType;
-                            validateType.mode = static_cast<ValidateTextMode>(langValue[key(JsonKey::ValidateTextMode)].toInt());
-                            if(langValue.contains(key(JsonKey::ValidateSizeList)) && langValue[key(JsonKey::ValidateSizeList)].isObject()) {
-                                QJsonObject validateSizeListObj = langValue[key(JsonKey::ValidateSizeList)].toObject();
-                                validateType.count = validateSizeListObj[key(JsonKey::ValidateTextLength)].toInt();
-                                validateType.width = validateSizeListObj[key(JsonKey::ValidateTextWidth)].toInt();
-                            }
-                            langMap[_key] = validateType;
-                        }
-                    }
-
-                    if(info.validateInfo.find(typeName) == info.validateInfo.end()) {
-                        info.validateInfo[typeName] = std::move(langMap);
-                    }
-                }
-            }
-        }
-        catch(const char* mes){
-//            std::cerr << mes << std::endl;
-        }
-    }
-
-    auto jsonScripts = write[key(JsonKey::RPGMakerScripts)].toArray();
-    auto scriptList = langscore::readCsv(this->tempScriptFileDirectoryPath()+"/_list.csv");
-    for(const auto& jsonInfo : jsonScripts)
-    {
-        auto jsonScript = jsonInfo.toObject();
-        auto fileName = jsonScript[key(JsonKey::Name)].toString();
-
-        try
-        {
-            ScriptInfo& info = this->fetchScriptInfo(fileName);
-            //スクリプト情報の名前がスクリプト名だった時の対応。数字列以外が含まれていたらスクリプト名とみなしてIDに変更する。
-            if(std::count_if(fileName.cbegin(), fileName.cend(), [](const auto c){
-                return c < '0' || '9' < c;
-            }) > 0){
-                auto result = std::find_if(scriptList.cbegin(), scriptList.cend(), [&fileName](const auto& x){ return x[1] == fileName; });
-                if(result != scriptList.cend()){
-                    info.name = (*result)[0];
-                }
-            }
-
-            info.ignore = jsonScript[key(JsonKey::Ignore)].toBool();
-
-            auto jsonIgnorePoints = jsonScript[key(JsonKey::IgnorePoints)].toArray();
-            for(const auto& jsonPoint : jsonIgnorePoints)
-            {
-                auto obj = jsonPoint.toObject();
-                auto pair = TextPoint{
-                                static_cast<size_t>(obj[key(JsonKey::Row)].toInteger()),
-                                static_cast<size_t>(obj[key(JsonKey::Col)].toInteger()),
-                                obj[key(JsonKey::Name)].toString(),
-                                obj[key(JsonKey::Disable)].toBool(false),
-                                obj[key(JsonKey::Ignore)].toBool(false),
-                                obj[key(JsonKey::WriteType)].toInt()
-                            };
-
-                auto result = std::find_if(info.ignorePoint.begin(), info.ignorePoint.end(), [&pair](const auto& x){
-                    return x == std::pair<size_t,size_t>{pair.row, pair.col};
-                });
-                if(result == info.ignorePoint.end()){
-                    info.ignorePoint.emplace_back(std::move(pair));
-                }
-            }
-        }
-        catch(const char* mes){
-//            std::cerr << mes << std::endl;
-        }
-    }
-
-    auto jsonIgnorePictures = write[key(JsonKey::IgnorePictures)].toArray();
-    for(auto jsonPath : jsonIgnorePictures)
-    {
-        this->writeObj.ignorePicturePath.emplace_back(jsonPath.toString());
-    }
-
-    this->packingInputDirectory = root[key(JsonKey::PackingInputDir)].toString();
-
-    auto validateJsonObj = root[key(JsonKey::Validate)];
-    //QJsonArrayからcontrolCharListへの読み込み
-    auto jsonControlCharList = validateJsonObj[key(JsonKey::ControlCharList)].toArray();
-    for (const auto& jsonChar : jsonControlCharList) {
-        this->validateObj.controlCharList.emplace_back(jsonChar.toString());
-    }
-}
-
 void settings::updateLangscoreProjectPath()
 {
     //ゲームプロジェクトファイルと同階層に Project_langscore というフォルダを作成する。
     //ゲームプロジェクトと同じフォルダに含めると、アーカイブ作成時にファイルが上手く含まれない場合がある。
-    auto folderName = this->gameProjectPath.sliced(this->gameProjectPath.lastIndexOf("/")+1).toStdString();
-    auto _path = this->gameProjectPath.toStdString();
-    auto gameProjPath = std::filesystem::path(_path);
-    auto langscoreProj = gameProjPath / ".." / (folderName + "_langscore");
-    auto u8Path = std::filesystem::absolute(langscoreProj).u8string();
-    this->langscoreProjectDirectory = QString::fromStdString({u8Path.begin(), u8Path.end()});;
-    this->langscoreProjectDirectory.replace("\\", "/");
+    //std::filesystem::path に UTF-8 の std::string を渡すと ANSI コードページとして解釈され、
+    //日本語などを含むパスで例外になるため Qt でパスを組み立てる。
+    QFileInfo gameProjDir(this->gameProjectPath);
+    this->langscoreProjectDirectory = QDir::cleanPath(gameProjDir.absolutePath() + "/" + gameProjDir.fileName() + "_langscore");
+}
+
+//divisiが除外画像の判定に使う形式にする
+//ゲームフォルダからの相対パス・拡張子なし・区切り文字は /
+QString settings::toIgnorePicturePath(const QString& pictureFilePath) const
+{
+    QFileInfo info(pictureFilePath);
+    return QDir(this->gameProjectPath).relativeFilePath(info.absolutePath() + "/" + info.completeBaseName());
 }
 
 settings::ProjectType settings::getProjectType(const QString& filePath)
@@ -783,4 +460,13 @@ settings::ProjectType settings::getProjectType(const QString& filePath)
         }
     }
     return settings::None;
+}
+
+bool settings::isLangscoreScript(const QString& scriptName)
+{
+    auto lower = scriptName.toLower();
+    if(lower == "langscore" || lower == "langscore_custom" || lower == "langscore_observerbridge") {
+        return true;
+    }
+    return false;
 }

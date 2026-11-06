@@ -6,6 +6,7 @@
 #include "src/ui/ComponentBase.h"
 #include "src/settings.h"
 #include "src/ui/FormTaskBar.h"
+#include "src/service/ValidationService.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -16,7 +17,7 @@ QT_END_NAMESPACE
 
 class WriteModeComponent;
 class AnalyzeDialog;
-class PackingMode;
+class invoker;
 class MainWindow : public FramelessWindow, public ComponentBase
 {
     Q_OBJECT
@@ -32,15 +33,19 @@ private:
     FormTaskBar* taskBar;
     AnalyzeDialog* analyzeDialog;
     WriteModeComponent* writeUi;
-    PackingMode* packingUi;
+    langscore::ValidationService* validationService;
     QUndoView* undoView;
 
+    bool _finishInvoke;
+
     bool initialAnalysis;
+    // 初回解析を行ったプロジェクトの langscore フォルダ。破棄時に削除してよいのはこのフォルダのみ
+    QString initialAnalysisProjectDir;
     bool explicitSave;
-    int lastSavedHistoryIndex;
 
     void receive(DispatchType type, const QVariantList& args) override;
     int askCloseProject();
+    void askMoveExportDirectory();
 
     void attachTheme(ColorTheme::Theme theme);
 

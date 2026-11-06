@@ -4,6 +4,8 @@
 #include "../graphics.hpp"
 
 #include "ColorDialog.h"
+#include "dialog/TranslationApiSettingsDialog.h"
+#include "dialog/EditKeySettingsDialog.h"
 
 #include <QActionGroup>
 #include <QMenuBar>
@@ -114,9 +116,21 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     editMenu->addSeparator();
     auto undoView = editMenu->addAction(tr("Show Undo View..."));
 
+    auto validationAction = new QAction(tr("Validation all file..."), this);
+    validationAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_V);
+    editMenu->addAction(validationAction);
+    editMenu->addSeparator();
+    //CSVエディターより前の、外部エディターでCSVを編集していたプロジェクト向け
+    auto importAction = editMenu->addAction(tr("Import Translation CSV..."));
+    connect(importAction, &QAction::triggered, this, &FormTaskBar::importTranslationCsv);
+
     connect(undoAction, &QAction::triggered, this, &FormTaskBar::undo);
     connect(redoAction, &QAction::triggered, this, &FormTaskBar::redo);
     connect(undoView,   &QAction::triggered, this, &FormTaskBar::showUndoView);
+
+    connect(validationAction, &QAction::triggered, this, [this]() {
+        emit this->validationAll();
+    });
 
     //System Menu
     auto systemMenu = AddMenu(tr("System"));
@@ -135,6 +149,16 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     connect(lightAction,       &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::Light));
     connect(darkAction,        &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::Dark));
     connect(systemThemeAction, &QAction::triggered, this, std::bind(&FormTaskBar::emitChangeTheme, this, ColorTheme::Theme::System));
+
+    // Translation API Settings
+    systemMenu->addSeparator();
+    auto translationApiSettings = systemMenu->addAction(tr("Translation API Settings..."));
+    connect(translationApiSettings, &QAction::triggered, this, &FormTaskBar::openTranslationApiSettings);
+
+    auto editKeySettings = systemMenu->addAction(tr("Cell Editing Keys..."));
+    connect(editKeySettings, &QAction::triggered, this, [this]() {
+        EditKeySettingsDialog(this->window()).exec();
+    });
 
     {
         auto theme = ComponentBase::getColorTheme().getCurrentTheme();
@@ -194,6 +218,14 @@ FormTaskBar::~FormTaskBar()
     });
     recentProjs.erase(result, recentProjs.end());
     settings.sync();
+}
+
+void FormTaskBar::openTranslationApiSettings()
+{
+    this->dispatch(EnableBlur, {});
+    TranslationApiSettingsDialog dialog(this);
+    dialog.exec();
+    this->dispatch(DisableBlur, {});
 }
 
 void FormTaskBar::updateRecentMenu()

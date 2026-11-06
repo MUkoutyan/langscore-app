@@ -9,6 +9,10 @@
 #include <QResizeEvent>
 
 #include "ComponentBase.h"
+#include "EditDataManager.h"
+#include "FileTree.h"
+#include "MainCSVTable.h"
+#include "ScriptCSVTable.h"
 
 #include <variant>
 
@@ -17,6 +21,7 @@ class WriteModeComponent;
 }
 
 class ScriptViewer;
+class ClipDetectSettingTree;
 class LanguageSelectComponent;
 class invoker;
 class WriteModeComponent : public QWidget, public ComponentBase
@@ -28,73 +33,59 @@ public:
 
     void show();
     void clear();
-
-signals:
-    void toNextPage();
+    void loadAllMainFiles();
+    //外部エディターで編集した翻訳のCSVをエディターに取り込み、結果の文章を返す
+    QString importTranslationCsvFiles(const QStringList& csvPaths);
 
 public slots:
     void treeItemSelected();
     void treeItemChanged(QTreeWidgetItem *_item, int column);
-    void scriptTableSelected();
-    void scriptTableItemChanged(QTableWidgetItem *item);
+    void scriptTableSelected(QString scriptName, QString scriptFilePath, QString textPoint, int textLen);
+    //void scriptTableItemChanged(QTableWidgetItem *item);
 
     void exportPlugin();
     void exportTranslateFiles();
     void firstExportTranslateFiles();
+    void onScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
+    void onScriptTableItemCheckChanged(QString scriptName, Qt::CheckState check);
+
+private slots:
+    // FileTreeからのsignalを受けるslot
+    void onShowGraphicsImage(const QString& imagePath);
+    void onShowMainFile(const QString& treeItemName, const QString& fileName);
+    void onShowScriptFile(const QString& scriptFilePath);
+    void onSetScriptFileNameLabel(const QString& label);
+    void onHighlightScriptText(int row, int col, int length);
+    void onSetTabIndex(int index);
 
 private:
+#if defined(LANGSCORE_GUIAPP_TEST)
+    friend class LangscoreAppTest;
+#endif
 
     enum InvokeType {
         None,
         ExportFirstTime,
         ExportCSV,
         UpdatePlugin,
-        Reanalisys
+        Reanalisys,
+        PackingAfterExport
     };
 
     Ui::WriteModeComponent* ui;
     QGraphicsScene* scene;
     std::vector<LanguageSelectComponent*> languageButtons;
-    std::vector<std::pair<QString, QString>> scriptFileNameMap;
     int currentScriptWordCount;
     bool showAllScriptContents;
-    bool _suspendHistory;
     invoker* _invoker;
     InvokeType invokeType;
     QString lastWritePath;
     ScriptViewer* scriptViewer;
 
-    //fetchScriptTableSameFileRowsの高速化のためのキャッシュ
-    std::unordered_map<QString, std::vector<int>> scriptNameToTableIndexMap;
-
-    std::unordered_map<Qt::CheckState, QColor> tableTextColorForState;
 
     void setup();
-    void setupScriptCsvText();
-    void setupTree();
 
-    void showNormalJsonText(QString treeItemName, QString fileName);
-    void setTreeItemCheck(QTreeWidgetItem *_item, Qt::CheckState check);
-    void setScriptTableItemCheck(QTableWidgetItem *_item, Qt::CheckState check);
-
-    void writeToBasicDataListSetting(QTreeWidgetItem *item, bool ignore);
-    void writeToScriptListSetting(QTreeWidgetItem *item, bool ignore);
-    void writeToIgnoreScriptLine(int row, bool ignore);
-    void writeToPictureListSetting(QTreeWidgetItem *item, bool ignore);
-
-    std::vector<int> fetchScriptTableSameFileRows(QString scriptName);
-    QTreeWidgetItem* fetchScriptTreeSameFileItem(QString scriptName);
-    void setTableItemTextColor(int row, QBrush color);
-
-    Qt::CheckState getTreeCheckStateBasedOnTable(QString scriptName);
-
-    void updateScriptWordCount(QString text, Qt::CheckState state);
     void backup();
-
-    QTableWidgetItem* scriptTableItem(int row, int col);
-    QString getScriptName(QString fileName);
-    QString getScriptFileName(QString scriptName);
-    QString getScriptFileNameFromTable(int row);
 
     void setFontList(std::vector<QString> fontPaths);
 
@@ -105,53 +96,17 @@ private:
     void dropEvent(QDropEvent* event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
 
-    struct TableUndo : QUndoCommand
-    {
-        using ValueType = bool;
-        TableUndo(WriteModeComponent* parent, QTableWidgetItem* target, ValueType newValue, ValueType oldValue)
-            : parent(parent), target(target), newValue(std::move(newValue)), oldValue(std::move(oldValue))
-        {}
-        ~TableUndo(){}
+    bool confirmOverwriteReadOnlyPlugins();
 
-        int id() const override { return 2; }
-        void undo() override;
-        void redo() override;
-
-    private:
-        WriteModeComponent* parent;
-        QTableWidgetItem* target;
-        ValueType newValue;
-        ValueType oldValue;
-
-        void setValue(ValueType value);
-    };
-
-    struct TreeUndo : QUndoCommand
-    {
-        using ValueType = Qt::CheckState;
-        TreeUndo(WriteModeComponent* parent, QTreeWidgetItem* target, ValueType newValue, ValueType oldValue)
-            : parent(parent), target(target), newValue(std::move(newValue)), oldValue(std::move(oldValue))
-        {}
-        ~TreeUndo(){}
-
-        int id() const override { return 3; }
-        void undo() override;
-        void redo() override;
-
-    private:
-        WriteModeComponent* parent;
-        QTreeWidgetItem* target;
-        ValueType newValue;
-        ValueType oldValue;
-
-        void setValue(ValueType value);
-    };
-
-
-#if defined(LANGSCORE_GUIAPP_TEST)
-    friend class LangscoreAppTest;
-#endif
+    void applyEditingTranslationsToExport();
+    void finishExport(bool openExportFolder = true);
 
     void changeUIColor();
+
+    std::shared_ptr<EditDataManager> csvEditDataManager;
+    FileTree* fileTree;
+    MainCSVTable* mainTable;
+    ScriptCSVTable* scriptTable;
+    ClipDetectSettingTree* clipDetectSettingTree;
 };
 

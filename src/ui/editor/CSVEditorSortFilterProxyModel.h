@@ -1,0 +1,67 @@
+#pragma once
+#include "EditorTableDefines.h"
+#include <QSortFilterProxyModel>
+#include <QSet>
+#include <QString>
+#include <vector>
+#include <utility>
+
+namespace langscore {
+
+class CSVEditorSortFilterProxyModel : public QSortFilterProxyModel
+{
+    Q_OBJECT
+public:
+
+    explicit CSVEditorSortFilterProxyModel(QObject* parent = nullptr);
+
+    // テキストフィルタ（空文字列でフィルタ解除）
+    void setFilterText(const QString& text);
+
+    // フィルタ対象列（-1 で全列を検索）
+    void setFilterTargetColumn(int column);
+
+    void setFilterMode(FilterModes mode);
+
+    void setFilterNoTranslateColumn(bool isFillter);
+
+    QString filterText() const { return _filterText; }
+    int filterTargetColumn() const { return _filterColumn; }
+
+    // 言語列の表示/非表示
+    void setLanguageColumnHidden(const QString& langCode, bool hidden);
+    bool isLanguageColumnHidden(const QString& langCode) const;
+    void clearAllHiddenLanguages();
+    void loadColumnFilterFromSettings();
+    void saveColumnFilterToSettings(const std::vector<std::pair<QString, bool>>& languageVisibilities);
+    //列の表示設定を保存する settings.ini のグループ。プロジェクトごとに分ける
+    void setSettingsGroup(const QString& group) { _settingsGroup = group; }
+    QString settingsGroup() const { return _settingsGroup; }
+    static QString settingsGroupForProject(const QString& projectDirectory);
+
+    // 3ステートソート（なし → 昇順 → 降順 → なし）
+    void cycleColumnSort(int proxyColumn);
+    void setSortState(int proxyColumn, SortOrder order);
+    int sortedColumn() const { return _sortColumn; }
+    SortOrder currentSortOrder() const { return _sortOrder; }
+
+signals:
+    void sortStateChanged(int column, SortOrder order);
+    void columnVisibilityChanged();
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
+    bool filterAcceptsColumn(int sourceColumn, const QModelIndex& sourceParent) const override;
+    bool lessThan(const QModelIndex& left, const QModelIndex& right) const override;
+
+    QString _filterText;
+    QString _settingsGroup = "filters";
+    QSet<QString> _hiddenLanguages;
+    int _filterColumn = -1;
+    int _sortColumn = -1;
+    SortOrder _sortOrder = SortOrder::None;
+    FilterModes _filterMode = FilterMode::NoFilter;
+    bool _filterNoTranslateColumn = false;
+};
+
+} // namespace langscore

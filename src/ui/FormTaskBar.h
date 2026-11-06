@@ -7,7 +7,7 @@
 #include <QMenu>
 
 #include "ComponentBase.h"
-#include "ColorTheme.h"
+#include "service/ColorTheme.h"
 
 namespace Ui {
 class FormTaskBar;
@@ -18,8 +18,6 @@ class FormTaskBar : public QWidget, public ComponentBase
     Q_OBJECT
 
 public:
-
-
     explicit FormTaskBar(QUndoStack* history, ComponentBase* setting, QWidget *parent = nullptr);
     ~FormTaskBar();
 
@@ -38,6 +36,9 @@ signals:
     void redo();
     void showUndoView();
 
+    void validationAll();
+    void importTranslationCsv();
+
     void changeTheme(ColorTheme::Theme);
 
     void dragging(QMouseEvent* event, QPoint delta);
@@ -45,6 +46,9 @@ signals:
 public slots:
     void updateRecentMenu();
     void emitChangeTheme(ColorTheme::Theme);
+
+private slots:
+    void openTranslationApiSettings();
 
 private:
     Ui::FormTaskBar *ui;

@@ -30,7 +30,6 @@
     <item>
      <widget class="QStackedWidget" name="mainStackedWidget">
       <widget class="QWidget" name="writeMode"/>
-      <widget class="QWidget" name="packingMode"/>
      </widget>
     </item>
    </layout>

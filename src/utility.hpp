@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QString>
+#include <QFileInfo>
 
 namespace langscore
 {
@@ -11,6 +12,20 @@ static int wordCountUTF8(QString text)
         if((beg->toLatin1() & 0xc0) != 0x80){ words++; }
     }
     return words;
+}
+
+static QString getFileNameWithoutExtension(QString filePath) 
+{
+    QFileInfo fileInfo{filePath};
+    return QString::fromStdWString(fileInfo.filesystemAbsoluteFilePath().filename().stem().wstring());
+}
+
+static QString getExtension(QString fileName)
+{
+    int index = fileName.lastIndexOf('.');
+    if(index == -1){ return QString(); }
+    fileName.remove(0, index+1);
+    return fileName;
 }
 
 static QString withoutExtension(QString fileName)
@@ -31,6 +46,16 @@ static QString withoutAllExtension(QString fileName)
     fileName.remove(index, fileName.length()-index);
 
     return fileName;
+}
+
+
+inline QString GetScriptExtension(settings::ProjectType type)
+{
+    auto scriptExt = ".rb";
+    if(type == settings::MV || type == settings::MZ) {
+        scriptExt = ".js";
+    }
+    return scriptExt;
 }
 
 }

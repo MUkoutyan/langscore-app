@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QFontDatabase>
+#include "service/LanguageNames.h"
 
 LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* component, QWidget* parent)
     : QWidget(parent)
@@ -244,7 +245,9 @@ void LanguageSelectComponent::setupData()
     }
 
     this->setFontSize(this->setting->getDefaultFontSize());
-    auto langName = locale.nativeLanguageName() + "(" + bcp47Name + ")";
+
+    QString display = langscore::languageDisplayName(bcp47Name);
+    auto langName = display + "(" + bcp47Name + ")";
     this->button->setText(langName);
 
     this->fontPreview->setText(locale.nativeLanguageName());

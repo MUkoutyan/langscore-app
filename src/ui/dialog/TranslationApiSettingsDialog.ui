@@ -1,0 +1,351 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TranslationApiSettingsDialog</class>
+ <widget class="QDialog" name="TranslationApiSettingsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>500</width>
+    <height>450</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Translation API Settings</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="deeplTab">
+      <attribute name="title">
+       <string>DeepL API</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="deeplLayout">
+       <item>
+        <widget class="QLabel" name="deeplInfoLabel">
+         <property name="text">
+          <string>Enter your DeepL API key to enable DeepL translation service.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="deeplKeyLayout">
+         <item>
+          <widget class="QLabel" name="deeplKeyLabel">
+           <property name="text">
+            <string>API Key:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="deeplApiKeyEdit">
+           <property name="echoMode">
+            <enum>QLineEdit::EchoMode::Password</enum>
+           </property>
+           <property name="placeholderText">
+            <string>Enter DeepL API key</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="showDeepLKeyButton">
+           <property name="maximumSize">
+            <size>
+             <width>50</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Show</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="deeplTestLayout">
+         <item>
+          <widget class="QPushButton" name="testDeepLButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Test Connection</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="deeplStatusLabel">
+           <property name="text">
+            <string>API key not set</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="deeplUsageGroupBox">
+         <property name="title">
+          <string>Usage Information</string>
+         </property>
+         <layout class="QVBoxLayout" name="deeplUsageLayout">
+          <item>
+           <widget class="QLabel" name="deeplUsageLabel">
+            <property name="text">
+             <string>Characters used: 0</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="deeplVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="googleTab">
+      <attribute name="title">
+       <string>Google Translate</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="googleLayout">
+       <item>
+        <widget class="QLabel" name="googleInfoLabel">
+         <property name="text">
+          <string>Enter your Google Translate API key to enable Google translation service.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="googleKeyLayout">
+         <item>
+          <widget class="QLabel" name="googleKeyLabel">
+           <property name="text">
+            <string>API Key:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="googleApiKeyEdit">
+           <property name="echoMode">
+            <enum>QLineEdit::EchoMode::Password</enum>
+           </property>
+           <property name="placeholderText">
+            <string>Enter Google Translate API key</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="showGoogleKeyButton">
+           <property name="maximumSize">
+            <size>
+             <width>50</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Show</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="googleTestLayout">
+         <item>
+          <widget class="QPushButton" name="testGoogleButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Test Connection</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="googleStatusLabel">
+           <property name="text">
+            <string>API key not set</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="googleHorizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="googleUsageGroupBox">
+         <property name="title">
+          <string>Usage Information</string>
+         </property>
+         <layout class="QVBoxLayout" name="googleUsageLayout">
+          <item>
+           <widget class="QLabel" name="googleUsageLabel">
+            <property name="text">
+             <string>Characters used: 0</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="googleVerticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="disclaimerFrame">
+     <property name="styleSheet">
+      <string notr="true">QFrame#disclaimerFrame { 
+    background-color: #fff3cd; 
+    border: 1px solid #ffeaa7; 
+    border-radius: 4px; 
+    padding: 8px; 
+}</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::Shape::Box</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Shadow::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="disclaimerLayout">
+      <property name="leftMargin">
+       <number>8</number>
+      </property>
+      <property name="topMargin">
+       <number>8</number>
+      </property>
+      <property name="rightMargin">
+       <number>8</number>
+      </property>
+      <property name="bottomMargin">
+       <number>8</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="disclaimerTitleLabel">
+        <property name="styleSheet">
+         <string notr="true">font-weight: bold; color: #856404;</string>
+        </property>
+        <property name="text">
+         <string>⚠️ Important Notice</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="disclaimerTextLabel">
+        <property name="styleSheet">
+         <string notr="true">color: #856404; font-size: 10px;</string>
+        </property>
+        <property name="text">
+         <string extracomment="      Important Notice = 重要なお知らせ       Please read and comply with the Terms of Service... =        使用する翻訳サービス（DeepL、Google Translate等）の利用規約をお読みになり、       これに従ってください。Langscoreは、これらの規約違反やサービスの使用によって       生じる一切の結果について責任を負いません。">Please read and comply with the Terms of Service of the translation services you use (DeepL, Google Translate, etc.). Langscore is not responsible for any violations of these terms or any consequences arising from your use of these services.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bottomLayout">
+     <item>
+      <widget class="QPushButton" name="refreshUsageButton">
+       <property name="text">
+        <string>Refresh Usage</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="bottomSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="standardButtons">
+        <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

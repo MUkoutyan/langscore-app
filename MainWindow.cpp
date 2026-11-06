@@ -1,9 +1,9 @@
 ﻿#include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "./src/ui/FormTaskBar.h"
-#include "./src/ui/AnalyzeDialog.h"
+#include "./src/ui/dialog/AnalyzeDialog.h"
 #include "./src/ui/WriteModeComponent.h"
-#include "./src/ui/PackingMode.h"
+#include "./src/invoker.h"
 
 #include <QFile>
 #include <QDir>
@@ -14,6 +14,10 @@
 #include <QPalette>
 #include <QFontDatabase>
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QTimer>   
+
+using namespace langscore;
 
 MainWindow::MainWindow(QWidget *parent)
     : FramelessWindow(parent)
@@ -22,18 +26,16 @@ MainWindow::MainWindow(QWidget *parent)
     , taskBar(new FormTaskBar(this->history, this))
     , analyzeDialog(new AnalyzeDialog(this, this))
     , writeUi(new WriteModeComponent(this, this))
-    , packingUi(new PackingMode(this, this))
+    , validationService(new ValidationService(this))
     , undoView(nullptr)
     , initialAnalysis(false)
     , explicitSave(false)
-    , lastSavedHistoryIndex(0)
 {
     ui->setupUi(this);
     this->setObjectName("mainWindow");
     this->dispatchComponentList->emplace_back(this);
 
     this->ui->mainStackedWidget->removeWidget(this->ui->writeMode);
-    this->ui->mainStackedWidget->removeWidget(this->ui->packingMode);
     this->ui->verticalLayout->insertWidget(0, taskBar);
     this->ui->verticalLayout->insertWidget(1, writeUi);
     this->ui->verticalLayout->setStretch(1,1);
@@ -45,15 +47,9 @@ MainWindow::MainWindow(QWidget *parent)
     writeUi->setGraphicsEffect(new QGraphicsBlurEffect);
 
     this->ui->mainStackedWidget->addWidget(this->writeUi);
-    this->ui->mainStackedWidget->addWidget(this->packingUi);
 
-    connect(this->writeUi, &WriteModeComponent::toNextPage, this, [this](){
-        this->ui->mainStackedWidget->setCurrentWidget(this->packingUi);
-    });
+    this->addDispatch(validationService);
 
-    connect(this->packingUi, &PackingMode::toPrevPage, this, [this](){
-        this->ui->mainStackedWidget->setCurrentWidget(this->writeUi);
-    });
 
     connect(this->taskBar, &FormTaskBar::showUndoView, this, &MainWindow::createUndoView);
 
@@ -74,13 +70,20 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::moveWiget, this->analyzeDialog, &AnalyzeDialog::moveParent);
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
         this->explicitSave = true;
-        this->receive(SaveProject, {});
+        this->dispatch(SaveProject, {});
         this->receive(StatusMessage, {tr("Save Projet."), 5000});
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)
     {
+        //別のプロジェクトを読み込む前に、今のプロジェクトの未保存の変更を確認する。
+        //setGameProjectPathの後だと保存先が新しいプロジェクトになるため、ここで行う
+        const auto button = this->askCloseProject();
+        if(button == QMessageBox::Cancel) { return; }
+        if(button == QMessageBox::Save) { this->dispatch(SaveProject, {}); }
+
         const auto configFilePath = path+"_langscore/config.json";
         if(QFile::exists(configFilePath)){
+            this->initialAnalysis = false;
             this->setting->setGameProjectPath(path);
             this->openGameProject(std::move(configFilePath));
         }
@@ -88,31 +91,74 @@ MainWindow::MainWindow(QWidget *parent)
             this->analyzeDialog->openFile(std::move(path));
         }
     });
+    connect(this->taskBar, &FormTaskBar::validationAll, this, [this]() {
+        //divisiでアプリ側エディターのCSVを検証するため、開いていないファイルも読み込んでから保存する
+        this->writeUi->loadAllMainFiles();
+        this->dispatch(SaveProject, {});
+        this->dispatch(ValidateAll, {});
+    });
+    connect(this->taskBar, &FormTaskBar::importTranslationCsv, this, [this]()
+    {
+        //プロジェクトを開いていない間は取り込み先が無い
+        if(this->writeUi->isEnabled() == false) { return; }
+        //外部エディターでは、書き出したCSVを直接編集していたため、書き出し先から選ぶ
+        const QDir langscoreProjectDir(this->setting->langscoreProjectDirectory);
+        const auto exportFolder = langscoreProjectDir.absoluteFilePath(this->setting->writeObj.exportDirectory);
+        const auto csvPaths = QFileDialog::getOpenFileNames(this, tr("Import Translation CSV"), exportFolder, tr("CSV (*.csv)"));
+        if(csvPaths.isEmpty()) { return; }
+        const auto message = this->writeUi->importTranslationCsvFiles(csvPaths);
+        QMessageBox::information(this, tr("Import Translation CSV"), message);
+    });
     //connect(this->taskBar, &FormTaskBar::changeTheme, this, &MainWindow::attachTheme);
     connect(this->taskBar, &FormTaskBar::quit,            this, &MainWindow::close);
 
     connect(this->analyzeDialog, &AnalyzeDialog::toAnalyzeMode, this, [this](){
         initialAnalysis = true;
+        initialAnalysisProjectDir = this->setting->langscoreProjectDirectory;
     });
     connect(this->analyzeDialog, &AnalyzeDialog::toWriteMode, this, [this](QString gameProjPath)
     {
         auto projFile = this->setting->langscoreProjectDirectory+"/config.json";
         if(QFile::exists(projFile) == false){ return; }
+        //解析済みの別プロジェクトを開いた場合は、初回解析の扱い（破棄時の削除）をしない
+        if(this->setting->langscoreProjectDirectory != initialAnalysisProjectDir) {
+            this->initialAnalysis = false;
+        }
         this->openGameProject(std::move(projFile));
     });
 
-    connect(this->history, &QUndoStack::indexChanged, this, [this](int idx){
-        if(this->lastSavedHistoryIndex != idx){
-            this->setWindowTitle("Langscore " + tr("Edited"));
-        }else{
-            this->setWindowTitle("Langscore");
-        }
+    //履歴を消したとき（再解析・プロジェクトの切り替え）も保存済みの状態になるよう、履歴の clean 状態で判定する
+    connect(this->history, &QUndoStack::cleanChanged, this, [this](bool clean){
+        this->setWindowTitle(clean ? "Langscore" : "Langscore " + tr("Edited"));
     });
-
 
     {
         attachTheme(ComponentBase::getColorTheme().getCurrentTheme());
+
+        auto&& settings = this->getAppSettings();
+        // geometryにはウィンドウの位置とサイズが保存されています
+        if(settings.contains("geometry") == true) {
+            this->restoreGeometry(settings.value("geometry").toByteArray());
+        }
+
+        // windowStateにはウィンドウの最大化などの状態が保存されています
+        if(settings.contains("windowState") == true) {
+            this->restoreState(settings.value("windowState").toByteArray());
+        }
+
+        this->update();
+
+        QTimer::singleShot(0, this, [this]() {
+            auto parentRect = this->rect();
+            auto analyzeRect = this->analyzeDialog->rect();
+            qDebug() << "Parent Rect:" << parentRect;
+            analyzeRect.moveCenter(parentRect.center());
+            qDebug() << "Analyze Dialog Rect (parent coords):" << analyzeRect;
+            // AnalyzeDialog はウィンドウ（トップレベル）なので、親のローカル座標をグローバルへ変換して移動する
+            this->analyzeDialog->move(this->mapToGlobal(analyzeRect.topLeft()));
+        });
     }
+
 }
 
 MainWindow::~MainWindow()
@@ -122,10 +168,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::openGameProject(QString configFilePath)
 {
+    this->explicitSave = false;
     this->writeUi->clear();
 
     this->setting->load(std::move(configFilePath));
     this->history->clear();
+    this->askMoveExportDirectory();
 
     auto&& settings = this->getAppSettings();
     auto projDir = this->setting->gameProjectPath;
@@ -157,6 +205,30 @@ void MainWindow::openGameProject(QString configFilePath)
     this->showWriteMode();
 }
 
+//以前のバージョンでは langscore のフォルダの中に書き出していた。ゲームが読む翻訳フォルダへ変えるかを確認する。
+//「いいえ」を選んだプロジェクトでは次から確認しない
+void MainWindow::askMoveExportDirectory()
+{
+    if(this->setting->isExportDirectoryInLangscoreFolder() == false) { return; }
+    auto&& appSettings = this->getAppSettings();
+    const auto key = "KeepExportDirectory/" + QString(this->setting->langscoreProjectDirectory.toUtf8().toBase64());
+    if(appSettings.value(key, false).toBool()) { return; }
+
+    const auto newFolder = QDir::toNativeSeparators(this->setting->translateDirectoryPath());
+    const auto button = QMessageBox::question(this, tr("Change Export Folder"),
+        tr("The export folder of this project is inside the Langscore project folder.\n"
+           "From this version, translations are exported to the game's translation folder.\n"
+           "Change the export folder to the following folder?\n\n%1").arg(newFolder),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+    if(button == QMessageBox::Yes) {
+        this->setting->useGameTranslateFolderForExport();
+        this->setting->saveForProject();
+    }
+    else {
+        appSettings.setValue(key, true);
+    }
+}
+
 void MainWindow::showWriteMode()
 {
     this->taskBar->updateRecentMenu();
@@ -177,15 +249,22 @@ void MainWindow::closeEvent(QCloseEvent* e)
     }
     else if(button == QMessageBox::Discard)
     {
-        if(this->initialAnalysis && this->explicitSave == false){
+        //初回解析したプロジェクト以外のフォルダは決して削除しない
+        if(this->initialAnalysis && this->explicitSave == false &&
+           this->setting->langscoreProjectDirectory == initialAnalysisProjectDir){
             QDir(this->setting->langscoreProjectDirectory).removeRecursively();
         }
         e->accept();
     }
     else if(button == QMessageBox::Save){
-        this->setting->saveForProject();
+        this->dispatch(SaveProject, {});
         e->accept();
     }
+
+    auto&& settings = this->getAppSettings();
+    settings.setValue("geometry", this->saveGeometry());
+    settings.setValue("windowState", this->saveState());
+
     QMainWindow::closeEvent(e);
 }
 
@@ -200,7 +279,7 @@ void MainWindow::receive(DispatchType type, const QVariantList &args)
     else if(type == DispatchType::SaveProject)
     {
         this->setting->saveForProject();
-        lastSavedHistoryIndex = this->history->index();
+        this->history->setClean();
     }
     else if(type == DispatchType::ChangeColor)
     {
@@ -219,7 +298,7 @@ int MainWindow::askCloseProject()
 {
     bool ask = this->initialAnalysis && (this->explicitSave == false);
 
-    if(ask == false && (this->history->index() == this->lastSavedHistoryIndex)){
+    if(ask == false && this->history->isClean()){
         return QMessageBox::Discard;
     }
     //ファイルを閉じようとしています。
@@ -298,6 +377,7 @@ QTreeView::item:hover { background-color: #2202abd1;}
         analyzeDialog->setStyleSheet("#analyzeDialog{border: 2px solid #999999;}");
     }
 }
+
 
 void MainWindow::createUndoView()
 {
