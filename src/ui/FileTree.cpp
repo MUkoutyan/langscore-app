@@ -1524,6 +1524,17 @@ void FileTree::clearErrorItemsRecursive(QTreeWidgetItem* parent)
     }
 }
 
+bool FileTree::selectFile(const QString& fileName)
+{
+    auto* item = this->findTreeItemByFileName(langscore::withoutAllExtension(fileName));
+    if(item == nullptr) { return false; }
+    if(this->treeWidget->currentItem() != item) {
+        this->treeWidget->setCurrentItem(item);
+    }
+    this->treeWidget->scrollToItem(item);
+    return true;
+}
+
 QTreeWidgetItem* FileTree::findTreeItemByFileName(const QString& fileName)
 {
     const int topLevelCount = this->treeWidget->topLevelItemCount();

@@ -76,6 +76,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="enableRemoteHub">
+     <property name="toolTip">
+      <string>Adds the debug plugin Langscore_RemoteHub. It works only while test playing.</string>
+     </property>
+     <property name="text">
+      <string>Add the debug plugin (Langscore_RemoteHub)</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>

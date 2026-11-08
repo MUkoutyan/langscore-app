@@ -52,8 +52,14 @@ public:
     void hideLanguageColumns();
     bool isLanguageColumnHidden(const QString& language) const;
 
+    //テストプレイ中のゲームで表示している行を、選択とは別に緑の枠で表示する。
+    //sourceIndex は並べ替え・絞り込みの前のモデルの位置。無効な位置なら枠を消す
+    void setFramedCell(const QModelIndex& sourceIndex);
+    QModelIndex framedCell() const { return this->framedSourceIndex; }
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
     bool edit(const QModelIndex& index, EditTrigger trigger, QEvent* event) override;
 
@@ -100,6 +106,7 @@ private:
     void setData(QModelIndex index, QVariant value, int role) override;
 
     bool _replaceTextOnEdit = false;
+    QPersistentModelIndex framedSourceIndex;
 
     // Actions
     QAction* cutAction;

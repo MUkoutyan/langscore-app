@@ -16,6 +16,8 @@
 
 #include <variant>
 
+class QPushButton;
+
 namespace Ui {
 class WriteModeComponent;
 }
@@ -106,6 +108,19 @@ private:
     bool testPlayAfterExport = false;
 
     void changeUIColor();
+
+    //----RemoteHub----
+    void setupRemoteHub();
+    void updateFollowGameButton();
+    void setHasUnappliedEdits(bool hasEdits);
+    QPushButton* followGameButton = nullptr;
+    QPushButton* applyToGameButton = nullptr;
+    //ゲーム実行時の書き出しの場合、書き出し先のフォルダーを開かない
+    bool applyToGameAfterExport = false;
+    //ゲームに反映していない編集があるか
+    bool hasUnappliedEdits = false;
+    //テストプレイ中のゲームが起動しているか
+    bool isGameRunning = false;
 
     std::shared_ptr<EditDataManager> csvEditDataManager;
     FileTree* fileTree;

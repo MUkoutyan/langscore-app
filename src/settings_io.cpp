@@ -170,6 +170,7 @@ void settings::load(QString path)
     writeObj.enableTranslateDefLang     = write[key(JsonKey::EnableTranslationDefLang)].toBool(true);
     writeObj.overwriteLangscore         = write[key(JsonKey::OverwriteLangscore)].toBool(false);
     writeObj.overwriteLangscoreCustom   = write[key(JsonKey::OverwriteLangscoreCustom)].toBool(false);
+    writeObj.enableRemoteHub            = write[key(JsonKey::EnableRemoteHub)].toBool(false);
     writeObj.writeMode                  = write[key(JsonKey::WriteType)].toInt(-1);
     this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
 
@@ -237,6 +238,7 @@ QJsonObject serializeWrite(const settings* s) {
     write[key(JsonKey::ExportByLang)]               = s->writeObj.exportByLanguage;
     write[key(JsonKey::OverwriteLangscore)]         = s->writeObj.overwriteLangscore;
     write[key(JsonKey::OverwriteLangscoreCustom)]   = s->writeObj.overwriteLangscoreCustom;
+    write[key(JsonKey::EnableRemoteHub)]            = s->writeObj.enableRemoteHub;
     write[key(JsonKey::EnableLanguagePatch)]        = s->writeObj.enableLanguagePatch;
     write[key(JsonKey::EnableTranslationDefLang)]   = s->writeObj.enableTranslateDefLang;
     write[key(JsonKey::WriteType)]                  = s->writeObj.writeMode;

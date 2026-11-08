@@ -64,6 +64,8 @@ public:
 
     void clear();
 
+    bool selectFile(const QString& fileName);
+
     void setupTree();
     void setupBasicsTree();
     void setupMainTree();
