@@ -18,6 +18,8 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QPainter>
+#include <QAbstractProxyModel>
 #include <QMimeData>
 #include <QSettings>
 #include <QApplication>
@@ -1022,4 +1024,30 @@ void CSVEditor::onHeaderSectionClicked(int logicalIndex)
     if(auto* proxy = dynamic_cast<CSVEditorSortFilterProxyModel*>(model())) {
         proxy->cycleColumnSort(logicalIndex);
     }
+}
+
+void CSVEditor::setFramedCell(const QModelIndex& sourceIndex)
+{
+    this->framedSourceIndex = sourceIndex;
+    this->viewport()->update();
+}
+
+void CSVEditor::paintEvent(QPaintEvent* event)
+{
+    QTableView::paintEvent(event);
+    if(this->framedSourceIndex.isValid() == false) { return; }
+
+    auto* proxy = qobject_cast<QAbstractProxyModel*>(this->model());
+    const auto* sourceModel = proxy ? proxy->sourceModel() : this->model();
+    if(this->framedSourceIndex.model() != sourceModel) { return; }
+
+    const auto index = proxy ? proxy->mapFromSource(this->framedSourceIndex) : QModelIndex(this->framedSourceIndex);
+    //絞り込みで隠れている行は表示しない
+    if(index.isValid() == false) { return; }
+
+    QPainter painter(this->viewport());
+    painter.setPen(QPen(QColor(0, 200, 83), 2));
+    painter.setBrush(Qt::NoBrush);
+    //スクロール時の残像対策
+    painter.drawRect(this->visualRect(index).adjusted(1, 1, -1, -1));
 }

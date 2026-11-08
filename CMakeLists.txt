@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.28)
 
-project(langscore-app VERSION 0.8.12 LANGUAGES CXX)
+project(langscore-app VERSION 1.0.0 LANGUAGES CXX)
 
 set(CONFIG_FILE_VERSION 1.1.0)
 configure_file(application_config.h.in application_config.h @ONLY)
@@ -147,6 +147,8 @@ set(PROJECT_SOURCES
     src/service/EditingTranslationExporter.cpp
     src/service/TranslationCsvImporter.h
     src/service/TranslationCsvImporter.cpp
+    src/service/FollowGameService.h
+    src/service/FollowGameService.cpp
 )
 
 include_directories(

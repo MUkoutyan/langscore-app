@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     , analyzeDialog(new AnalyzeDialog(this, this))
     , writeUi(new WriteModeComponent(this, this))
     , validationService(new ValidationService(this))
+    , followGameService(new FollowGameService(this))
     , undoView(nullptr)
     , initialAnalysis(false)
     , explicitSave(false)
@@ -163,6 +164,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    //ゲームの確認のタイマーが、破棄した画面へ dispatch しないよう先に消す
+    delete followGameService;
     delete ui;
 }
 

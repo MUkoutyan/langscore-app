@@ -21,6 +21,8 @@ private:
     Ui::UpdatePluginDialog *ui;
     std::shared_ptr<settings> setting;
     int _writeMode;
+    //開いたときのデバッグ用プラグインの設定。変えたときは上書きが無くても書き出せる
+    bool _initialEnableRemoteHub;
 
     void checkButtonStatus();
 

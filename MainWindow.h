@@ -7,6 +7,7 @@
 #include "src/settings.h"
 #include "src/ui/FormTaskBar.h"
 #include "src/service/ValidationService.h"
+#include "src/service/FollowGameService.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -34,6 +35,7 @@ private:
     AnalyzeDialog* analyzeDialog;
     WriteModeComponent* writeUi;
     langscore::ValidationService* validationService;
+    FollowGameService* followGameService;
     QUndoView* undoView;
 
     bool _finishInvoke;

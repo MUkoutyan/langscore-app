@@ -44,6 +44,13 @@ public:
         NotifyFinishValidateCSV,
         SendLog,
         ChangeValidationFilter, //無し。検証結果の表示の絞り込みを変えた
+        //---- テストプレイ中のゲームとの連携（FollowGameService） ----
+        FollowGame,         //bool ゲームへの追従を始める・止める
+        NotifyGameRunning,  //bool ゲームが起動しているか。1秒ごとに送る
+        ShowGameText,       //原文, 翻訳ファイル名, ゲームの言語。ゲームで表示している文章
+        ApplyToGame,        //無し 編集した翻訳をゲームに反映する
+        ExportForGame,      //無し ゲームに反映するため、翻訳ファイルを書き出し直す（VXAce）
+        NotifyApplyToGame,  //反映したファイルの数。0なら反映する編集が無かった
     };
 
     ComponentBase()

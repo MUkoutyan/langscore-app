@@ -163,6 +163,7 @@ TEST_F(SettingsTest, IsLangscoreScript)
     EXPECT_TRUE(settings::isLangscoreScript("Langscore"));
     EXPECT_TRUE(settings::isLangscoreScript("langscore_custom"));
     EXPECT_TRUE(settings::isLangscoreScript("Langscore_ObserverBridge"));
+    EXPECT_TRUE(settings::isLangscoreScript("Langscore_RemoteHub"));
     EXPECT_FALSE(settings::isLangscoreScript("LangscoreX"));
     EXPECT_FALSE(settings::isLangscoreScript(""));
 }
@@ -303,12 +304,13 @@ TEST_F(SettingsTest, ScriptFullIgnoreKeepsLines)
 
 TEST_F(SettingsTest, WriteFlagsRoundTrip)
 {
-    // 書き出している OverwriteLangscore / OverwriteLangscoreCustom / WriteType が読み込みで復元されること
+    // 書き出している OverwriteLangscore / OverwriteLangscoreCustom / EnableRemoteHub / WriteType が読み込みで復元されること
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);
     s.writeObj.overwriteLangscore = true;
     s.writeObj.overwriteLangscoreCustom = true;
+    s.writeObj.enableRemoteHub = true;
     s.writeObj.writeMode = 2;
     auto configPath = WriteConfig(s);
 
@@ -316,6 +318,7 @@ TEST_F(SettingsTest, WriteFlagsRoundTrip)
     loaded.load(configPath);
     EXPECT_TRUE(loaded.writeObj.overwriteLangscore);
     EXPECT_TRUE(loaded.writeObj.overwriteLangscoreCustom);
+    EXPECT_TRUE(loaded.writeObj.enableRemoteHub);
     EXPECT_EQ(loaded.writeObj.writeMode, 2);
 }
 

@@ -143,6 +143,8 @@ public:
         bool exportByLanguage = false;
         bool overwriteLangscore = false;
         bool overwriteLangscoreCustom = false;
+        //デバッグ用のプラグインをゲームに入れるか
+        bool enableRemoteHub = false;
         bool enableTranslateDefLang = true;
         bool enableLanguagePatch = false;
         std::vector<BasicData> basicDataInfo;

@@ -30,6 +30,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QUndoStack>
 
 #include <functional>
 #include <unordered_map>
@@ -39,11 +40,6 @@
 
 using namespace langscore;
 
-
-namespace {
-
-
-} //namespace {
 
 WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     : QWidget{parent}
@@ -108,6 +104,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     connect(this->ui->writeButton, &QPushButton::clicked, this, &WriteModeComponent::exportTranslateFiles);
     connect(this->ui->updatePluginButton, &QPushButton::clicked, this, &WriteModeComponent::exportPlugin);
     connect(this->ui->testPlayButton, &QPushButton::clicked, this, &WriteModeComponent::testPlay);
+    this->setupRemoteHub();
 
     connect(this->ui->updateButton, &QPushButton::clicked, this, [this]()
     {
@@ -153,6 +150,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             this->dispatch(StatusMessage, {tr("Failed. Please check the log."), 5000});
             //書き出しに失敗したら、古い翻訳のままテストプレイしない
             testPlayAfterExport = false;
+            applyToGameAfterExport = false;
             //パッキングの前に CSV とプラグインの書き出しは終わっているため、書き出し済みとして扱う。
             //パッキングは「翻訳CSVを書き出し」でやり直せる
             if(invokeType == InvokeType::PackingAfterExport) {
@@ -253,12 +251,16 @@ void WriteModeComponent::show()
     //OS の言語は新規プロジェクトの既定言語として setupLanguages で有効になる。開くたびには変えない
     this->clear();
     this->setup();
+    //前回ゲームに反映していない編集があれば、反映できるようにする
+    this->setHasUnappliedEdits(this->setting->isFirstExported && langscore::UnexportedEditingFiles(*this->setting).isEmpty() == false);
 }
 
 void WriteModeComponent::clear()
 {
 
     this->showAllScriptContents = true;
+    //別のプロジェクトのゲームを監視しないよう、追従を止める
+    if(this->followGameButton) { this->followGameButton->setChecked(false); }
     //ツリー・表を作り直すと Undo 履歴が保持している項目が削除されるため、履歴も破棄する
     this->history->clear();
     this->fileTree->clear();
@@ -576,7 +578,47 @@ void WriteModeComponent::setup()
     this->update();
 }
 
-//divisiでアプリ側エディターのCSVを認識するため、エディター内の翻訳をCSVに反映する
+
+
+void WriteModeComponent::setupRemoteHub()
+{
+    //ゲームに追従
+    this->followGameButton = new QPushButton(tr("Follow Game"), this);
+    this->followGameButton->setObjectName("followGameButton");
+    this->followGameButton->setCheckable(true);
+    //ゲームへ反映
+    this->applyToGameButton = new QPushButton(tr("Apply to Game"), this);
+    this->applyToGameButton->setObjectName("applyToGameButton");
+    //編集した翻訳をゲームの翻訳ファイルに反映し、プロジェクトに保存します。テストプレイ中のゲームは翻訳を読み直します。
+    this->applyToGameButton->setToolTip(tr("Applies the edited translations to the game's translation files and saves the project.\nThe test playing game reloads the translations."));
+    for(auto* button : {this->followGameButton, this->applyToGameButton}) {
+        button->setSizePolicy(this->ui->testPlayButton->sizePolicy());
+    }
+    this->ui->horizontalLayout_5->insertWidget(1, this->followGameButton);
+    this->ui->horizontalLayout_5->insertWidget(2, this->applyToGameButton);
+
+    connect(this->followGameButton, &QPushButton::toggled, this, [this](bool checked) {
+        //接続中に言語を変えると、ゲームの翻訳ファイルと列が合わなくなるため変えさせない
+        this->ui->langTab->setEnabled(checked == false);
+        if(checked == false) { this->mainTable->clearHighlightRow(); }
+        this->dispatch(FollowGame, {checked});
+        this->updateFollowGameButton();
+    });
+    connect(this->applyToGameButton, &QPushButton::clicked, this, [this]() {
+        if(this->setting->isFirstExported == false) {
+            //先に翻訳ファイルを書き出して下さい。
+            QMessageBox::information(this, tr("Apply to Game"), tr("Please export the translation files first."));
+            return;
+        }
+        this->setHasUnappliedEdits(false);
+        this->dispatch(ApplyToGame, {});
+    });
+    this->updateFollowGameButton();
+
+    connect(this->history, &QUndoStack::indexChanged, this, [this]() { this->setHasUnappliedEdits(true); });
+    this->setHasUnappliedEdits(false);
+}
+
 void WriteModeComponent::applyEditingTranslationsToExport()
 {
     const auto updatedFiles = langscore::ApplyEditingTranslations(*this->setting);
@@ -587,9 +629,11 @@ void WriteModeComponent::applyEditingTranslationsToExport()
 void WriteModeComponent::finishExport(bool openExportFolder)
 {
     //テストプレイのための書き出しでは、フォルダーを開かずにゲームを起動する
-    if(openExportFolder && testPlayAfterExport == false) {
+    if(openExportFolder && testPlayAfterExport == false && applyToGameAfterExport == false) {
         QProcess::startDetached("explorer", {QDir::toNativeSeparators(lastWritePath)});
     }
+    applyToGameAfterExport = false;
+    this->setHasUnappliedEdits(false);
     this->setting->isFirstExported = true;
 
     this->ui->writeCSVAndPluginButton->setVisible(false);
@@ -727,6 +771,9 @@ void WriteModeComponent::changeEnabledUIState(bool enable)
     this->ui->writeCSVAndPluginButton->setEnabled(enable);
     this->ui->updatePluginButton->setEnabled(enable);
     this->ui->testPlayButton->setEnabled(enable);
+    if(this->applyToGameButton) { 
+        this->applyToGameButton->setEnabled(enable && this->hasUnappliedEdits); 
+    }
     this->ui->updateButton->setEnabled(enable);
     //言語が1つも選ばれていない場合は、処理が終わっても書き出しボタンを無効のままにする
     const bool hasEnabledLanguage = std::ranges::any_of(this->setting->languages, [](const settings::Language& lang) {
@@ -757,11 +804,51 @@ void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
     else if(type == ComponentBase::DisableBlur) {
         this->setGraphicsEffect(nullptr);
     }
-    else if(type == ComponentBase::SendLog) 
+    else if(type == ComponentBase::SendLog)
     {
         if(args.empty()) { return; }
         auto text = args[0].toString();
         this->ui->logText->writeText(text);
+    }
+    else if(type == ComponentBase::NotifyGameRunning)
+    {
+        if(args.empty()) { return; }
+        this->isGameRunning = args[0].toBool();
+        this->updateFollowGameButton();
+    }
+    else if(type == ComponentBase::ShowGameText)
+    {
+        if(args.size() < 3) { return; }
+        const auto original = args[0].toString();
+        const auto fileName = args[1].toString();
+        //ゲーム: %1
+        this->dispatch(StatusMessage, {tr("Game: %1").arg(original.section('\n', 0, 0)), 10000});
+        if(fileName.isEmpty() || this->fileTree->selectFile(fileName) == false) {
+            this->mainTable->clearHighlightRow();
+            return;
+        }
+        this->mainTable->highlightRowByOriginal(original, args[2].toString());
+    }
+    else if(type == ComponentBase::ExportForGame)
+    {
+        this->changeEnabledUIState(false);
+        this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
+        this->ui->logText->clear();
+        this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
+        applyToGameAfterExport = true;
+        _invoker->exportCSV();
+        invokeType = InvokeType::ExportCSV;
+    }
+    else if(type == ComponentBase::NotifyApplyToGame)
+    {
+        if(args.empty()) { return; }
+        const auto numFiles = args[0].toInt();
+        if(numFiles == 0) {
+            //ゲームに未反映の項目はありません。
+            this->dispatch(StatusMessage, {tr("There are no edits to apply to the game."), 3000});
+            return;
+        }
+        this->dispatch(StatusMessage, {tr("Applied the edited translations to %1 files.").arg(numFiles), 3000});
     }
 }
 
@@ -893,4 +980,37 @@ void WriteModeComponent::onScriptTreeItemCheckChanged(QString scriptName, Qt::Ch
 void WriteModeComponent::onScriptTableItemCheckChanged(QString scriptName, Qt::CheckState check)
 {
     this->scriptTable->changeScriptTableItemCheck(scriptName, check);
+}
+
+void WriteModeComponent::updateFollowGameButton()
+{
+    //ゲームを閉じたら切断する
+    if(this->isGameRunning == false && this->followGameButton->isChecked()) {
+        this->followGameButton->setChecked(false);
+        return;
+    }
+    this->followGameButton->setEnabled(this->isGameRunning);
+    if(this->followGameButton->isChecked()) {
+        //接続中...
+        this->followGameButton->setText(tr("Connected..."));
+        //クリックで切断
+        this->followGameButton->setToolTip(tr("Click to disconnect"));
+        return;
+    }
+    this->followGameButton->setText(tr("Follow Game"));
+    if(this->isGameRunning) {
+        //テストプレイ中のゲームで表示している文章の行を示します。
+        this->followGameButton->setToolTip(tr("Shows the row of the text displayed in the test playing game."));
+    }
+    else {
+        //テストプレイ中のゲームが見つかりません。「プラグインの更新」でデバッグ用のプラグイン（Langscore_RemoteHub）を追加してから、テストプレイを始めて下さい。
+        this->followGameButton->setToolTip(tr("No test playing game was found.\nAdd the debug plugin (Langscore_RemoteHub) in \"Update Plugin\", then start the test play."));
+    }
+}
+
+void WriteModeComponent::setHasUnappliedEdits(bool hasEdits)
+{
+    this->hasUnappliedEdits = hasEdits;
+    //書き出しなどの処理中は changeEnabledUIState が無効にしている
+    this->applyToGameButton->setEnabled(hasEdits && this->fileTree->isEnabled());
 }

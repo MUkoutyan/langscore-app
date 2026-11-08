@@ -9,7 +9,8 @@ UpdatePluginDialog::UpdatePluginDialog(std::shared_ptr<settings> settings, QWidg
     PopupDialogBase(parent),
     ui(new Ui::UpdatePluginDialog),
     setting(std::move(settings)),
-    _writeMode(0)
+    _writeMode(0),
+    _initialEnableRemoteHub(setting->writeObj.enableRemoteHub)
 {
     ui->setupUi(this);
 
@@ -37,6 +38,13 @@ UpdatePluginDialog::UpdatePluginDialog(std::shared_ptr<settings> settings, QWidg
     });
 
 
+    //ゲームへの追従・反映で使うデバッグ用のプラグイン。プラグインの更新で追加・削除する
+    this->ui->enableRemoteHub->setChecked(setting->writeObj.enableRemoteHub);
+    connect(this->ui->enableRemoteHub, &QCheckBox::clicked, this, [this](bool check){
+        setting->writeObj.enableRemoteHub = check;
+        this->checkButtonStatus();
+    });
+
     this->ui->enableTransDefLang->setChecked(setting->writeObj.enableTranslateDefLang);
     connect(this->ui->enableTransDefLang, &QCheckBox::clicked, this, [this](bool check){
         setting->writeObj.enableTranslateDefLang = check;
@@ -63,8 +71,10 @@ bool UpdatePluginDialog::isEnableLanguagePatch() const
 
 void UpdatePluginDialog::checkButtonStatus()
 {
+    //デバッグ用のプラグインの追加・削除だけでも書き出せるようにする
     if(setting->writeObj.overwriteLangscore == false &&
-       setting->writeObj.overwriteLangscoreCustom == false){
+       setting->writeObj.overwriteLangscoreCustom == false &&
+       setting->writeObj.enableRemoteHub == _initialEnableRemoteHub){
         this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
     }
     else{

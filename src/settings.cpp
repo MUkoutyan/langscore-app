@@ -465,7 +465,7 @@ settings::ProjectType settings::getProjectType(const QString& filePath)
 bool settings::isLangscoreScript(const QString& scriptName)
 {
     auto lower = scriptName.toLower();
-    if(lower == "langscore" || lower == "langscore_custom" || lower == "langscore_observerbridge") {
+    if(lower == "langscore" || lower == "langscore_custom" || lower == "langscore_observerbridge" || lower == "langscore_remotehub") {
         return true;
     }
     return false;

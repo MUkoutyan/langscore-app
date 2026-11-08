@@ -34,6 +34,10 @@ public:
     //書き換えたセルの数を返す。取り込み先のファイルが無い・CSVを読めない場合は -1
     int importTranslationCsv(const QString& csvPath);
 void selectError(quint64 errorId);
+    //表示中のファイルで、原文がoriginalの行を緑の枠で示して見える位置までスクロールする。
+    //見つからなければ枠を消してfalse
+    bool highlightRowByOriginal(const QString& original, const QString& language);
+    void clearHighlightRow();
     //すべてのファイルの進捗を fileProgressChanged で通知する
     void notifyAllFileProgress();
 

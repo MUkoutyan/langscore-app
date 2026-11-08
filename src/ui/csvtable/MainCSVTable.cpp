@@ -287,6 +287,52 @@ void MainCSVTable::selectError(quint64 errorId)
     QTimer::singleShot(0, this, [this, row, column]() { this->selectCell(row, column); });
 }
 
+bool MainCSVTable::highlightRowByOriginal(const QString& original, const QString& language)
+{
+    this->clearHighlightRow();
+    if(this->currentModel == nullptr) { return false; }
+    int originalColumn = -1;
+    //枠を付ける列。ゲームで表示している言語の列にする。無ければ原文の列
+    int framedColumn = -1;
+    for(int c = 0; c < this->currentModel->columnCount(); ++c) {
+        const auto id = this->currentModel->headerData(c, Qt::Horizontal, Qt::UserRole).toString();
+        if(id == Column_ID_Original) { originalColumn = c; }
+        else if(id == language) { framedColumn = c; }
+    }
+    if(originalColumn < 0) { return false; }
+    if(framedColumn < 0) { framedColumn = originalColumn; }
+
+    //VXAce は改行が \r\n のため、改行をそろえて比べる
+    const auto key = QString(original).remove('\r');
+    for(int row = 0; row < this->currentModel->rowCount(); ++row) 
+    {
+        auto originColIndex = this->currentModel->index(row, originalColumn);
+        if(originColIndex.data().toString().remove('\r') != key) {
+            continue; 
+        }
+        
+        //未翻訳の場合は、ゲームに表示されている原文の列にする
+        auto sourceIndex = this->currentModel->index(row, framedColumn);
+        if(sourceIndex.data().toString().isEmpty()) { 
+            sourceIndex = originColIndex;
+        }
+        this->csvEditor->setFramedCell(sourceIndex);
+        //表を開いた直後は行の高さの調整が後で行われるため、その後にスクロールする
+        QTimer::singleShot(0, this, [this, sourceIndex = QPersistentModelIndex(sourceIndex)]() {
+            if(sourceIndex.isValid() == false || _proxyModel == nullptr) { return; }
+            const auto index = _proxyModel->mapFromSource(sourceIndex);
+            if(index.isValid()) { this->csvEditor->scrollTo(index, QAbstractItemView::PositionAtCenter); }
+        });
+        return true;
+    }
+    return false;
+}
+
+void MainCSVTable::clearHighlightRow()
+{
+    this->csvEditor->setFramedCell({});
+}
+
 void MainCSVTable::selectNextError(bool forward)
 {
     if(this->currentModel == nullptr || this->_proxyModel == nullptr) { return; }
