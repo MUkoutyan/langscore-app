@@ -156,7 +156,7 @@
             <item>
              <widget class="QRadioButton" name="keepSource">
               <property name="text">
-               <string extracomment="既存の翻訳を残して上書き">Leave and overwrite existing translations</string>
+               <string extracomment="既存の翻訳を残して上書き">Overwrite while keeping existing translations</string>
               </property>
               <property name="autoExclusive">
                <bool>true</bool>
@@ -185,7 +185,7 @@
                <string notr="true">color: rgb(255, 44, 44);</string>
               </property>
               <property name="text">
-               <string extracomment="新しい内容で上書き(既存の内容は消されます)">Overwrite by New  (Translations already written will be erased.)</string>
+               <string extracomment="新しい内容で上書き(既存の内容は消されます)">Overwrite with new content (existing content will be erased)</string>
               </property>
               <property name="autoExclusive">
                <bool>true</bool>
@@ -211,13 +211,6 @@
      </property>
      <property name="checked">
       <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="exportByLangCheck">
-     <property name="text">
-      <string extracomment="言語パッチモードを有効にする">Enable Language Patch Mode</string>
      </property>
     </widget>
    </item>

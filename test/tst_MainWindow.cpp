@@ -2,6 +2,7 @@
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTimer>
 #include <QApplication>
 #include <QPushButton>
@@ -59,4 +60,27 @@ TEST(MainWindowTest, AskSaveOnlyWhenEdited)
     window.dispatch(ComponentBase::SaveProject, {});
     EXPECT_FALSE(CloseAndCheckAsked(window, accepted)) << "保存したのに確認しています";
     EXPECT_TRUE(accepted);
+}
+
+TEST(MainWindowTest, OpenProjectCreatesEditingFolder)
+{
+    // editing が無いプロジェクト（以前のバージョン・解析した直後）を開くと、editing を作ること
+    QTemporaryDir tempDir;
+    const auto gameDir = tempDir.filePath("Game");
+    QDir().mkpath(gameDir);
+    QFile projectFile(gameDir + "/Game.rmmzproject");
+    ASSERT_TRUE(projectFile.open(QFile::WriteOnly));
+    projectFile.close();
+
+    TestMainWindow window;
+    window.setting->setGameProjectPath(gameDir);
+    //書き出し先の移動を確認するダイアログを出さないよう、今のバージョンの書き出し先にしておく
+    window.setting->useGameTranslateFolderForExport();
+    const auto configPath = window.setting->langscoreProjectDirectory + "/config.json";
+    window.setting->write(configPath);
+    const auto editingFolder = window.setting->langscoreProjectDirectory + "/editing";
+    ASSERT_FALSE(QFileInfo::exists(editingFolder));
+
+    ASSERT_TRUE(QMetaObject::invokeMethod(&window, "openGameProject", Q_ARG(QString, configPath)));
+    EXPECT_TRUE(QFileInfo(editingFolder).isDir()) << "editing のフォルダが作られていません";
 }

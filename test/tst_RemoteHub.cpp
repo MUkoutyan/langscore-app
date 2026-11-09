@@ -9,6 +9,8 @@
 #include <QCryptographicHash>
 #include <QPushButton>
 #include <QCheckBox>
+#include <QLabel>
+#include <QEnterEvent>
 #include <QDialogButtonBox>
 #include <QTabWidget>
 #include <QProcess>
@@ -132,7 +134,7 @@ namespace
         {
             gameDir = tempDir.filePath("Game");
             SetupProject(component, gameDir);
-            hubDir = component.setting->langscoreProjectDirectory + "/Langscore_RemoteHub";
+            hubDir = component.setting->langscoreProjectDirectory + "/remote";
         }
 
         //ゲームの起動を模して、このプロセスのIDを pid に書く
@@ -414,11 +416,59 @@ TEST_F(RemoteHubTest, FollowButtonFollowsGameState)
 
     parts.follow->click();
     EXPECT_TRUE(parts.follow->isChecked());
-    EXPECT_EQ(parts.follow->text(), QString("Connected..."));
+    EXPECT_EQ(parts.follow->text(), QString("Connected."));
     EXPECT_EQ(parts.follow->toolTip(), QString("Click to disconnect"));
 
     parts.follow->click();
     EXPECT_EQ(parts.follow->text(), QString("Follow Game"));
+}
+
+TEST_F(RemoteHubTest, OnlyAddPluginButtonBeforeRegistered)
+{
+    // プラグインの追加前は追加のボタンだけ。追加後はテストプレイ・追従・反映・プラグインの更新・書き出しを出す
+    component.setting->isPluginRegistered = false;
+    WriteModeComponent writeMode(&component, nullptr);
+    writeMode.show();
+    auto* addPlugin = writeMode.findChild<QPushButton*>("addPluginButton");
+    auto* exportButtons = writeMode.findChild<QWidget*>("exportButtonsWidget");
+    ASSERT_NE(addPlugin, nullptr);
+    ASSERT_NE(exportButtons, nullptr);
+    EXPECT_TRUE(addPlugin->isVisibleTo(&writeMode));
+    EXPECT_FALSE(exportButtons->isVisibleTo(&writeMode));
+
+    component.setting->isPluginRegistered = true;
+    writeMode.show();
+    EXPECT_FALSE(addPlugin->isVisibleTo(&writeMode));
+    EXPECT_TRUE(exportButtons->isVisibleTo(&writeMode));
+    for(const char* name : {"testPlayButton", "followGameButton", "applyToGameButton", "updatePluginButton", "writeButton"}) {
+        auto* button = writeMode.findChild<QPushButton*>(name);
+        ASSERT_NE(button, nullptr) << name;
+        EXPECT_TRUE(button->isVisibleTo(&writeMode)) << name;
+    }
+}
+
+TEST_F(RemoteHubTest, ExportButtonsAreDisabledWhileFollowing)
+{
+    // ゲームに接続している間は、プラグインの更新と翻訳CSVの書き出しを無効にし、切断したら戻す
+    component.setting->isPluginRegistered = true;
+    WriteModeComponent writeMode(&component, nullptr);
+    writeMode.show();
+    auto parts = FindParts(writeMode);
+    auto* updatePlugin = writeMode.findChild<QPushButton*>("updatePluginButton");
+    auto* write = writeMode.findChild<QPushButton*>("writeButton");
+    ASSERT_NE(updatePlugin, nullptr);
+    ASSERT_NE(write, nullptr);
+    ASSERT_TRUE(write->isEnabled());
+    WriteOwnPid();
+    ASSERT_TRUE(WaitUntil([&]() { return parts.follow->isEnabled(); }, 3000));
+
+    parts.follow->click();
+    EXPECT_FALSE(updatePlugin->isEnabled());
+    EXPECT_FALSE(write->isEnabled());
+
+    parts.follow->click();
+    EXPECT_TRUE(updatePlugin->isEnabled());
+    EXPECT_TRUE(write->isEnabled());
 }
 
 TEST_F(RemoteHubTest, ApplyButtonIsEnabledOnlyWithEdits)
@@ -559,6 +609,7 @@ TEST(RemoteHubDialog, RemoteHubCheckBoxEnablesWrite)
 {
     // デバッグ用のプラグインの追加・削除だけでも書き出せる。元に戻したら書き出せない
     auto setting = std::make_shared<settings>();
+    setting->isPluginRegistered = true;
     setting->writeObj.overwriteLangscore = false;
     setting->writeObj.overwriteLangscoreCustom = false;
     setting->writeObj.enableRemoteHub = false;
@@ -576,5 +627,42 @@ TEST(RemoteHubDialog, RemoteHubCheckBoxEnablesWrite)
     check->click();
     EXPECT_FALSE(setting->writeObj.enableRemoteHub);
     EXPECT_FALSE(ok->isEnabled());
+}
+
+TEST(RemoteHubDialog, AddPluginNeedsNoOverwrite)
+{
+    // プラグインの追加では上書きの項目を出さず、何も選ばなくても書き出せる
+    auto setting = std::make_shared<settings>();
+    setting->isPluginRegistered = false;
+    setting->writeObj.overwriteLangscore = false;
+    setting->writeObj.overwriteLangscoreCustom = false;
+    UpdatePluginDialog dialog(setting);
+    auto* buttons = dialog.findChild<QDialogButtonBox*>();
+    ASSERT_NE(buttons, nullptr);
+    EXPECT_TRUE(buttons->button(QDialogButtonBox::Ok)->isEnabled());
+    for(const char* name : {"updateLsScript", "updateLsCustomScript"}) {
+        auto* check = dialog.findChild<QCheckBox*>(name);
+        ASSERT_NE(check, nullptr) << name;
+        EXPECT_FALSE(check->isVisibleTo(&dialog)) << name;
+    }
+}
+
+TEST(RemoteHubDialog, HoveredOptionIsDescribed)
+{
+    // オプションにマウスを乗せると説明欄にそのオプションの説明を出し、離すと消す
+    auto setting = std::make_shared<settings>();
+    setting->isPluginRegistered = true;
+    UpdatePluginDialog dialog(setting);
+    auto* description = dialog.findChild<QLabel*>("descriptionLabel");
+    ASSERT_NE(description, nullptr);
+    for(auto* check : dialog.findChildren<QCheckBox*>()) {
+        EXPECT_FALSE(check->statusTip().isEmpty()) << check->objectName().toStdString();
+        QEnterEvent enter(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1));
+        QCoreApplication::sendEvent(check, &enter);
+        EXPECT_EQ(description->text(), check->statusTip()) << check->objectName().toStdString();
+        QEvent leave(QEvent::Leave);
+        QCoreApplication::sendEvent(check, &leave);
+        EXPECT_TRUE(description->text().isEmpty()) << check->objectName().toStdString();
+    }
 }
 

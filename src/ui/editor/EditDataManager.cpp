@@ -127,6 +127,15 @@ bool EditDataManager::saveModel(const QString& filePath)
     return success;
 }
 
+QStringList EditDataManager::mainCSVFiles() const
+{
+    QStringList result;
+    for(const auto& [path, session] : sessions_) {
+        if(session->modelType == ModelType::MainCSV) { result.append(path); }
+    }
+    return result;
+}
+
 void EditDataManager::clearEditedSinceValidation()
 {
     for(const auto& [path, session] : sessions_)
@@ -151,12 +160,12 @@ bool EditDataManager::saveAllModels(const QString& editingDirectory)
     }
 
     // 全てのセッションを保存
-    for (const auto& [originalPath, session] : sessions_) 
+    for (const auto& [originalPath, session] : sessions_)
     {
-        //if (!session->isDirty) {
-        //    continue; // 変更されていないセッションはスキップ
-        //}
-        
+        //変更していないファイルは保存しない。共有フォルダで、他の人の保存を古い内容で上書きしないようにする
+        const auto* mainModel = findMainCSVModel(originalPath);
+        if(mainModel != nullptr && mainModel->needsSave() == false) { continue; }
+
         if (saveModel(originalPath) == false) {
             allSuccess = false;
         }

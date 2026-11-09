@@ -161,6 +161,8 @@ public:
     std::vector<Language> languages;
     QString defaultLanguage;
     bool isFirstExported;
+    //ゲームにプラグインを追加したか。追加するまでは、翻訳CSVを書き出せない
+    bool isPluginRegistered;
     bool isShowHiddenFilesOnTree;
 
     int originColumnWidth = 370;
@@ -179,6 +181,8 @@ public:
     ValidationProps validateObj;
 
     void setupLanguages(const std::vector<QLocale> &locales);
+    //言語タブに並べる言語。並び順が言語の並び順になる
+    static std::vector<QLocale> supportedLocales();
 
     void setupFontList();
     std::vector<Font> createFontList() const;

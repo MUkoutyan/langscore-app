@@ -173,6 +173,8 @@ void settings::load(QString path)
     writeObj.enableRemoteHub            = write[key(JsonKey::EnableRemoteHub)].toBool(false);
     writeObj.writeMode                  = write[key(JsonKey::WriteType)].toInt(-1);
     this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
+    //書き出し済みのプロジェクトは、書き出しのときにプラグインも追加している
+    this->isPluginRegistered = write["IsPluginRegistered"].toBool(this->isFirstExported);
 
     this->isShowHiddenFilesOnTree = write["IsShowHiddenFilesOnTree"].toBool();
 
@@ -249,6 +251,7 @@ QJsonObject serializeWrite(const settings* s) {
 
     write["Pictures"] = serializePicturesInfo(s->writeObj);
     write["IsShowHiddenFilesOnTree"] = s->isShowHiddenFilesOnTree;
+    write["IsPluginRegistered"] = s->isPluginRegistered;
 
     return write;
 }

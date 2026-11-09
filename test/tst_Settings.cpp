@@ -322,6 +322,40 @@ TEST_F(SettingsTest, WriteFlagsRoundTrip)
     EXPECT_EQ(loaded.writeObj.writeMode, 2);
 }
 
+TEST_F(SettingsTest, PluginRegisteredRoundTrip)
+{
+    // プラグインを追加したかを保存・復元すること。CSV を書き出す前でも追加済みになる
+    auto dir = MakeProject("Game", "Game.rmmzproject");
+    settings s;
+    s.setGameProjectPath(dir);
+    s.isFirstExported = false;
+    s.isPluginRegistered = true;
+    auto configPath = WriteConfig(s);
+    settings loaded;
+    loaded.load(configPath);
+    EXPECT_TRUE(loaded.isPluginRegistered);
+
+    // 追加したかを保存していない古いプロジェクトでは、書き出し済みなら追加済みとして扱う
+    s.isFirstExported = true;
+    configPath = WriteConfig(s);
+    QFile file(configPath);
+    ASSERT_TRUE(file.open(QFile::ReadOnly));
+    auto root = QJsonDocument::fromJson(file.readAll()).object();
+    file.close();
+    for(const auto& name : root.keys()) {
+        auto object = root[name].toObject();
+        if(object.contains("IsPluginRegistered") == false) { continue; }
+        object.remove("IsPluginRegistered");
+        root[name] = object;
+    }
+    ASSERT_TRUE(file.open(QFile::WriteOnly | QFile::Truncate));
+    file.write(QJsonDocument(root).toJson());
+    file.close();
+    settings oldProject;
+    oldProject.load(configPath);
+    EXPECT_TRUE(oldProject.isPluginRegistered);
+}
+
 TEST_F(SettingsTest, BasicDataVisibleRoundTrip)
 {
     // ツリーで非表示にした基本データ（IsVisible）が読み込みで復元されること
@@ -500,7 +534,7 @@ TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi)
 // 不具合の再発防止：新規プロジェクトの書き出し先が、ゲームのフォルダではなく _langscore フォルダの中になっていた
 TEST_F(SettingsTest, DefaultExportDirectoryIsGameTranslateFolder)
 {
-    // 書き出し先は langscore プロジェクトのフォルダからの相対パスとして使われる（FirstWriteDialog・divisi）
+    // 書き出し先は langscore プロジェクトのフォルダからの相対パスとして使われる（WriteDialog・divisi）
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);

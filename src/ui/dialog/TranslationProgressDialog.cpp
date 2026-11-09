@@ -77,10 +77,10 @@ void TranslationProgressDialog::showError(const QString& errorMessage)
 void TranslationProgressDialog::showCompletion(int successCount, int totalCount, const QString& errorMessage)
 {
     if (successCount == totalCount) {
-        ui->statusLabel->setText(tr("Translation completed successfully! %1 texts translated.").arg(successCount));
+        ui->statusLabel->setText(tr("Translation finished. %1 texts were translated.").arg(successCount));
         ui->statusLabel->setStyleSheet("color: green;");
     } else {
-        auto text = tr("Translation completed with errors. %1 of %2 texts translated successfully.").arg(successCount).arg(totalCount);
+        auto text = tr("Translation finished, but some texts failed. %1 of %2 texts were translated.").arg(successCount).arg(totalCount);
         if(errorMessage.isEmpty() == false) { text += "\n" + tr("Error: %1").arg(errorMessage); }
         ui->statusLabel->setText(text);
         ui->statusLabel->setStyleSheet("color: orange;");

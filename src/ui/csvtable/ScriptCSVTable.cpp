@@ -55,7 +55,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
     , settingButton(new QToolButton(this))
     , settingPane(new QWidget(this))
     , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns"), this))
-    , languageFontCheck(new QCheckBox(tr("Apply language font"), this))
+    , languageFontCheck(new QCheckBox(tr("Use language font"), this))
     , fixedWidthCheck(new QCheckBox(tr("Fixed cell width"), this))
     , fixedWidthSpinBox(new QSpinBox(this))
     , filterEdit(new QLineEdit(this))
@@ -137,7 +137,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
 
         showAllAction = new QAction(tr("Show All Contents"), this);
         showAllAction->setCheckable(true);
-        hideIgnoreAction = new QAction(tr("Hide Ignore Contents"), this);
+        hideIgnoreAction = new QAction(tr("Hide Ignored Contents"), this);
         hideIgnoreAction->setCheckable(true);
 
         {
@@ -177,11 +177,11 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
     }
 
     {
-        uncheckSignOnlyAction = new QAction(tr("Uncheck Sign Only Text"), this);
+        uncheckSignOnlyAction = new QAction(tr("Uncheck Symbol-Only Text"), this);
         uncheckSignOnlyAction->setCheckable(true);
         autoCheckButton->addAction(uncheckSignOnlyAction);
 
-        uncheckNoHiraganaAction = new QAction(tr("Uncheck text that does not contain hiragana"), this);
+        uncheckNoHiraganaAction = new QAction(tr("Uncheck text that does not contain Japanese"), this);
         uncheckNoHiraganaAction->setCheckable(true);
         autoCheckButton->addAction(uncheckNoHiraganaAction);
 

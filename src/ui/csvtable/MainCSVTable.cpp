@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTimer>
+#include <QScrollBar>
 #include <QCheckBox>
 #include <QShortcut>
 #include <QHash>
@@ -28,6 +29,14 @@
 #include "service/OldTranslations.h"
 #include <QMessageBox>
 #include <QDialogButtonBox>
+#include <QFileSystemWatcher>
+#include <QApplication>
+#include <QComboBox>
+#include <QDebug>
+#include <QDir>
+#include <QFileInfo>
+#include <QCryptographicHash>
+#include <QDateTime>
 
 using namespace langscore;
 
@@ -43,13 +52,14 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     , mainFileWordCount(new QLabel(this))
     , searchEdit(new QLineEdit(this))
     , hideTranslatedCheck(new QCheckBox(tr("Hide Translated Rows"), this))
-    , languageFontCheck(new QCheckBox(tr("Apply language font"), this))
+    , languageFontCheck(new QCheckBox(tr("Use language font"), this))
     , fixedWidthCheck(new QCheckBox(tr("Fixed cell width"), this))
     , fixedWidthSpinBox(new QSpinBox(this))
     , hideLanguageColumnsAction(new QPushButton(tr("Filter Columns")))
     , validateButton(new QPushButton(tr("Validate")))
-    , validateResultListButton(new QPushButton(tr("Show validate result")))
+    , validateResultListButton(new QPushButton(tr("Show Validation Results")))
     , oldTranslationsButton(new QPushButton(tr("Old Translations")))
+    , changeHistoryButton(new QPushButton(tr("Changes by Others")))
     , validateResultDialog(new QDialog(this))
     , validateResultTable(new QTableWidget(this))
     , settingButton(new QToolButton(this))
@@ -59,6 +69,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     , cellErrorLog(new QTextEdit(this))
     , _invoker(new invoker(this))
     , updateTimer(new QTimer(this))
+    , fileWatcher(new QFileSystemWatcher(this))
+    , fileChangeTimer(new QTimer(this))
     , _finishInvoke(false)
     , _showAllScriptContents(false)
 {
@@ -66,6 +78,18 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     this->updateTimer->setSingleShot(true);
     this->updateTimer->setInterval(0);
     connect(this->updateTimer, &QTimer::timeout, this, &MainCSVTable::updateProgressLabel);
+
+    //他の人が editing のCSVを保存したら、表に取り込む。
+    //保存は一時ファイルからの置き換えで行われることが多く、ファイルの監視が外れるため、フォルダも監視して付け直す
+    this->fileChangeTimer->setSingleShot(true);
+    this->fileChangeTimer->setInterval(500);
+    connect(this->fileChangeTimer, &QTimer::timeout, this, &MainCSVTable::syncChangedFiles);
+    connect(this->fileWatcher, &QFileSystemWatcher::fileChanged, this, [this](const QString& path)
+    {
+        this->changedFiles.insert(path);
+        this->fileChangeTimer->start();
+    });
+    connect(this->fileWatcher, &QFileSystemWatcher::directoryChanged, this->fileChangeTimer, qOverload<>(&QTimer::start));
 
     this->cellErrorLog->setReadOnly(true);
     this->cellErrorLog->setMaximumHeight(60);
@@ -189,6 +213,8 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     this->oldTranslationsButton->setToolTip(tr("Translations of text whose original was changed or deleted in the game. They are not exported."));
     hLayout->addWidget(this->oldTranslationsButton);
     this->oldTranslationsButton->setVisible(false);
+    this->changeHistoryButton->setToolTip(tr("Translations by another worker. The highlight disappears when you edit the cell."));
+    hLayout->addWidget(this->changeHistoryButton);
 
     this->settingButton->setIcon(QIcon(":/images/resources/image/settings.png"));
     this->settingButton->setToolTip(tr("Display settings"));
@@ -209,13 +235,16 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     connect(validateButton, &QPushButton::clicked, this, [this]()
     {
         if(this->currentModel == nullptr) { return; }
+        this->syncWithFile(this->currentFileName, false);
         this->currentModel->saveToFile(this->currentFileName);
+        this->resolveMergeConflicts(*this->currentModel, this->currentFileName);
         //終わるまで押せないようにする（NotifyFinishValidateCSV で戻す）
         this->validateButton->setEnabled(false);
         this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
     });
 
     connect(oldTranslationsButton, &QPushButton::clicked, this, &MainCSVTable::showOldTranslationsDialog);
+    connect(changeHistoryButton, &QPushButton::clicked, this, &MainCSVTable::showChangeHistoryDialog);
 
     connect(validateResultListButton, &QPushButton::clicked, this, [this]()
     {
@@ -247,6 +276,28 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 }
 
 //モデルの行・列のセルを選択し、見える位置までスクロールする
+MainCSVTable::ViewPosition MainCSVTable::viewPosition() const
+{
+    ViewPosition position;
+    if(this->currentModel == nullptr) { return position; }
+    position.scroll = this->csvEditor->verticalScrollBar()->value();
+    auto current = this->csvEditor->currentIndex();
+    if(current.isValid() == false) { return position; }
+    if(_proxyModel) { current = _proxyModel->mapToSource(current); }
+    position.row = current.row();
+    position.column = current.column();
+    return position;
+}
+
+void MainCSVTable::restoreViewPosition(const ViewPosition& position)
+{
+    //showMainFileText が行の高さを合わせるのを待ってから戻す
+    QTimer::singleShot(0, this, [this, position]() {
+        this->selectCell(position.row, position.column);
+        this->csvEditor->verticalScrollBar()->setValue(position.scroll);
+    });
+}
+
 void MainCSVTable::selectCell(int row, int column)
 {
     if(this->currentModel == nullptr) { return; }
@@ -397,7 +448,7 @@ void MainCSVTable::updateProgressLabel()
     }
     const auto [translatedRows, totalRows] = this->currentModel->translatedRowCount();
     const auto percent = (0 < totalRows) ? translatedRows * 100 / totalRows : 0;
-    this->mainFileWordCount->setText(tr("Translated: %1 / %2 (%3%)").arg(translatedRows).arg(totalRows).arg(percent));
+    this->mainFileWordCount->setText(tr("Translated: %1 / %2 rows (%3%)").arg(translatedRows).arg(totalRows).arg(percent));
     emit this->fileProgressChanged(this->currentTreeFileName, translatedRows, totalRows);
 }
 
@@ -423,6 +474,12 @@ void MainCSVTable::clear()
 this->mainFileName->setText("");
     this->mainFileWordCount->setText("");
     this->currentFileName.clear();
+
+    //別のプロジェクトのファイルを監視しないよう、監視を外す
+    const auto watchedPaths = this->fileWatcher->files() + this->fileWatcher->directories();
+    if(watchedPaths.isEmpty() == false) { this->fileWatcher->removePaths(watchedPaths); }
+    this->fileChangeTimer->stop();
+    this->changedFiles.clear();
 }
 
 //ファイルのモデルを返す。まだ読み込んでいなければ読み込む（EditDataManager がファイルごとに保持する）
@@ -441,6 +498,16 @@ MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
     //proxyでsettings->IsLanguageColumnを使うため、事前に設定する
     mainModel->setSettings(this->setting);
     mainModel->setRuntimeData(this->runtimeData);
+    connect(mainModel, &langscore::CSVEditorTableModel::changedByOthers, this, &MainCSVTable::recordChangeByOthers, Qt::UniqueConnection);
+    connect(mainModel, &langscore::CSVEditorTableModel::markStateChanged, this, &MainCSVTable::notifyFileMarks, Qt::UniqueConnection);
+
+    //他の人の保存に気づけるよう、ファイルとフォルダを監視する。
+    //editing のフォルダは初めて保存するまで無いことがあるため、作られたことに気づけるよう親のフォルダも監視する
+    const auto& projectFolder = this->setting->langscoreProjectDirectory;
+    if(QFileInfo::exists(projectFolder) && this->fileWatcher->directories().contains(projectFolder) == false) {
+        this->fileWatcher->addPath(projectFolder);
+    }
+    this->watchLoadedFiles();
 
     //読み込み済みのモデルを読み直すと未保存の編集が失われるため、未読み込みの場合のみ読み込む。
     if(mainModel->columnCount() == 0) {
@@ -525,10 +592,10 @@ void MainCSVTable::showOldTranslationsDialog()
         langscore::FastCSVContainer old;
         const auto oldPath = langscore::OldTranslationsPath(this->currentFileName);
         if(this->currentModel == nullptr || QFile::exists(oldPath) == false || old.loadFromFile(oldPath) == false) {
-            fileLabel->setText(tr("There are no old translations in this file."));
+            fileLabel->setText(tr("There are no deleted translations."));
             return;
         }
-        fileLabel->setText(tr("Translations of text whose original was changed or deleted in the game. They are kept in the editing folder but are not exported."));
+        fileLabel->setText(tr("Translations of text whose original was changed or deleted in the game. They are saved but not exported."));
         table->setColumnCount(static_cast<int>(old.columnCount()));
         table->setHorizontalHeaderLabels(old.headers());
         table->setRowCount(static_cast<int>(old.rowCount()));
@@ -541,10 +608,10 @@ void MainCSVTable::showOldTranslationsDialog()
     };
     reload();
 
-    auto* removeSelectedButton = new QPushButton(tr("Delete Selected"), &dialog);
-    auto* removeFileButton = new QPushButton(tr("Delete All in This File"), &dialog);
-    auto* removeAllButton = new QPushButton(tr("Delete All Old Translations"), &dialog);
-    removeAllButton->setToolTip(tr("Deletes the old translations of all files."));
+    auto* removeSelectedButton = new QPushButton(tr("Delete Selected Translations"), &dialog);
+    auto* removeFileButton = new QPushButton(tr("Delete All Translations Without Original Text in This File"), &dialog);
+    auto* removeAllButton = new QPushButton(tr("Delete All Translations Without Original Text"), &dialog);
+    removeAllButton->setToolTip(tr("Deletes the translations without original text in all files."));
     connect(removeSelectedButton, &QPushButton::clicked, &dialog, [this, table, reload]()
     {
         QStringList originals;
@@ -557,13 +624,13 @@ void MainCSVTable::showOldTranslationsDialog()
     });
     connect(removeFileButton, &QPushButton::clicked, &dialog, [this, &dialog, reload]()
     {
-        if(QMessageBox::question(&dialog, tr("Old Translations"), tr("Delete all old translations in this file?")) != QMessageBox::Yes) { return; }
+        if(QMessageBox::question(&dialog, tr("Old Translations"), tr("Delete all translations without original text in this file?")) != QMessageBox::Yes) { return; }
         langscore::RemoveOldTranslations(this->currentFileName);
         reload();
     });
     connect(removeAllButton, &QPushButton::clicked, &dialog, [&dialog, editingFolder, reload]()
     {
-        if(QMessageBox::question(&dialog, tr("Old Translations"), tr("Delete the old translations of all files?")) != QMessageBox::Yes) { return; }
+        if(QMessageBox::question(&dialog, tr("Old Translations"), tr("Delete the translations without original text in all files?")) != QMessageBox::Yes) { return; }
         langscore::RemoveAllOldTranslations(editingFolder);
         reload();
     });
@@ -677,6 +744,346 @@ int MainCSVTable::importTranslationCsv(const QString& csvPath)
     return changedCells;
 }
 
+void MainCSVTable::resolveMergeConflicts(langscore::CSVEditorTableModel& model, const QString& csvPath)
+{
+    const auto conflicts = model.mergeConflicts();
+    if(conflicts.empty()) { return; }
+
+    //ファイルには自分の訳で保存してある。他の人の訳にしたセルだけ書き換えて保存し直す
+    const auto choices = this->askConflicts(csvPath, model, conflicts, false);
+    for(size_t i = 0; i < conflicts.size(); ++i)
+    {
+        if(choices[i] != ConflictChoice::Theirs) { continue; }
+        const auto& conflict = conflicts[i];
+        model.setData(model.index(conflict.row, conflict.column), conflict.theirs);
+    }
+
+    //保存し直す間に他の人が保存していれば、もう一度選んでもらう
+    //保存できなかった場合は、同じ衝突を繰り返し出さないよう次の保存に任せる
+    if(model.saveToFile(csvPath)) {
+        this->resolveMergeConflicts(model, csvPath);
+    }
+}
+
+std::vector<MainCSVTable::ConflictChoice> MainCSVTable::askConflicts(const QString& csvPath, const langscore::CSVEditorTableModel& model,
+                                                                     const std::vector<langscore::CSVEditorTableModel::MergeConflict>& conflicts, bool canPostpone)
+{
+    const auto unanswered = canPostpone ? ConflictChoice::Later : ConflictChoice::Mine;
+    std::vector<ConflictChoice> choices(conflicts.size(), unanswered);
+    if(conflicts.empty()) { return choices; }
+
+    int originalColumn = 0;
+    for(int column = 0; column < model.columnCount(); ++column) {
+        if(model.headerData(column, Qt::Horizontal, Qt::UserRole).toString() == "original") { originalColumn = column; }
+    }
+    const auto fileName = QFileInfo(csvPath).completeBaseName();
+
+    QDialog dialog(this);
+    dialog.setObjectName("mergeConflictDialog");
+    //編集の衝突
+    dialog.setWindowTitle(tr("Edit Conflict"));
+    dialog.resize(900, 450);
+    //%1 のこれらのセルを、他の人も別の訳に変えていました。セルごとにどちらの訳にするか選んでください。\nCtrl・Shift で複数の行を選ぶと、まとめて選べます。
+    auto* label = new QLabel(tr("The contents of %1 conflict. Choose the translation to apply for each cell.\nHold Ctrl or Shift to select multiple rows.").arg(fileName), &dialog);
+    label->setWordWrap(true);
+
+    //選択肢の位置
+    constexpr int UseYours = 0;
+    constexpr int UseTheirs = 1;
+    auto* table = new QTableWidget(static_cast<int>(conflicts.size()), 5, &dialog);
+    table->setObjectName("conflictTable");
+    table->setHorizontalHeaderLabels({tr("Original"), tr("Language"), tr("Yours"), tr("Theirs"), tr("Use")});
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setWordWrap(true);
+    std::vector<QComboBox*> choiceBoxes;
+    for(size_t i = 0; i < conflicts.size(); ++i)
+    {
+        const auto& conflict = conflicts[i];
+        const auto row = static_cast<int>(i);
+        const auto original = model.getCell(static_cast<size_t>(conflict.row), static_cast<size_t>(originalColumn)).value_or("");
+        const auto language = model.headerData(conflict.column, Qt::Horizontal, Qt::DisplayRole).toString();
+        const QStringList texts = {original, language, conflict.mine, conflict.theirs};
+        for(int column = 0; column < texts.size(); ++column) {
+            table->setItem(row, column, new QTableWidgetItem(texts[column]));
+        }
+        auto* choiceBox = new QComboBox(table);
+        choiceBox->addItems({tr("Yours"), tr("Theirs")});
+        table->setCellWidget(row, 4, choiceBox);
+        choiceBoxes.push_back(choiceBox);
+    }
+    table->resizeColumnsToContents();
+    for(int column = 0; column < 4; ++column) {
+        table->setColumnWidth(column, std::min(table->columnWidth(column), 250));
+    }
+    table->resizeRowsToContents();
+
+    //表示中のファイルなら、選んだ行のセルを表でも選択し、どのセルか分かるようにする
+    if(csvPath == this->currentFileName)
+    {
+        connect(table, &QTableWidget::currentCellChanged, &dialog, [this, &conflicts](int row) {
+            if(row < 0) { return; }
+            this->selectCell(conflicts[static_cast<size_t>(row)].row, conflicts[static_cast<size_t>(row)].column);
+        });
+    }
+    table->setCurrentCell(0, 0);
+
+    const auto setChoice = [table, &choiceBoxes](bool selectedOnly, int choice)
+    {
+        for(int row = 0; row < table->rowCount(); ++row)
+        {
+            if(selectedOnly && table->selectionModel()->isRowSelected(row, {}) == false) { continue; }
+            choiceBoxes[static_cast<size_t>(row)]->setCurrentIndex(choice);
+        }
+    };
+    //選んだ行を自分の訳にする・他の人の訳にする・すべて自分の訳にする・すべて他の人の訳にする
+    auto* selectedYoursButton = new QPushButton(tr("Use Yours for Selected"), &dialog);
+    selectedYoursButton->setObjectName("selectedYoursButton");
+    auto* selectedTheirsButton = new QPushButton(tr("Use Theirs for Selected"), &dialog);
+    selectedTheirsButton->setObjectName("selectedTheirsButton");
+    auto* allYoursButton = new QPushButton(tr("Use Yours for All"), &dialog);
+    auto* allTheirsButton = new QPushButton(tr("Use Theirs for All"), &dialog);
+    connect(selectedYoursButton, &QPushButton::clicked, &dialog, [setChoice]() { setChoice(true, UseYours); });
+    connect(selectedTheirsButton, &QPushButton::clicked, &dialog, [setChoice]() { setChoice(true, UseTheirs); });
+    connect(allYoursButton, &QPushButton::clicked, &dialog, [setChoice]() { setChoice(false, UseYours); });
+    connect(allTheirsButton, &QPushButton::clicked, &dialog, [setChoice]() { setChoice(false, UseTheirs); });
+    auto* choiceLayout = new QHBoxLayout();
+    for(auto* button : {selectedYoursButton, selectedTheirsButton, allYoursButton, allTheirsButton}) {
+        choiceLayout->addWidget(button);
+    }
+    choiceLayout->addStretch();
+
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dialog);
+    //決めた訳にする
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Apply"));
+    if(canPostpone) {
+        //あとで決める（表示したとき・保存する前にもう一度聞く）
+        buttons->addButton(tr("Decide Later"), QDialogButtonBox::RejectRole);
+    }
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    auto* layout = new QVBoxLayout(&dialog);
+    layout->addWidget(label);
+    layout->addWidget(table);
+    layout->addLayout(choiceLayout);
+    layout->addWidget(buttons);
+
+    //あとで決める・閉じた場合は、どのセルも決めない（保存する前は自分の訳）
+    if(dialog.exec() != QDialog::Accepted) { return choices; }
+    for(size_t i = 0; i < conflicts.size(); ++i)
+    {
+        if(choiceBoxes[i]->currentIndex() == UseTheirs) {
+            choices[i] = ConflictChoice::Theirs;
+        }
+        else {
+            choices[i] = ConflictChoice::Mine;
+        }
+    }
+    return choices;
+}
+
+QString MainCSVTable::changeHistoryPath(const QString& langscoreProjectDirectory)
+{
+    //パスの区切り文字をファイル名に使えないため、ハッシュにする
+    const auto hash = QCryptographicHash::hash(langscoreProjectDirectory.toUtf8(), QCryptographicHash::Md5).toHex();
+    return qApp->applicationDirPath() + "/history/" + QString::fromLatin1(hash) + ".jsonl";
+}
+
+void MainCSVTable::recordChangeByOthers(const QString& original, const QString& language, const QString& before, const QString& after)
+{
+    QString fileName;
+    if(auto manager = this->loadFileManager.lock())
+    {
+        for(const auto& path : manager->mainCSVFiles()) {
+            if(static_cast<QObject*>(manager->findMainCSVModel(path)) == this->sender()) { fileName = QFileInfo(path).completeBaseName(); }
+        }
+    }
+
+    //1行に1件の JSON で足していく
+    const auto path = changeHistoryPath(this->setting->langscoreProjectDirectory);
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QFile file(path);
+    if(file.open(QFile::Append) == false) {
+        qWarning() << "cannot write the change history:" << path;
+        return;
+    }
+    const QJsonObject entry{
+        {"time", QDateTime::currentDateTime().toString(Qt::ISODate)},
+        {"file", fileName},
+        {"original", original},
+        {"language", language},
+        {"before", before},
+        {"after", after},
+    };
+    file.write(QJsonDocument(entry).toJson(QJsonDocument::Compact) + "\n");
+}
+
+void MainCSVTable::notifyFileMarks()
+{
+    auto manager = this->loadFileManager.lock();
+    if(manager == nullptr) { return; }
+    for(const auto& path : manager->mainCSVFiles())
+    {
+        const auto* model = manager->findMainCSVModel(path);
+        if(static_cast<const QObject*>(model) != this->sender()) { continue; }
+        emit this->fileMarksChanged(QFileInfo(path).completeBaseName(), model->isModified(), model->hasChangesByOthers(), model->hasConflicts());
+        return;
+    }
+}
+
+void MainCSVTable::showChangeHistoryDialog()
+{
+    const auto path = changeHistoryPath(this->setting->langscoreProjectDirectory);
+    QDialog dialog(this);
+    dialog.setObjectName("changeHistoryDialog");
+    //他の人の変更
+    dialog.setWindowTitle(tr("Changes by Others"));
+    dialog.resize(900, 500);
+    //他の人が保存し、表に取り込んだ訳の履歴です（新しい順）。取り込んだセルは、編集するまで色を付けています。
+    auto* label = new QLabel(tr("Translations by another worker. The highlight disappears when you edit the cell."), &dialog);
+    label->setWordWrap(true);
+
+    const QStringList keys = {"time", "file", "original", "language", "before", "after"};
+    auto* table = new QTableWidget(0, static_cast<int>(keys.size()), &dialog);
+    table->setObjectName("changeHistoryTable");
+    table->setHorizontalHeaderLabels({tr("Time"), tr("File"), tr("Original"), tr("Language"), tr("Before"), tr("After")});
+    table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setWordWrap(true);
+
+    QList<QJsonObject> entries;
+    QFile file(path);
+    if(file.open(QFile::ReadOnly))
+    {
+        while(file.atEnd() == false)
+        {
+            const auto entry = QJsonDocument::fromJson(file.readLine()).object();
+            if(entry.isEmpty() == false) { entries.prepend(entry); }
+        }
+        file.close();
+    }
+    table->setRowCount(static_cast<int>(entries.size()));
+    for(int row = 0; row < entries.size(); ++row)
+    {
+        for(int column = 0; column < keys.size(); ++column)
+        {
+            auto text = entries[row][keys[column]].toString();
+            if(keys[column] == "time") { text = QDateTime::fromString(text, Qt::ISODate).toString("yyyy-MM-dd HH:mm:ss"); }
+            table->setItem(row, column, new QTableWidgetItem(text));
+        }
+    }
+    table->resizeColumnsToContents();
+    for(int column = 0; column < table->columnCount(); ++column) {
+        table->setColumnWidth(column, std::min(table->columnWidth(column), 250));
+    }
+    table->resizeRowsToContents();
+
+    //色を消す・履歴を削除
+    auto* clearHighlightButton = new QPushButton(tr("Clear Highlights"), &dialog);
+    clearHighlightButton->setToolTip(tr("Removes the highlight from the cells changed by someone else in all files."));
+    auto* deleteButton = new QPushButton(tr("Delete History"), &dialog);
+    connect(clearHighlightButton, &QPushButton::clicked, &dialog, [this]()
+    {
+        auto manager = this->loadFileManager.lock();
+        if(manager == nullptr) { return; }
+        for(const auto& csvPath : manager->mainCSVFiles())
+        {
+            auto* model = manager->findMainCSVModel(csvPath);
+            if(model != nullptr) { model->clearChangedByOthers(); }
+        }
+    });
+    connect(deleteButton, &QPushButton::clicked, &dialog, [&dialog, table, path]()
+    {
+        if(QMessageBox::question(&dialog, tr("Changes by Others"), tr("Delete the history of changes by others?")) != QMessageBox::Yes) { return; }
+        QFile::remove(path);
+        table->setRowCount(0);
+    });
+
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    auto* buttonLayout = new QHBoxLayout();
+    buttonLayout->addWidget(clearHighlightButton);
+    buttonLayout->addWidget(deleteButton);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(buttons);
+    auto* layout = new QVBoxLayout(&dialog);
+    layout->addWidget(label);
+    layout->addWidget(table);
+    layout->addLayout(buttonLayout);
+    dialog.exec();
+}
+
+void MainCSVTable::syncWithFile(const QString& csvPath, bool canPostpone)
+{
+    auto manager = this->loadFileManager.lock();
+    if(manager == nullptr) { return; }
+    auto* model = manager->findMainCSVModel(csvPath);
+    if(model == nullptr) { return; }
+
+    const auto conflicts = model->syncWithFile(csvPath);
+    const auto choices = this->askConflicts(csvPath, *model, conflicts, canPostpone);
+    for(size_t i = 0; i < conflicts.size(); ++i)
+    {
+        //あとで決めたセルは、次に読み直したときにもう一度衝突として出る
+        if(choices[i] == ConflictChoice::Later) { continue; }
+        model->resolveConflict(conflicts[i], choices[i] == ConflictChoice::Theirs);
+    }
+}
+
+void MainCSVTable::syncWithAllFiles()
+{
+    auto manager = this->loadFileManager.lock();
+    if(manager == nullptr) { return; }
+    for(const auto& path : manager->mainCSVFiles()) {
+        this->syncWithFile(path, false);
+    }
+}
+
+void MainCSVTable::watchLoadedFiles()
+{
+    auto manager = this->loadFileManager.lock();
+    if(manager == nullptr) { return; }
+
+    const auto editingFolder = this->setting->langscoreProjectDirectory + "/editing";
+    if(QFileInfo::exists(editingFolder) && this->fileWatcher->directories().contains(editingFolder) == false) {
+        this->fileWatcher->addPath(editingFolder);
+    }
+    const auto watchedFiles = this->fileWatcher->files();
+    for(const auto& path : manager->mainCSVFiles())
+    {
+        if(watchedFiles.contains(path) || QFile::exists(path) == false) { continue; }
+        this->fileWatcher->addPath(path);
+        this->changedFiles.insert(path);
+    }
+}
+
+void MainCSVTable::syncChangedFiles()
+{
+    //セルの入力中や、ダイアログを表示している間は、終わるまで待つ
+    if(this->csvEditor->isEditingCell() || QApplication::activeModalWidget() != nullptr) {
+        this->fileChangeTimer->start();
+        return;
+    }
+    auto manager = this->loadFileManager.lock();
+    if(manager == nullptr) { return; }
+
+    this->watchLoadedFiles();
+    const auto paths = this->changedFiles;
+    this->changedFiles.clear();
+    for(const auto& path : paths)
+    {
+        if(path == this->currentFileName) {
+            this->syncWithFile(path, true);
+            continue;
+        }
+        //表示していないファイルは、他の人だけが変えたセルを取り込む。衝突したセルは表示・保存するときに聞く
+        auto* model = manager->findMainCSVModel(path);
+        if(model != nullptr) { model->syncWithFile(path); }
+    }
+}
+
 void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
 {
     auto* mainModel = this->loadModel(fileName);
@@ -736,7 +1143,12 @@ if(mainModel == nullptr) {
     this->updateFileNameLabel();
     this->updateProgressLabel();
     this->validateButton->setEnabled(true);
-    
+
+    //表示していない間に他の人が保存していれば取り込み、衝突したセルは表を表示してから聞く
+    QTimer::singleShot(0, this, [this, editedData]() {
+        if(this->currentFileName == editedData) { this->syncWithFile(editedData, true); }
+    });
+
     QTimer::singleShot(0, this, [this]() {
         this->csvEditor->setUpdatesEnabled(false);
         this->csvEditor->resizeRowsToContents();

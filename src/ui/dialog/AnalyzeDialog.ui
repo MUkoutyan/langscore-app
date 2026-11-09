@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>480</width>
-    <height>383</height>
+    <height>465</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -101,6 +101,59 @@
     </layout>
    </item>
    <item>
+    <widget class="QLabel" name="startNoticeLabel">
+     <property name="text">
+      <string notr="true"/>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="pluginOptionGroup">
+     <property name="title">
+      <string extracomment="プラグインオプション">Plugin Options</string>
+     </property>
+     <layout class="QVBoxLayout" name="pluginOptionLayout">
+      <item>
+       <widget class="QCheckBox" name="enablePatch">
+        <property name="toolTip">
+         <string extracomment="言語ごとに翻訳ファイルを分けて書き出し、言語を後からパッチとして追加できるようにします。">Exports the translation files for each language separately, so that languages can be added later as patches.</string>
+        </property>
+        <property name="text">
+         <string>Use language patch mode</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="enableTransDefLang">
+        <property name="toolTip">
+         <string extracomment="チェックを外すと、デフォルト言語が選択されている場合において翻訳処理がスキップされます。">If unchecked, the original text is shown as is when the default language is selected.</string>
+        </property>
+        <property name="text">
+         <string>Run the translation process for the default language</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="enableRemoteHub">
+        <property name="toolTip">
+         <string extracomment="リアルタイム編集機能を行うためのプラグイン Langscore_RemoteHub を追加します。このプラグインはテスト時のみ動作しますが、リリースする際はゲームから取り除いて下さい。">Adds Langscore_RemoteHub, the plugin for real-time editing.
+It works only while test playing, but remove it from the game before you release it.</string>
+        </property>
+        <property name="text">
+         <string>Add the real-time editing plugin</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="analyzeButton">
      <property name="enabled">
       <bool>false</bool>
@@ -124,7 +177,7 @@
       </size>
      </property>
      <property name="text">
-      <string>Analyze</string>
+      <string extracomment="翻訳作業を開始する">Start Translation</string>
      </property>
     </widget>
    </item>

@@ -25,6 +25,7 @@ settings::settings()
     , languages()
     , defaultLanguage("ja")
     , isFirstExported(false)
+    , isPluginRegistered(false)
     , isShowHiddenFilesOnTree(false)
     , langscoreProjectDirectory("")
 {
@@ -46,7 +47,7 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     this->useGameTranslateFolderForExport();
 }
 
-//書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（FirstWriteDialog・WriteDialog・divisi）
+//書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（WriteDialog・divisi）
 void settings::useGameTranslateFolderForExport()
 {
     this->writeObj.exportDirectory = QDir(this->langscoreProjectDirectory).relativeFilePath(this->translateDirectoryPath());
@@ -59,6 +60,22 @@ bool settings::isExportDirectoryInLangscoreFolder() const
     const auto root = QDir::cleanPath(langscoreDir.absolutePath());
     const auto exportPath = QDir::cleanPath(langscoreDir.absoluteFilePath(this->writeObj.exportDirectory));
     return exportPath.compare(root, Qt::CaseInsensitive) == 0 || exportPath.startsWith(root + "/", Qt::CaseInsensitive);
+}
+
+std::vector<QLocale> settings::supportedLocales()
+{
+    return {
+        {QLocale::Japanese},
+        {QLocale::English},
+        {QLocale::Chinese, QLocale::SimplifiedChineseScript},
+        {QLocale::Chinese, QLocale::TraditionalChineseScript},
+        {QLocale::Korean},
+        {QLocale::Spanish},
+        {QLocale::German},
+        {QLocale::French},
+        {QLocale::Italian},
+        {QLocale::Russian},
+    };
 }
 
 void settings::setupLanguages(const std::vector<QLocale>& locales)

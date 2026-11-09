@@ -35,7 +35,7 @@ void TranslationManager::translateBatch(const QList<BatchTranslationRequest>& re
     
     TranslationService* service = getPreferredService(preferredService);
     if (!service) {
-        emit batchTranslationError(currentBatchId, tr("No configured translation service available. (no use api)"));
+        emit batchTranslationError(currentBatchId, tr("No translation service is configured. (The API is not used.)"));
         return;
     }
     
@@ -81,7 +81,7 @@ void TranslationManager::processNextRequest()
     }
     else {
         //途中で API キーが削除された場合など。失敗として扱わないとバッチが完了しない
-        onTranslationError(request.requestId, tr("No configured translation service available. (no use api)"));
+        onTranslationError(request.requestId, tr("No translation service is configured. (The API is not used.)"));
         return;
     }
     

@@ -243,7 +243,7 @@ void CSVEditor::setupContextMenu()
     
     // Column visibility menu
     contextMenu->addSeparator();
-    columnVisibilityMenu = contextMenu->addMenu(tr("Column Visibility"));
+    columnVisibilityMenu = contextMenu->addMenu(tr("Show Columns"));
     columnVisibilityMenu->addAction(hideLanguageColumnsAction);
 columnVisibilityMenu->addAction(showAllColumnsAction);
     
@@ -309,7 +309,7 @@ void CSVEditor::hideLanguageColumns()
     QStringList recognizedLanguages = getRecognizedLanguageCodesInColumns();
     
     if (recognizedLanguages.isEmpty()) {
-        QMessageBox::information(this, tr("Column Visibility"), tr("No recognizable language columns found."));
+        QMessageBox::information(this, tr("Show Columns"), tr("No recognizable language columns found."));
         return;
     }
     
@@ -439,7 +439,7 @@ void CSVEditor::translateCells(const QList<QModelIndex>& targetCells)
     int originalColumn= findOriginalColumn();
     if (originalColumn == -1) {
         QMessageBox::warning(this, tr("Translation Error"), 
-                           tr("Could not find 'Original' column for source text.(no use api)"));
+                           tr("Could not find the 'original' column for the source text. (The API was not used.)"));
         return;
     }
     
@@ -488,7 +488,7 @@ void CSVEditor::translateCells(const QList<QModelIndex>& targetCells)
     
     if (requests.isEmpty()) {
         QMessageBox::warning(this, tr("Translation Error"), 
-                           tr("No valid translation requests could be prepared.(no use api)"));
+                           tr("No valid translation requests could be prepared. (The API was not used.)"));
         return;
     }
 
@@ -602,7 +602,7 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
         }
         else if (cellIndex.isValid() == false || cellIndex.model() != model()) {
             //翻訳中に表が切り替わったため、セルに反映できませんでした
-            addMessage(tr("Warning"), result, tr("The table was changed during translation, so the result was not applied."));
+            addMessage(tr("Warning"), result, tr("The table was switched during translation, so the result could not be applied."));
         }
         else {
             CSVEditCommand::CellEdit edit;
@@ -701,7 +701,7 @@ void CSVEditor::cellEditsApplied(const QModelIndex& firstIndex)
         return;
     }
     //表示していないファイル、または絞り込みで隠れているセル
-    this->dispatch(StatusMessage, {tr("The change was undone or redone in cells that are not displayed."), 5000});
+    this->dispatch(StatusMessage, {tr("Cells that are not displayed were changed."), 5000});
 }
 
 bool CSVEditor::edit(const QModelIndex& index, EditTrigger trigger, QEvent* event)

@@ -514,9 +514,9 @@ QVariant ScriptCSVTableModel::headerData(int section, Qt::Orientation orientatio
     }
 
     if(role == Qt::DisplayRole) {
-        if(section == textPointColumn()) { return tr("Text Point"); }
+        if(section == textPointColumn()) { return tr("Position"); }
         switch(section) {
-        case Columns::Include:      return tr("Include");
+        case Columns::Include:      return tr("Enabled");
         case Columns::ScriptName:   return tr("Script Name");
         case Columns::OriginalText: return tr("Original");
         default:

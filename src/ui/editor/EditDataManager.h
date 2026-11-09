@@ -43,7 +43,10 @@ public:
     MainCSVTableModel* findMainCSVModel(const QString& filePath) const;
 
     bool saveModel(const QString& filePath);
+    //変更したファイルだけを保存する。他の人が同じファイルを保存していれば、その変更を取り込む
     bool saveAllModels(const QString& editingDirectory);
+    //読み込んだメインの表のファイル（editing のCSVのパス）
+    QStringList mainCSVFiles() const;
 
     bool hasUnsavedChanges(const QString& filePath) const;
     //検証が終わったときに呼ぶ。検証の後に編集したセルの記録を、開いたすべてのファイルで消す

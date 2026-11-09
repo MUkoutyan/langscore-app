@@ -10,6 +10,7 @@
 #include <QMenu>
 #include <QToolButton>
 #include <QTimer>
+#include <QStyle>
 #include "../settings.h"
 #include "../csv.hpp"
 #include "../invoker.h"
@@ -32,6 +33,10 @@ enum UserRole : int
     BASE_TEXT_ITEM,
     PROGRESS_STATE,     //翻訳の進捗（ProgressState）。未設定なら進捗が分からない
     ERROR_ORIGINAL,     //スクリプトの検証結果の原文。スクリプトの表で該当する行を選ぶのに使う
+    PROGRESS_TOOLTIP,   //進捗の説明。目印の説明と合わせて表示する
+    MARK_MODIFIED,      //未保存の編集がある
+    MARK_CHANGED_BY_OTHERS, //他の人の訳を取り込んだセルがある
+    MARK_CONFLICT,      //他の人の保存と衝突し、まだ決めていないセルがある
 };
 
 //翻訳が終わっていない項目だけを表示するときに使う
@@ -642,9 +647,9 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
             result.emplace_back(new FileTreeUndo(this, item, newCheckVal, oldCheckVal));
         }
 
-        const auto groupName = (treeType == TreeItemType::Basic) ? tr("Basics Tree Change Enable State")
-                             : (treeType == TreeItemType::Map)   ? tr("Map Tree Change Enable State")
-                                                                 : tr("Script Tree Change Enable State");
+        const auto groupName = (treeType == TreeItemType::Basic) ? tr("Change Checks in Basics Tree")
+                             : (treeType == TreeItemType::Map)   ? tr("Change Checks in Map Tree")
+                                                                 : tr("Change Checks in Script Tree");
         NotifyTreeUndoCommand(std::move(result), groupName);
     }
     else if(treeType == TreeItemType::Pictures)
@@ -709,7 +714,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
         }
         this->treeWidget->blockSignals(false);
 
-        NotifyTreeUndoCommand(std::move(result), tr("Graphics Tree Change Enable State"));
+        NotifyTreeUndoCommand(std::move(result), tr("Change Checks in Graphics Tree"));
 
     }
 
@@ -1137,14 +1142,67 @@ void FileTree::setFileProgress(const QString& fileName, int translatedRows, int 
     if(totalRows <= 0)
     {
         item->setText(TreeColIndex::Progress, "");
-        item->setToolTip(TreeColIndex::Progress, "");
+        item->setData(0, UserRole::PROGRESS_TOOLTIP, QString());
+        this->applyFileMarks(item);
         return;
     }
     const auto percent = translatedRows * 100 / totalRows;
     item->setText(TreeColIndex::Progress, QString("%1%").arg(percent));
-    item->setToolTip(TreeColIndex::Progress, tr("Translated: %1 / %2 rows").arg(translatedRows).arg(totalRows));
+    item->setData(0, UserRole::PROGRESS_TOOLTIP, tr("Translated: %1 / %2 rows").arg(translatedRows).arg(totalRows));
     //終わったファイルが一目で分かるよう色を変える
     item->setForeground(TreeColIndex::Progress, (translatedRows == totalRows) ? QColor(120, 200, 120) : QColor(170, 170, 170));
+    this->applyFileMarks(item);
+}
+
+void FileTree::setFileMarks(const QString& fileName, bool modified, bool changedByOthers, bool hasConflicts)
+{
+    auto* item = this->findTreeItemByFileName(langscore::withoutAllExtension(fileName));
+    if(item == nullptr) { return; }
+    item->setData(0, UserRole::MARK_MODIFIED, modified);
+    item->setData(0, UserRole::MARK_CHANGED_BY_OTHERS, changedByOthers);
+    item->setData(0, UserRole::MARK_CONFLICT, hasConflicts);
+    this->applyFileMarks(item);
+}
+
+void FileTree::applyFileMarks(QTreeWidgetItem* item)
+{
+    const bool modified = item->data(0, UserRole::MARK_MODIFIED).toBool();
+    const bool changedByOthers = item->data(0, UserRole::MARK_CHANGED_BY_OTHERS).toBool();
+    const bool hasConflicts = item->data(0, UserRole::MARK_CONFLICT).toBool();
+
+    auto font = item->font(TreeColIndex::Name);
+    font.setBold(modified);
+    font.setItalic(modified);
+    item->setFont(TreeColIndex::Name, font);
+
+    //衝突は決める必要があるため、取り込んだ印より優先する
+    QStringList lines;
+    QIcon icon;
+    if(hasConflicts)
+    {
+        icon = this->style()->standardIcon(QStyle::SP_MessageBoxQuestion);
+        //他の人の保存と衝突したセルがあります。表示すると、どちらの訳にするか選べます
+        lines.append(tr("Some cells have conflicting edits."));
+    }
+    if(changedByOthers)
+    {
+        if(hasConflicts == false) { icon = this->style()->standardIcon(QStyle::SP_BrowserReload); }
+        //他の人の訳を取り込んだセルがあります（色の付いたセル）
+        lines.append(tr("Translations were imported."));
+    }
+    if(modified) {
+        //保存していない編集があります
+        lines.append(tr("There are unsaved edits."));
+    }
+    item->setIcon(TreeColIndex::Progress, icon);
+
+    const auto marks = lines.join("\n");
+    item->setToolTip(TreeColIndex::Name, marks);
+    QStringList progressLines;
+    const auto progress = item->data(0, UserRole::PROGRESS_TOOLTIP).toString();
+    if(progress.isEmpty() == false) { progressLines.append(progress); }
+    if(marks.isEmpty() == false) { progressLines.append(marks); }
+    item->setToolTip(TreeColIndex::Progress, progressLines.join("\n"));
 }
 
 void FileTree::receive(DispatchType type, const QVariantList& args)
@@ -1527,12 +1585,29 @@ void FileTree::clearErrorItemsRecursive(QTreeWidgetItem* parent)
 bool FileTree::selectFile(const QString& fileName)
 {
     auto* item = this->findTreeItemByFileName(langscore::withoutAllExtension(fileName));
+    //画像の項目はファイル名を持たないため、フルパスで探す
+    if(item == nullptr) { item = this->graphicsItemMap.value(fileName, nullptr); }
     if(item == nullptr) { return false; }
     if(this->treeWidget->currentItem() != item) {
         this->treeWidget->setCurrentItem(item);
     }
     this->treeWidget->scrollToItem(item);
     return true;
+}
+
+QString FileTree::currentFile() const
+{
+    auto* item = this->treeWidget->currentItem();
+    if(item == nullptr) { return {}; }
+    //検証結果の項目は、結果が付いているファイルの項目として扱う
+    if(item->data(TreeColIndex::Name, UserRole::ERROR_ITEM).toBool() && item->parent()) {
+        item = item->parent();
+    }
+    auto fileName = ::getFileName(item);
+    if(fileName.isEmpty() == false) { return fileName; }
+    //画像の項目はファイルのフルパスを FILE_PATH に持っている
+    if(this->graphicsItemMap.value(item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString()) != item) { return {}; }
+    return item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
 }
 
 QTreeWidgetItem* FileTree::findTreeItemByFileName(const QString& fileName)

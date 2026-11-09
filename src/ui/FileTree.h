@@ -65,6 +65,8 @@ public:
     void clear();
 
     bool selectFile(const QString& fileName);
+    //選んでいるファイル。ファイル名（画像はフルパス）を返す。selectFile で選び直せる
+    QString currentFile() const;
 
     void setupTree();
     void setupBasicsTree();
@@ -92,6 +94,8 @@ public:
     void clearErrors();
     //ファイルの翻訳の進捗を表示する（fileName は拡張子付きでもよい）
     void setFileProgress(const QString& fileName, int translatedRows, int totalRows);
+    //ファイルに目印を付ける。未保存の編集は名前を太字・斜体に、他の人の訳を取り込んだ・決めていない衝突があるファイルは進捗の横にアイコンを付ける
+    void setFileMarks(const QString& fileName, bool modified, bool changedByOthers, bool hasConflicts);
 
 signals:
     // Scriptタブでスクリプトファイル名に該当する行をスクロール・選択する
@@ -131,6 +135,8 @@ private:
     void expandItemsWithChildren(QTreeWidgetItem* item);
     void resetItemVisibility(QTreeWidgetItem* item);
     void updateTreeItemText();
+    //項目に覚えた目印（setFileMarks）と進捗の説明から、フォント・アイコン・説明を付け直す
+    void applyFileMarks(QTreeWidgetItem* item);
 
     void receive(DispatchType type, const QVariantList& args) override;
 

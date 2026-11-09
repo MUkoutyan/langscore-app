@@ -18,7 +18,6 @@ public:
     void setOutputPath(QString directoryPath);
     QString outputPath() const ;
 
-    bool writeByLanguagePatch() const;
     int writeMode() const;
     bool backup() const;
 

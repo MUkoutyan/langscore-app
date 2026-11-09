@@ -213,3 +213,200 @@ TEST_F(CSVEditorTableModelTest, RowNumberMatchesValidationRow)
     ASSERT_EQ(proxy.rowCount(), 1);
     EXPECT_EQ(proxy.headerData(0, Qt::Vertical).toInt(), 2);
 }
+
+//-------------------------------------------------------------------
+// 複数人で同じ editing のCSVを共有したときの保存
+//-------------------------------------------------------------------
+namespace
+{
+    void WriteCsv(const QString& path, const QByteArray& content)
+    {
+        QFile file(path);
+        if(file.open(QFile::WriteOnly) == false) {
+            ADD_FAILURE() << "cannot create test file: " << path.toStdString();
+            return;
+        }
+        file.write(content);
+    }
+
+    QString CellOf(const langscore::CSVEditorTableModel& model, const QString& original, const QString& language)
+    {
+        int originalColumn = -1;
+        int languageColumn = -1;
+        for(int column = 0; column < model.columnCount(); ++column)
+        {
+            const auto header = model.headerData(column, Qt::Horizontal, Qt::UserRole).toString();
+            if(header == "original") { originalColumn = column; }
+            if(header == language) { languageColumn = column; }
+        }
+        if(originalColumn < 0 || languageColumn < 0) { return "(no column)"; }
+        for(int row = 0; row < model.rowCount(); ++row) {
+            if(model.getCell(row, originalColumn) == original) { return model.getCell(row, languageColumn).value_or(""); }
+        }
+        return "(no row)";
+    }
+}
+
+TEST_F(CSVEditorTableModelTest, SaveKeepsOtherPersonsEdit)
+{
+    // 読み込んだ後に他の人が別のセルを保存していたら、その訳を消さずに取り込むこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,fr,type\nA,,,name\nB,,,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+
+    WriteCsv(csvPath, "original,en,fr,type\nA,Hello,,name\nB,,,name\n");
+    ASSERT_TRUE(model.setData(model.index(0, 2), "Bonjour"));
+    ASSERT_TRUE(model.saveToFile(csvPath));
+
+    EXPECT_TRUE(model.mergeConflicts().empty());
+    EXPECT_EQ(CellOf(model, "A", "en"), QString("Hello")) << "他の人の訳が表に取り込まれていません";
+    langscore::CSVEditorTableModel saved(csvPath);
+    EXPECT_EQ(CellOf(saved, "A", "en"), QString("Hello")) << "他の人の訳が保存で消えています";
+    EXPECT_EQ(CellOf(saved, "A", "fr"), QString("Bonjour"));
+}
+
+TEST_F(CSVEditorTableModelTest, SaveReportsConflict)
+{
+    // 同じセルを両方が別の訳にしたら、自分の訳で保存して衝突として残すこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,Old,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+
+    WriteCsv(csvPath, "original,en,type\nA,Theirs,name\n");
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Mine"));
+    ASSERT_TRUE(model.saveToFile(csvPath));
+
+    ASSERT_EQ(model.mergeConflicts().size(), 1u);
+    EXPECT_EQ(model.mergeConflicts()[0].row, 0);
+    EXPECT_EQ(model.mergeConflicts()[0].column, 1);
+    EXPECT_EQ(model.mergeConflicts()[0].mine, QString("Mine"));
+    EXPECT_EQ(model.mergeConflicts()[0].theirs, QString("Theirs"));
+    EXPECT_EQ(CellOf(langscore::CSVEditorTableModel(csvPath), "A", "en"), QString("Mine"));
+
+    // 他の人の訳を選んで保存し直すと、衝突は残らないこと
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Theirs"));
+    ASSERT_TRUE(model.saveToFile(csvPath));
+    EXPECT_TRUE(model.mergeConflicts().empty());
+    EXPECT_EQ(CellOf(langscore::CSVEditorTableModel(csvPath), "A", "en"), QString("Theirs"));
+}
+
+TEST_F(CSVEditorTableModelTest, SaveKeepsUnknownRowsAndColumns)
+{
+    // 他の人が足した行（解析し直して増えた原文）と言語の列を、保存で消さないこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+
+    WriteCsv(csvPath, "original,en,de,type\nA,,Hallo,name\nNew,Added,Neu,name\n");
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Hello"));
+    ASSERT_TRUE(model.saveToFile(csvPath));
+
+    langscore::CSVEditorTableModel saved(csvPath);
+    EXPECT_EQ(CellOf(saved, "A", "en"), QString("Hello"));
+    EXPECT_EQ(CellOf(saved, "A", "de"), QString("Hallo"));
+    EXPECT_EQ(CellOf(saved, "New", "en"), QString("Added"));
+    EXPECT_EQ(CellOf(saved, "New", "de"), QString("Neu"));
+}
+
+TEST_F(CSVEditorTableModelTest, SaveDropsRowsMovedToOldTranslations)
+{
+    // 読み込んだときに表に無かった行（古い翻訳へ移した行）は、今までどおり保存で消すこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nHello,Hi,name\nRemoved,Gone,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": ["name"]}])")));
+    model.insertColumn(1, "en");
+    ASSERT_TRUE(model.mergeTranslationsFromCsv(csvPath));
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Hello!"));
+    ASSERT_TRUE(model.saveToFile(csvPath));
+
+    langscore::CSVEditorTableModel saved(csvPath);
+    EXPECT_EQ(CellOf(saved, "Hello", "en"), QString("Hello!"));
+    EXPECT_EQ(CellOf(saved, "Removed", "en"), QString("(no row)"));
+}
+
+TEST_F(CSVEditorTableModelTest, NeedsSaveOnlyWhenChanged)
+{
+    // 開いただけのファイルは保存しない。編集したか、ファイルに無い列を足したら保存する
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+    EXPECT_FALSE(model.needsSave());
+
+    model.insertColumn(2, "fr");
+    EXPECT_TRUE(model.needsSave());
+    ASSERT_TRUE(model.saveToFile(csvPath));
+    EXPECT_FALSE(model.needsSave());
+
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Hi"));
+    EXPECT_TRUE(model.needsSave());
+
+    // まだ editing のCSVが無いファイルは保存する（検証は editing のCSVだけを対象にする）
+    langscore::CSVEditorTableModel unsaved;
+    ASSERT_TRUE(unsaved.loadFromJsonFile(WriteJson(R"([{"original": "A", "type": []}])")));
+    EXPECT_TRUE(unsaved.needsSave());
+}
+
+TEST_F(CSVEditorTableModelTest, SyncTakesOtherPersonsEditWithoutSaving)
+{
+    // 保存しなくても、他の人だけが変えたセルを表へ取り込めること。取り込んだだけなら未保存にならないこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,,name\nB,,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+
+    WriteCsv(csvPath, "original,en,type\nA,Hello,name\nB,,name\n");
+    EXPECT_TRUE(model.syncWithFile(csvPath).empty());
+    EXPECT_EQ(CellOf(model, "A", "en"), QString("Hello"));
+    EXPECT_FALSE(model.isModified());
+    EXPECT_FALSE(model.needsSave());
+}
+
+TEST_F(CSVEditorTableModelTest, SyncReportsConflictUntilResolved)
+{
+    // 両方が変えたセルは表を変えずに返し、決めるまで読み直すたびに返すこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,Old,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Mine"));
+
+    WriteCsv(csvPath, "original,en,type\nA,Theirs,name\n");
+    const auto conflicts = model.syncWithFile(csvPath);
+    ASSERT_EQ(conflicts.size(), 1u);
+    EXPECT_EQ(conflicts[0].mine, QString("Mine"));
+    EXPECT_EQ(conflicts[0].theirs, QString("Theirs"));
+    EXPECT_EQ(CellOf(model, "A", "en"), QString("Mine"));
+    EXPECT_EQ(model.syncWithFile(csvPath).size(), 1u) << "あとで決めた衝突が、読み直しても出ません";
+
+    // 他の人の訳にすると、ファイルと同じなので未保存ではなくなること
+    model.resolveConflict(conflicts[0], true);
+    EXPECT_EQ(CellOf(model, "A", "en"), QString("Theirs"));
+    EXPECT_FALSE(model.isModified());
+    EXPECT_TRUE(model.syncWithFile(csvPath).empty());
+}
+
+TEST_F(CSVEditorTableModelTest, ConflictResolvedAsMineIsSaved)
+{
+    // 自分の訳にした衝突は、次の保存で衝突にならずに自分の訳を書くこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,Old,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+    ASSERT_TRUE(model.setData(model.index(0, 1), "Mine"));
+
+    WriteCsv(csvPath, "original,en,type\nA,Theirs,name\n");
+    const auto conflicts = model.syncWithFile(csvPath);
+    ASSERT_EQ(conflicts.size(), 1u);
+    model.resolveConflict(conflicts[0], false);
+    EXPECT_TRUE(model.isModified());
+    EXPECT_TRUE(model.syncWithFile(csvPath).empty());
+
+    ASSERT_TRUE(model.saveToFile(csvPath));
+    EXPECT_TRUE(model.mergeConflicts().empty());
+    EXPECT_EQ(CellOf(langscore::CSVEditorTableModel(csvPath), "A", "en"), QString("Mine"));
+}

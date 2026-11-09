@@ -46,6 +46,8 @@ public:
 
     //文字を打って編集を始めたところか。そのときは元の文章を置き換える
     bool isReplacingTextOnEdit() const { return _replaceTextOnEdit; }
+    //セルを入力している途中か
+    bool isEditingCell() const { return state() == QAbstractItemView::EditingState; }
 
     //from のセルから行・列方向に進んだ、次の編集できるセルを編集する
     void selectAndEditNextCell(const QModelIndex& from, int rowStep, int columnStep);

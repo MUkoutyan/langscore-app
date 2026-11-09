@@ -48,7 +48,6 @@ public slots:
     void exportPlugin();
     void testPlay();
     void exportTranslateFiles();
-    void firstExportTranslateFiles();
     void onScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
     void onScriptTableItemCheckChanged(QString scriptName, Qt::CheckState check);
 
@@ -68,7 +67,6 @@ private:
 
     enum InvokeType {
         None,
-        ExportFirstTime,
         ExportCSV,
         UpdatePlugin,
         Reanalisys,
@@ -88,11 +86,18 @@ private:
 
     void setup();
 
+    //最後に表示していたファイル・タブ・表の位置。プロジェクトごとにアプリの設定へ保存し、開き直したときに戻す
+    QString viewStateGroup;
+    void saveViewState();
+    void restoreViewState();
+
     void backup();
 
     void setFontList(std::vector<QString> fontPaths);
 
     void changeEnabledUIState(bool enable);
+    //プラグインの追加前は追加のボタンだけを、追加後はテストプレイ・書き出しなどのボタンを出す
+    void updateExportButtonsVisible();
 
     void receive(DispatchType type, const QVariantList& args) override;
 

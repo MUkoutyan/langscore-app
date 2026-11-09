@@ -50,8 +50,6 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
         this->setOutputPath(outputDirInfo.absoluteFilePath());
     }
 
-    this->ui->exportByLangCheck->setChecked(settings->writeObj.enableLanguagePatch);
-
     this->update();
 }
 
@@ -72,10 +70,6 @@ QString WriteDialog::outputPath() const
         result.chop(1);
     }
     return result;
-}
-
-bool WriteDialog::writeByLanguagePatch() const {
-    return this->ui->exportByLangCheck->isChecked();
 }
 
 int WriteDialog::writeMode() const

@@ -360,3 +360,32 @@ TEST_F(FileTreeTest, MainFileNameWithoutChildCount)
     map->setSelected(true);
     EXPECT_EQ(shownName, "Map001");
 }
+
+TEST_F(FileTreeTest, FileMarks)
+{
+    // 未保存の編集は名前を太字・斜体にし、他の人の訳・衝突は進捗の列にアイコンを付けること。目印が無くなれば元に戻すこと
+    component->setting->fetchBasicDataInfo("Actors");
+    tree->setupBasicsTree();
+    auto* actors = FindChild(tree->findChild<QTreeWidget*>()->topLevelItem(0), "Actors.json");
+    ASSERT_NE(actors, nullptr);
+    tree->setFileProgress("Actors.json", 1, 2);
+
+    tree->setFileMarks("Actors", true, true, false);
+    EXPECT_TRUE(actors->font(0).bold());
+    EXPECT_TRUE(actors->font(0).italic());
+    EXPECT_FALSE(actors->icon(1).isNull());
+    EXPECT_FALSE(actors->toolTip(0).isEmpty());
+    EXPECT_TRUE(actors->toolTip(1).contains("1 / 2")) << "進捗の説明が消えています";
+
+    tree->setFileMarks("Actors", false, false, true);
+    EXPECT_FALSE(actors->font(0).bold());
+    EXPECT_FALSE(actors->icon(1).isNull()) << "衝突のアイコンがありません";
+
+    tree->setFileMarks("Actors", false, false, false);
+    EXPECT_TRUE(actors->icon(1).isNull());
+    EXPECT_TRUE(actors->toolTip(0).isEmpty());
+    //進捗が変わっても目印は残ること
+    tree->setFileMarks("Actors", true, false, false);
+    tree->setFileProgress("Actors.json", 2, 2);
+    EXPECT_TRUE(actors->font(0).bold());
+}

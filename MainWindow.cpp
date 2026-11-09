@@ -72,7 +72,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
         this->explicitSave = true;
         this->dispatch(SaveProject, {});
-        this->receive(StatusMessage, {tr("Save Projet."), 5000});
+        this->receive(StatusMessage, {tr("Project saved."), 5000});
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)
     {
@@ -127,6 +127,11 @@ MainWindow::MainWindow(QWidget *parent)
         }
         this->openGameProject(std::move(projFile));
     });
+    connect(this->analyzeDialog, &AnalyzeDialog::translationStarted, this, [this]()
+    {
+        //ゲームにプラグインと翻訳CSVを書き出したため、破棄しても Langscore のプロジェクトは消さない
+        this->initialAnalysis = false;
+    });
 
     //履歴を消したとき（再解析・プロジェクトの切り替え）も保存済みの状態になるよう、履歴の clean 状態で判定する
     connect(this->history, &QUndoStack::cleanChanged, this, [this](bool clean){
@@ -175,6 +180,9 @@ void MainWindow::openGameProject(QString configFilePath)
     this->writeUi->clear();
 
     this->setting->load(std::move(configFilePath));
+    //新しいプロジェクトや、editing が無い以前のバージョンのプロジェクトでも、最初から作っておく。
+    //初めて保存する前から editing を監視でき、共有している他の人の保存に気づける
+    QDir().mkpath(this->setting->langscoreProjectDirectory + "/editing");
     this->history->clear();
     this->askMoveExportDirectory();
 
@@ -306,7 +314,7 @@ int MainWindow::askCloseProject()
     }
     //ファイルを閉じようとしています。
     //プロジェクト加えた変更を保存しますか？
-    auto button = QMessageBox::question(this, tr("Trying to close a project."), tr("Do you want to save the changes you made to the project?\nIf not, the changes will be discarded."), QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Cancel);
+    auto button = QMessageBox::question(this, tr("Closing the project."), tr("Do you want to save the changes you made to the project?\nIf you choose No, your edits will be discarded."), QMessageBox::Save|QMessageBox::Discard|QMessageBox::Cancel,QMessageBox::Cancel);
     return (int)button;
 }
 
@@ -385,7 +393,7 @@ QTreeView::item:hover { background-color: #2202abd1;}
 void MainWindow::createUndoView()
 {
     undoView = new QUndoView(this->history);
-    undoView->setWindowTitle(tr("Command List"));
+    undoView->setWindowTitle(tr("Edit History"));
     undoView->show();
     undoView->setAttribute(Qt::WA_QuitOnClose, false);
 }

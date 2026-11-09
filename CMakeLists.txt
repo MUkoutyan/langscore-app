@@ -59,9 +59,6 @@ set(PROJECT_SOURCES
     src/ui/dialog/UpdatePluginDialog.h
     src/ui/dialog/UpdatePluginDialog.cpp
     src/ui/dialog/UpdatePluginDialog.ui
-    src/ui/dialog/FirstWriteDialog.h
-    src/ui/dialog/FirstWriteDialog.cpp
-    src/ui/dialog/FirstWriteDialog.ui
     src/ui/dialog/PopupDialogBase.h
     src/ui/dialog/PopupDialogBase.cpp
     src/ui/dialog/MessageDialog.cpp

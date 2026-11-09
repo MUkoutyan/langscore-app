@@ -37,13 +37,13 @@ struct ValidationErrorInfo
         switch(this->summary)
         {
         case ValidationErrorInfo::EmptyCol:
-            text += QObject::tr(" Empty Column") + "[" + this->language + "]";
+            text += QObject::tr(" Empty Text") + "[" + this->language + "]";
             break;
         case ValidationErrorInfo::NotFoundEsc:
-            text += QObject::tr(" Not Found Esc") + "[" + this->language + "] (" + this->detail + ")";
+            text += QObject::tr(" Missing Control Characters") + "[" + this->language + "] (" + this->detail + ")";
             break;
         case ValidationErrorInfo::UnclosedEsc:
-            text += QObject::tr(" Unclosed Esc") + "[" + this->language + "] (" + this->detail + ")";
+            text += QObject::tr(" Unclosed Control Character") + "[" + this->language + "] (" + this->detail + ")";
             break;
         case ValidationErrorInfo::IncludeCR:
             text += QObject::tr(" Include \"\r\n\"");
@@ -58,16 +58,16 @@ struct ValidationErrorInfo
             text += QObject::tr(" This text is completely cut off.");
             break;
         case ValidationErrorInfo::OverTextCount:
-            text += QObject::tr(" The specified number of characters has been exceeded. (num %1)").arg(this->width);
+            text += QObject::tr(" The specified number of characters has been exceeded. (%1 characters)").arg(this->width);
             break;
         case ValidationErrorInfo::InvalidCSV:
             if(this->detail.isEmpty() == true)
             {
-                text += QObject::tr(" Invalid CSV, This may be due to the description around the %1 line.").arg(this->row);
+                text += QObject::tr(" Invalid CSV. This may be caused by the text around line %1.").arg(this->row);
             }
             else
             {
-                text += QObject::tr(" Invalid CSV. The description around %2 in the %1 row may be cause.").arg(this->row).arg(this->detail);
+                text += QObject::tr(" Invalid CSV. This may be caused by the text around %2 in line %1.").arg(this->row).arg(this->detail);
             }
             break;
         default:

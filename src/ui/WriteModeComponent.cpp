@@ -1,7 +1,6 @@
 ﻿#include "WriteModeComponent.h"
 #include "ui_WriteModeComponent.h"
 #include "LanguageSelectComponent.h"
-#include "dialog/FirstWriteDialog.h"
 #include "dialog/WriteDialog.h"
 #include "dialog/UpdatePluginDialog.h"
 #include "dialog/MessageDialog.h"
@@ -13,6 +12,7 @@
 #include "../graphics.hpp"
 #include "../csv.hpp"
 #include "../service/EditingTranslationExporter.h"
+#include "MainCSVTableModel.h"
 #include <icu.h>
 
 #include <QTimer>
@@ -31,6 +31,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QUndoStack>
+#include <QCryptographicHash>
 
 #include <functional>
 #include <unordered_map>
@@ -78,7 +79,7 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
 
         //見切れ検出・制御文字の設定。ログの前に置く
         this->clipDetectSettingTree = new ClipDetectSettingTree(this->setting, this->history, this);
-        this->ui->tabWidget->insertTab(this->ui->tabWidget->indexOf(this->ui->logTab), this->clipDetectSettingTree, tr("Text Clipping Detect"));
+        this->ui->tabWidget->insertTab(this->ui->tabWidget->indexOf(this->ui->logTab), this->clipDetectSettingTree, tr("Text Clipping Detection"));
         //言語の有効・無効で列が変わるため、開くたびに作り直す（言語が同じなら何もしない）
         connect(this->ui->tabWidget, &QTabWidget::currentChanged, this, [this](int index) {
             if(this->ui->tabWidget->widget(index) == this->clipDetectSettingTree) {
@@ -100,7 +101,8 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
     this->ui->logText->SetSettings(this->setting);
     this->setAcceptDrops(true);
 
-    connect(this->ui->writeCSVAndPluginButton, &QPushButton::clicked, this, &WriteModeComponent::firstExportTranslateFiles);
+    //プラグインの追加も、プラグインの更新と同じダイアログで行う
+    connect(this->ui->addPluginButton, &QPushButton::clicked, this, &WriteModeComponent::exportPlugin);
     connect(this->ui->writeButton, &QPushButton::clicked, this, &WriteModeComponent::exportTranslateFiles);
     connect(this->ui->updatePluginButton, &QPushButton::clicked, this, &WriteModeComponent::exportPlugin);
     connect(this->ui->testPlayButton, &QPushButton::clicked, this, &WriteModeComponent::testPlay);
@@ -129,9 +131,9 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
 
         this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
         this->ui->logText->clear();
-        this->ui->logText->insertPlainText(tr("Update Projects...\n"));
+        this->ui->logText->insertPlainText(tr("Updating project...\n"));
 
-        auto baseMessage = tr("Update to the latest content...");
+        auto baseMessage = tr("Updating to the latest content...");
         this->dispatch(StatusMessage, {baseMessage});
         this->dispatch(SaveProject,{});
         this->_invoker->reanalysis();
@@ -171,7 +173,12 @@ WriteModeComponent::WriteModeComponent(ComponentBase* setting, QWidget* parent)
             this->setup();
             this->dispatch(StatusMessage, {tr(" Complete."), 3000});
         }
-        else if(invokeType == InvokeType::ExportFirstTime || invokeType == InvokeType::ExportCSV){
+        else if(invokeType == InvokeType::UpdatePlugin){
+            this->setting->isPluginRegistered = true;
+            this->updateExportButtonsVisible();
+            this->dispatch(SaveProject, {});
+        }
+        else if(invokeType == InvokeType::ExportCSV){
             this->applyEditingTranslationsToExport();
             //VXAce は翻訳を反映したCSVをパッキングしないとゲームで使えない
             if(this->setting->projectType == settings::VXAce) {
@@ -223,6 +230,7 @@ QTreeView::item {
     connect(fileTree, &FileTree::selectMainError, this->mainTable, &MainCSVTable::selectError);
     connect(fileTree, &FileTree::selectScriptError, this->scriptTable, &ScriptCSVTable::selectRowByOriginal);
     connect(this->mainTable, &MainCSVTable::fileProgressChanged, fileTree, &FileTree::setFileProgress);
+    connect(this->mainTable, &MainCSVTable::fileMarksChanged, fileTree, &FileTree::setFileMarks);
 connect(fileTree, &FileTree::showScriptFile, this, &WriteModeComponent::onShowScriptFile);
     connect(fileTree, &FileTree::setScriptFileNameLabel, this, &WriteModeComponent::onSetScriptFileNameLabel);
     connect(fileTree, &FileTree::highlightScriptText, this, &WriteModeComponent::onHighlightScriptText);
@@ -243,6 +251,7 @@ connect(fileTree, &FileTree::showScriptFile, this, &WriteModeComponent::onShowSc
 }
 
 WriteModeComponent::~WriteModeComponent(){
+    this->saveViewState();
     this->removeDispatch(this);
 }
 
@@ -257,6 +266,9 @@ void WriteModeComponent::show()
 
 void WriteModeComponent::clear()
 {
+    //表を消す前に、表示していたプロジェクトの表示の状態を保存する
+    this->saveViewState();
+    this->viewStateGroup.clear();
 
     this->showAllScriptContents = true;
     //別のプロジェクトのゲームを監視しないよう、追従を止める
@@ -361,8 +373,10 @@ void WriteModeComponent::exportPlugin()
         return;
     }
 
-    //パッチモードを切り替えるとCSVの置き場所が変わるため、CSVも書き出し直す
+    //パッチモードを切り替えるとCSVの置き場所が変わるため、書き出し済みのCSVも書き出し直す。
+    //プラグインを追加するとき（まだCSVを書き出していないとき）は、プラグインだけを書き出す
     const bool patchModeChanged = prevWriteObj.enableLanguagePatch != dialog.isEnableLanguagePatch();
+    const bool reexportCsv = patchModeChanged && this->setting->isFirstExported;
     if(patchModeChanged) { this->setting->writeObj.overwriteLangscore = true; }
 
     if(this->confirmOverwriteReadOnlyPlugins() == false) {
@@ -385,7 +399,7 @@ void WriteModeComponent::exportPlugin()
     this->ui->logText->insertPlainText(tr("Update Plugin...\n"));
 
     this->dispatch(SaveProject,{});
-    if(patchModeChanged) {
+    if(reexportCsv) {
         //CSV の書き出し後は通常の書き出しと同じく、編集内容の反映とパッキングを行う
         _invoker->exportFirstTime();
         invokeType = InvokeType::ExportCSV;
@@ -414,25 +428,11 @@ void WriteModeComponent::exportTranslateFiles()
         return;
     }
 
-    //パッチモードを切り替えると、プラグインも更新しないとゲームが新しい置き場所のCSVを読まない。
-    //VXAce のパッチモードの設定は langscore.rb に書き込まれるため、langscore.rb を上書きする
-    const bool patchModeChanged = this->setting->writeObj.enableLanguagePatch != dialog.writeByLanguagePatch();
-    if(patchModeChanged)
-    {
-        const bool prevOverwriteLangscore = this->setting->writeObj.overwriteLangscore;
-        this->setting->writeObj.overwriteLangscore = true;
-        if(this->confirmOverwriteReadOnlyPlugins() == false) {
-            this->setting->writeObj.overwriteLangscore = prevOverwriteLangscore;
-            this->changeEnabledUIState(true);
-            return;
-        }
-    }
-
     QDir lsProjDir(this->setting->langscoreProjectDirectory);
     lastWritePath = dialog.outputPath();
     auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
     this->setting->writeObj.exportDirectory = relativePath;
-    this->setting->writeObj.enableLanguagePatch = dialog.writeByLanguagePatch();
+    //言語パッチモードは、プラグインを書き出したときの設定に合わせる
     this->setting->writeObj.writeMode = dialog.writeMode();
     this->setting->setPackingDirectory(relativePath);
 
@@ -444,54 +444,9 @@ void WriteModeComponent::exportTranslateFiles()
     this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
 
     this->dispatch(SaveProject,{});
-    if(patchModeChanged) { _invoker->exportFirstTime(); }
-    else { _invoker->exportCSV(); }
+    _invoker->exportCSV();
     invokeType = InvokeType::ExportCSV;
 
-}
-
-void WriteModeComponent::firstExportTranslateFiles()
-{
-    if(this->setting->writeObj.exportDirectory.isEmpty()){
-        this->setting->writeObj.exportDirectory = this->setting->translateDirectoryPath();
-    }
-    this->dispatch(EnableBlur, {});
-    //this->setGraphicsEffect(new QGraphicsBlurEffect);
-    this->changeEnabledUIState(false);
-
-    FirstWriteDialog dialog(this->setting, this);
-
-    auto execCode = dialog.exec();
-    this->dispatch(DisableBlur, {});
-    //this->setGraphicsEffect(nullptr);
-    if(execCode == QDialog::Rejected){
-        this->changeEnabledUIState(true);
-        return;
-    }
-
-    if(this->confirmOverwriteReadOnlyPlugins() == false) {
-        this->changeEnabledUIState(true);
-        return;
-    }
-
-    QDir lsProjDir(this->setting->langscoreProjectDirectory);
-    lastWritePath = dialog.outputPath();
-    auto relativePath = lsProjDir.relativeFilePath(lastWritePath);
-    this->setting->writeObj.exportDirectory = relativePath;
-    this->setting->writeObj.enableLanguagePatch = dialog.writeByLanguagePatch();
-    this->setting->writeObj.writeMode = dialog.writeMode();
-    this->setting->setPackingDirectory(relativePath);
-
-    if(dialog.backup()){ backup(); }
-
-    this->ui->tabWidget->setCurrentWidget(this->ui->logTab);
-
-    this->ui->logText->clear();
-    this->ui->logText->insertPlainText(tr("Write Translate Files(First)...\n"));
-
-    this->dispatch(SaveProject,{});
-    _invoker->exportFirstTime();
-    invokeType = InvokeType::ExportFirstTime;
 }
 
 void WriteModeComponent::setup()
@@ -508,18 +463,7 @@ void WriteModeComponent::setup()
     this->setting->setupFontList();
 
     //Languages
-    const std::vector<QLocale> languages = {
-        {QLocale::Japanese},
-        {QLocale::English},
-        {QLocale::Chinese, QLocale::SimplifiedChineseScript},
-        {QLocale::Chinese, QLocale::TraditionalChineseScript},
-        {QLocale::Korean},
-        {QLocale::Spanish},
-        {QLocale::German},
-        {QLocale::French},
-        {QLocale::Italian},
-        {QLocale::Russian},
-    };
+    const auto languages = settings::supportedLocales();
     this->setting->setupLanguages(languages);
 
     int count = 0;
@@ -564,18 +508,50 @@ void WriteModeComponent::setup()
     //this->ui->tableWidget_script->blockSignals(false);
     this->fileTree->blockSignals(false);
 
-    if(setting->isFirstExported == false){
-        this->ui->writeCSVAndPluginButton->setVisible(true);
-        this->ui->updatePluginButton->setVisible(false);
-        this->ui->writeButton->setVisible(false);
-    }
-    else{
-        this->ui->writeCSVAndPluginButton->setVisible(false);
-        this->ui->updatePluginButton->setVisible(true);
-        this->ui->writeButton->setVisible(true);
-    }
+    this->updateExportButtonsVisible();
+
+    this->viewStateGroup = "WriteModeComponent/view_" + QString::fromLatin1(QCryptographicHash::hash(this->setting->langscoreProjectDirectory.toUtf8(), QCryptographicHash::Md5).toHex());
+    this->restoreViewState();
 
     this->update();
+}
+
+void WriteModeComponent::saveViewState()
+{
+    if(this->viewStateGroup.isEmpty()) { return; }
+    auto settings = ComponentBase::getAppSettings();
+    settings.beginGroup(this->viewStateGroup);
+    settings.setValue("file", this->fileTree->currentFile());
+    //書き出しなどで自動で切り替わるログのタブは、開き直したときに出さない
+    if(this->ui->tabWidget->currentWidget() != this->ui->logTab) {
+        settings.setValue("tab", this->ui->tabWidget->currentIndex());
+    }
+    const auto position = this->mainTable->viewPosition();
+    settings.setValue("row", position.row);
+    settings.setValue("column", position.column);
+    settings.setValue("scroll", position.scroll);
+    settings.endGroup();
+}
+
+//初めて開いたプロジェクトは保存した状態が無いため、言語のタブのまま
+void WriteModeComponent::restoreViewState()
+{
+    auto settings = ComponentBase::getAppSettings();
+    settings.beginGroup(this->viewStateGroup);
+    //ファイルを選ぶとそのファイルのタブに切り替わるため、タブはファイルの後に戻す
+    const auto file = settings.value("file").toString();
+    if(file.isEmpty() == false && this->fileTree->selectFile(file)) {
+        MainCSVTable::ViewPosition position;
+        position.row = settings.value("row", -1).toInt();
+        position.column = settings.value("column", -1).toInt();
+        position.scroll = settings.value("scroll", 0).toInt();
+        this->mainTable->restoreViewPosition(position);
+    }
+    const auto tab = settings.value("tab", 0).toInt();
+    if(0 <= tab && tab < this->ui->tabWidget->count()) {
+        this->ui->tabWidget->setCurrentIndex(tab);
+    }
+    settings.endGroup();
 }
 
 
@@ -590,9 +566,11 @@ void WriteModeComponent::setupRemoteHub()
     this->applyToGameButton = new QPushButton(tr("Apply to Game"), this);
     this->applyToGameButton->setObjectName("applyToGameButton");
     //編集した翻訳をゲームの翻訳ファイルに反映し、プロジェクトに保存します。テストプレイ中のゲームは翻訳を読み直します。
-    this->applyToGameButton->setToolTip(tr("Applies the edited translations to the game's translation files and saves the project.\nThe test playing game reloads the translations."));
+    this->applyToGameButton->setToolTip(tr("Applies the edited translations to the game's translation files and saves the project.\nThe running game reloads the translations."));
     for(auto* button : {this->followGameButton, this->applyToGameButton}) {
         button->setSizePolicy(this->ui->testPlayButton->sizePolicy());
+        button->setMinimumSize(this->ui->testPlayButton->minimumSize());
+        button->setMaximumSize(this->ui->testPlayButton->maximumSize());
     }
     this->ui->horizontalLayout_5->insertWidget(1, this->followGameButton);
     this->ui->horizontalLayout_5->insertWidget(2, this->applyToGameButton);
@@ -603,6 +581,8 @@ void WriteModeComponent::setupRemoteHub()
         if(checked == false) { this->mainTable->clearHighlightRow(); }
         this->dispatch(FollowGame, {checked});
         this->updateFollowGameButton();
+        //接続中はプラグインの更新・翻訳CSVの書き出しを無効にする。書き出しなどの処理中は無効のまま
+        this->changeEnabledUIState(this->fileTree->isEnabledTo(this));
     });
     connect(this->applyToGameButton, &QPushButton::clicked, this, [this]() {
         if(this->setting->isFirstExported == false) {
@@ -636,10 +616,6 @@ void WriteModeComponent::finishExport(bool openExportFolder)
     this->setHasUnappliedEdits(false);
     this->setting->isFirstExported = true;
 
-    this->ui->writeCSVAndPluginButton->setVisible(false);
-    this->ui->updatePluginButton->setVisible(true);
-    this->ui->writeButton->setVisible(true);
-
     this->dispatch(SaveProject,{});
 
     if(testPlayAfterExport) {
@@ -660,7 +636,7 @@ void WriteModeComponent::testPlay()
     //初回の書き出し前はゲームにプラグインが無いため、書き出しの確認はしない
     if(this->setting->isFirstExported && (this->history->isClean() == false || langscore::UnexportedEditingFiles(*this->setting).isEmpty() == false))
     {
-        QMessageBox box(QMessageBox::Question, tr("Test Play"), tr("There are unsaved or unexported edits.\nDo you want to export them before the test play?"), QMessageBox::NoButton, this);
+        QMessageBox box(QMessageBox::Question, tr("Run Game"), tr("There are unsaved or unexported edits.\nDo you want to export them before the test play?"), QMessageBox::NoButton, this);
         auto* exportButton = box.addButton(tr("Export and Play"), QMessageBox::AcceptRole);
         auto* playButton = box.addButton(tr("Play without Exporting"), QMessageBox::DestructiveRole);
         box.addButton(QMessageBox::Cancel);
@@ -698,7 +674,7 @@ void WriteModeComponent::launchTestPlay()
     const auto type = this->setting->projectType;
     const auto [program, args] = RPGMakerPathDialog::testPlayCommand(type, this->setting->gameProjectPath, RPGMakerPathDialog::rpgMakerPath(type));
     if(QProcess::startDetached(program, args, this->setting->gameProjectPath) == false) {
-        QMessageBox::warning(this, tr("Test Play"), tr("Failed to start the test play.\n%1").arg(QDir::toNativeSeparators(program)));
+        QMessageBox::warning(this, tr("Run Game"), tr("Failed to start the game.\n%1").arg(QDir::toNativeSeparators(program)));
     }
 }
 
@@ -768,8 +744,11 @@ void WriteModeComponent::setFontList(std::vector<QString> fontPaths)
 void WriteModeComponent::changeEnabledUIState(bool enable)
 {
     this->fileTree->setEnabled(enable);
-    this->ui->writeCSVAndPluginButton->setEnabled(enable);
-    this->ui->updatePluginButton->setEnabled(enable);
+    //ゲームに接続している間は、ゲームが読んでいるプラグインと翻訳ファイルを書き換えさせない
+    const bool isFollowingGame = this->followGameButton != nullptr && this->followGameButton->isChecked();
+    const bool canExport = enable && isFollowingGame == false;
+    this->ui->addPluginButton->setEnabled(enable);
+    this->ui->updatePluginButton->setEnabled(canExport);
     this->ui->testPlayButton->setEnabled(enable);
     if(this->applyToGameButton) { 
         this->applyToGameButton->setEnabled(enable && this->hasUnappliedEdits); 
@@ -779,7 +758,14 @@ void WriteModeComponent::changeEnabledUIState(bool enable)
     const bool hasEnabledLanguage = std::ranges::any_of(this->setting->languages, [](const settings::Language& lang) {
         return lang.enable;
     });
-    this->ui->writeButton->setEnabled(enable && hasEnabledLanguage);
+    this->ui->writeButton->setEnabled(canExport && hasEnabledLanguage);
+}
+
+void WriteModeComponent::updateExportButtonsVisible()
+{
+    //プラグインを追加するまでは、追加のボタンだけを出す
+    this->ui->addPluginButton->setVisible(this->setting->isPluginRegistered == false);
+    this->ui->exportButtonsWidget->setVisible(this->setting->isPluginRegistered);
 }
 
 void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
@@ -796,7 +782,15 @@ void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
     else if(type == ComponentBase::SaveProject)
     {
         const auto editFolder = this->setting->langscoreProjectDirectory + "/editing";
+        //保存する前に、他の人の変更を取り込み、衝突したセルはどちらの訳にするか選んでもらう
+        this->mainTable->syncWithAllFiles();
         this->csvEditDataManager->saveAllModels(editFolder);
+        //取り込んでから保存するまでの間に、他の人が同じセルを保存していた場合
+        for(const auto& path : this->csvEditDataManager->mainCSVFiles())
+        {
+            auto* model = this->csvEditDataManager->findMainCSVModel(path);
+            if(model != nullptr) { this->mainTable->resolveMergeConflicts(*model, path); }
+        }
     }
     else if(type == ComponentBase::EnableBlur) {
         this->setGraphicsEffect(new QGraphicsBlurEffect);
@@ -992,7 +986,7 @@ void WriteModeComponent::updateFollowGameButton()
     this->followGameButton->setEnabled(this->isGameRunning);
     if(this->followGameButton->isChecked()) {
         //接続中...
-        this->followGameButton->setText(tr("Connected..."));
+        this->followGameButton->setText(tr("Connected."));
         //クリックで切断
         this->followGameButton->setToolTip(tr("Click to disconnect"));
         return;
@@ -1004,7 +998,7 @@ void WriteModeComponent::updateFollowGameButton()
     }
     else {
         //テストプレイ中のゲームが見つかりません。「プラグインの更新」でデバッグ用のプラグイン（Langscore_RemoteHub）を追加してから、テストプレイを始めて下さい。
-        this->followGameButton->setToolTip(tr("No test playing game was found.\nAdd the debug plugin (Langscore_RemoteHub) in \"Update Plugin\", then start the test play."));
+        this->followGameButton->setToolTip(tr("No running game was found.\nAdd Langscore_RemoteHub in \"Update Plugin\", then run the game."));
     }
 }
 

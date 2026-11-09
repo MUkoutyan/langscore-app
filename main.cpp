@@ -22,7 +22,7 @@ bool checkInstallValid(const QApplication& a)
     };
     for(const auto& file : files){
         if(QFile(a.applicationDirPath()+file).exists() == false){
-            QMessageBox::critical(nullptr, "Langscore Error!", QObject::tr("The required file does not exist. Reinstall the application."));
+            QMessageBox::critical(nullptr, "Langscore Error!", QObject::tr("The required file does not exist. Try reinstalling the application."));
             return false;
         }
     }

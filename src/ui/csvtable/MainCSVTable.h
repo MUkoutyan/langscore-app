@@ -14,11 +14,13 @@
 #include "ComponentBase.h"
 #include "EditDataManager.h"
 #include "editor/CSVEditor.h"
+#include "editor/CSVEditorTableModel.h"
 
 
 struct ScriptTextData; // 前方宣言
 class MainCSVTableModel;
 class invoker;
+class QFileSystemWatcher;
 class MainCSVTable : public QWidget, public ComponentBase {
     Q_OBJECT
 public:
@@ -33,18 +35,48 @@ public:
     //外部エディターで編集したCSVの翻訳を、同じ名前のファイルの表に取り込む。
     //書き換えたセルの数を返す。取り込み先のファイルが無い・CSVを読めない場合は -1
     int importTranslationCsv(const QString& csvPath);
+    //保存したときに他の人と同じセルを別の訳にしていたら、どちらの訳にするか選んでもらい、保存し直す
+    void resolveMergeConflicts(langscore::CSVEditorTableModel& model, const QString& csvPath);
+    //読み込んだすべてのファイルに他の人の変更を取り込み、衝突したセルはどちらの訳にするか選んでもらう（保存の直前に呼ぶ）
+    void syncWithAllFiles();
+    //他の人の訳を取り込んだ記録の保存先。共有フォルダの他の人の記録と混ざらないよう、プロジェクトごとにアプリのフォルダへ置く
+    static QString changeHistoryPath(const QString& langscoreProjectDirectory);
 void selectError(quint64 errorId);
     //表示中のファイルで、原文がoriginalの行を緑の枠で示して見える位置までスクロールする。
     //見つからなければ枠を消してfalse
     bool highlightRowByOriginal(const QString& original, const QString& language);
     void clearHighlightRow();
+    //表示中のファイルの位置。選んでいるセル（元の表の行・列、無ければ -1）と縦のスクロール位置
+    struct ViewPosition { int row = -1; int column = -1; int scroll = 0; };
+    ViewPosition viewPosition() const;
+    //表示したファイルの位置を戻す。行の高さを合わせてから戻すため、表示の後に呼ぶ
+    void restoreViewPosition(const ViewPosition& position);
     //すべてのファイルの進捗を fileProgressChanged で通知する
     void notifyAllFileProgress();
 
 signals:
     void fileProgressChanged(const QString& fileName, int translatedRows, int totalRows);
+    //ファイルの一覧に付ける目印。未保存の編集・他の人の訳にしたセル・決めていない衝突があるか
+    void fileMarksChanged(const QString& fileName, bool modified, bool changedByOthers, bool hasConflicts);
 
 private:
+    enum class ConflictChoice { Mine, Theirs, Later };
+    //衝突したセルを1つずつ見せて、どちらの訳にするか選んでもらう。
+    //canPostpone なら「あとで決める」を選べる。選ばなかったセルは Later（できない場合は Mine）
+    std::vector<ConflictChoice> askConflicts(const QString& csvPath, const langscore::CSVEditorTableModel& model,
+                                             const std::vector<langscore::CSVEditorTableModel::MergeConflict>& conflicts, bool canPostpone);
+    //読み込んだファイルに他の人の変更を取り込み、衝突したセルはどちらの訳にするか選んでもらう
+    void syncWithFile(const QString& csvPath, bool canPostpone);
+    //読み込んだファイルのうち、監視していないもの（作り直されたファイルなど）を監視し、変更があったものとして扱う
+    void watchLoadedFiles();
+    //監視しているファイルが変わったときに呼ぶ。表示中のファイルの衝突はすぐに聞き、他のファイルは表示・保存するときに聞く
+    void syncChangedFiles();
+    //他の人の訳をセルに取り込んだことを、履歴のファイルに足す（モデルの changedByOthers から呼ぶ）
+    void recordChangeByOthers(const QString& original, const QString& language, const QString& before, const QString& after);
+    void showChangeHistoryDialog();
+    //モデルの markStateChanged から呼び、fileMarksChanged で知らせる
+    void notifyFileMarks();
+
     void selectCell(int row, int column);
     MainCSVTableModel* loadModel(const QString& fileName);
     //解析結果とエディターのCSVから、表の内容を作る
@@ -95,6 +127,7 @@ QPushButton* hideLanguageColumnsAction;
     QPushButton* validateButton;
     QPushButton* validateResultListButton;
     QPushButton* oldTranslationsButton;
+    QPushButton* changeHistoryButton;
     QDialog* validateResultDialog;
     QTableWidget* validateResultTable;
     QToolButton* settingButton;
@@ -105,6 +138,11 @@ QPushButton* hideLanguageColumnsAction;
     QTextEdit* cellErrorLog;
     invoker* _invoker;
     QTimer* updateTimer;
+    //他の人が保存した editing のCSVを見つけるための監視
+    QFileSystemWatcher* fileWatcher;
+    //保存の途中のファイルを読まないよう、変更が落ち着いてから読み直す
+    QTimer* fileChangeTimer;
+    QSet<QString> changedFiles;
     QString currentFileName;
     QString currentTreeItemName;
     QString currentTreeFileName;

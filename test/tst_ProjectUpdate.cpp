@@ -8,6 +8,11 @@
 #include <QPushButton>
 #include <QPlainTextEdit>
 #include <QApplication>
+#include <QMessageBox>
+#include <QTableWidget>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <functional>
 #include "WriteModeComponent.h"
 #include "MainCSVTable.h"
 #include "EditDataManager.h"
@@ -15,6 +20,10 @@
 #include <QAbstractProxyModel>
 #include <QItemSelectionModel>
 #include "CSVEditor.h"
+#include "dialog/AnalyzeDialog.h"
+#include <QCheckBox>
+#include <QTabWidget>
+#include "FileTree.h"
 
 // setting を参照するために公開する
 struct ProjectUpdateTestComponent : public ComponentBase
@@ -444,4 +453,253 @@ TEST_F(EditedCsvReloadTest, LanguageEnabledAfterOpenAddsColumn)
     auto* model = OpenActors(component, manager, table);
     ASSERT_NE(model, nullptr);
     EXPECT_TRUE(FindColumn(*model, "fr").has_value()) << "後から有効にした fr の列がありません";
+}
+
+TEST(ProjectUpdateTest, StartTranslationExportsInAnalyzeDialog)
+{
+    // 翻訳作業の開始では、解析の画面のまま解析・プラグインの追加・翻訳CSVの書き出しまで行い、
+    // 終わってから編集画面へ切り替えること。プラグインオプションも書き出しに使われること
+    QTemporaryDir tempDir;
+    ProjectUpdateTestComponent component;
+    const auto gameDir = tempDir.filePath("Game");
+    SetupProject(component, gameDir);
+    auto& setting = *component.setting;
+    setting.isPluginRegistered = false;
+    setting.languages.clear();
+
+    AnalyzeDialog dialog(&component);
+    dialog.openFile(gameDir);
+    auto* startButton = dialog.findChild<QPushButton*>("analyzeButton");
+    auto* remoteHub = dialog.findChild<QCheckBox*>("enableRemoteHub");
+    ASSERT_NE(startButton, nullptr);
+    ASSERT_NE(remoteHub, nullptr);
+    ASSERT_TRUE(startButton->isEnabled());
+    remoteHub->setChecked(true);
+
+    QStringList events;
+    QObject::connect(&dialog, &AnalyzeDialog::translationStarted, [&events]() { events << "started"; });
+    QObject::connect(&dialog, &AnalyzeDialog::toWriteMode, [&events, &setting](QString) {
+        //編集画面へ切り替えるときには、ゲームへの書き出しが済んでいる
+        events << (setting.isPluginRegistered ? "toWriteMode" : "toWriteModeBeforeExport");
+    });
+
+    ScopedFakeDivisi fakeDivisi;
+    ASSERT_TRUE(fakeDivisi.valid());
+    startButton->click();
+    ASSERT_TRUE(WaitUntil([&events]() { return events.size() == 2; }, 10000));
+    EXPECT_EQ(events, QStringList({"started", "toWriteMode"}));
+
+    //書き出しの前に言語を設定し、書き出し先はゲームの翻訳フォルダにする。保存した設定にも残る
+    settings saved;
+    saved.load(setting.langscoreProjectDirectory + "/config.json");
+    EXPECT_TRUE(saved.isPluginRegistered);
+    EXPECT_TRUE(saved.isFirstExported);
+    EXPECT_TRUE(saved.writeObj.enableRemoteHub);
+    EXPECT_EQ(saved.languages.size(), settings::supportedLocales().size());
+    EXPECT_EQ(QDir::cleanPath(QDir(setting.langscoreProjectDirectory).absoluteFilePath(setting.writeObj.exportDirectory)), QDir::cleanPath(setting.translateDirectoryPath()));
+}
+
+TEST(ProjectUpdateTest, RestoresLastViewedFileAndTab)
+{
+    // 初めて開いたプロジェクトは言語のタブを出す。閉じて開き直したら、最後に見ていたファイルとタブに戻す
+    QTemporaryDir tempDir;
+    ProjectUpdateTestComponent component;
+    SetupProject(component, tempDir.filePath("Game"));
+
+    QString viewedFile;
+    {
+        WriteModeComponent writeMode(&component, nullptr);
+        writeMode.show();
+        auto* tabs = writeMode.findChild<QTabWidget*>("tabWidget");
+        auto* fileTree = writeMode.findChild<FileTree*>();
+        ASSERT_NE(tabs, nullptr);
+        ASSERT_NE(fileTree, nullptr);
+        EXPECT_EQ(tabs->currentWidget()->objectName(), QString("langTab"));
+
+        ASSERT_TRUE(fileTree->selectFile("Actors"));
+        viewedFile = fileTree->currentFile();
+        ASSERT_FALSE(viewedFile.isEmpty());
+        EXPECT_EQ(tabs->currentWidget()->objectName(), QString("mainTab"));
+    }
+
+    WriteModeComponent reopened(&component, nullptr);
+    reopened.show();
+    EXPECT_EQ(reopened.findChild<QTabWidget*>("tabWidget")->currentWidget()->objectName(), QString("mainTab"));
+    EXPECT_EQ(reopened.findChild<FileTree*>()->currentFile(), viewedFile);
+}
+
+namespace
+{
+    //衝突のダイアログが出たら handle で操作する。出なければ false
+    bool HandleConflictDialog(const std::function<void(QDialog&, QTableWidget&)>& handle)
+    {
+        bool handled = false;
+        QTimer poll;
+        QObject::connect(&poll, &QTimer::timeout, [&handled, &handle]() {
+            auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+            if(dialog == nullptr || dialog->objectName() != "mergeConflictDialog") { return; }
+            auto* table = dialog->findChild<QTableWidget*>("conflictTable");
+            if(table == nullptr) { return; }
+            handled = true;
+            handle(*dialog, *table);
+        });
+        poll.start(50);
+        return WaitUntil([&handled]() { return handled; }, 5000);
+    }
+
+    //A・B の en に保存した後、開いたまま 0.5 秒以上待って監視が始まった状態にする
+    MainCSVTableModel* OpenSavedActors(ProjectUpdateTestComponent& component, const std::shared_ptr<EditDataManager>& manager, MainCSVTable& table)
+    {
+        auto* model = OpenActors(component, manager, table);
+        if(model == nullptr) { return nullptr; }
+        const auto column = *FindColumn(*model, "en");
+        model->setData(model->index(*FindRow(*model, "A"), column), "SavedA");
+        model->setData(model->index(*FindRow(*model, "B"), column), "SavedB");
+        manager->saveAllModels(component.setting->langscoreProjectDirectory + "/editing");
+        WaitUntil([]() { return false; }, 1500);
+        return model;
+    }
+}
+
+// 不具合の再発防止
+TEST_F(EditedCsvReloadTest, AsksConflictAfterFirstSave)
+{
+    // editing のフォルダが無い状態で開き、初めて保存した後でも、他の人の保存に気づいて衝突を聞くこと
+    WriteAnalyzeResult(R"([{"original": "A", "type": ["name"]}])");
+    ASSERT_FALSE(QFileInfo::exists(QFileInfo(editingCsv).absolutePath()));
+
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    auto* model = OpenActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+    const auto row = FindRow(*model, "A");
+    const auto column = FindColumn(*model, "en");
+    ASSERT_TRUE(row.has_value() && column.has_value());
+    ASSERT_TRUE(model->setData(model->index(*row, *column), "Saved"));
+    ASSERT_TRUE(manager->saveAllModels(component.setting->langscoreProjectDirectory + "/editing"));
+    //保存で作ったフォルダとファイルの監視が始まるのを待つ
+    WaitUntil([]() { return false; }, 1500);
+
+    //自分は保存せずに編集し、他の人が同じセルを保存する
+    ASSERT_TRUE(model->setData(model->index(*row, *column), "Mine"));
+    WriteTextFile(editingCsv, "original,en,type\nA,Theirs,name\n");
+
+    //衝突のダイアログが出たら、あとで決めるで閉じる
+    QString theirs;
+    EXPECT_TRUE(HandleConflictDialog([&theirs](QDialog& dialog, QTableWidget& conflicts) {
+        theirs = conflicts.item(0, 3)->text();
+        dialog.reject();
+    })) << "衝突のダイアログが出ません";
+    EXPECT_EQ(theirs, QString("Theirs"));
+    EXPECT_EQ(FindCell(*model, "A", "en"), QString("Mine")) << "自分の訳が他の人の訳で上書きされています";
+}
+
+TEST_F(EditedCsvReloadTest, ConflictListChoosesSelectedRows)
+{
+    // 衝突を一覧で出し、選んだ行をまとめて他の人の訳にできること。選ばなかった行は自分の訳のまま
+    WriteAnalyzeResult(R"([{"original": "A", "type": ["name"]}, {"original": "B", "type": ["name"]}, {"original": "C", "type": ["name"]}])");
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    auto* model = OpenSavedActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+    const auto column = *FindColumn(*model, "en");
+    model->setData(model->index(*FindRow(*model, "A"), column), "MineA");
+    model->setData(model->index(*FindRow(*model, "B"), column), "MineB");
+    model->setData(model->index(*FindRow(*model, "C"), column), "MineC");
+    WriteTextFile(editingCsv, "original,en,type\nA,TheirsA,name\nB,TheirsB,name\nC,TheirsC,name\n");
+
+    int rowCount = 0;
+    EXPECT_TRUE(HandleConflictDialog([&rowCount](QDialog& dialog, QTableWidget& conflicts) {
+        rowCount = conflicts.rowCount();
+        //A・B の行を選び、まとめて他の人の訳にする
+        conflicts.clearSelection();
+        conflicts.selectionModel()->select(conflicts.model()->index(0, 0), QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        conflicts.selectionModel()->select(conflicts.model()->index(1, 0), QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        dialog.findChild<QPushButton*>("selectedTheirsButton")->click();
+        dialog.accept();
+    })) << "衝突のダイアログが出ません";
+    EXPECT_EQ(rowCount, 3);
+    EXPECT_EQ(FindCell(*model, "A", "en"), QString("TheirsA"));
+    EXPECT_EQ(FindCell(*model, "B", "en"), QString("TheirsB"));
+    EXPECT_EQ(FindCell(*model, "C", "en"), QString("MineC"));
+    QFile::remove(MainCSVTable::changeHistoryPath(component.setting->langscoreProjectDirectory));
+}
+
+TEST_F(EditedCsvReloadTest, ChangeByOthersIsHighlightedAndRecorded)
+{
+    // 他の人の訳を取り込んだセルに色を付け、変わる前と後の訳を履歴のファイルに残すこと。自分で編集すると色を消すこと
+    WriteAnalyzeResult(R"([{"original": "A", "type": ["name"]}, {"original": "B", "type": ["name"]}])");
+    const auto historyPath = MainCSVTable::changeHistoryPath(component.setting->langscoreProjectDirectory);
+    QFile::remove(historyPath);
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    auto* model = OpenSavedActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+
+    WriteTextFile(editingCsv, "original,en,type\nA,TheirsA,name\nB,SavedB,name\n");
+    ASSERT_TRUE(WaitUntil([model]() { return FindCell(*model, "A", "en") == QString("TheirsA"); }, 5000)) << "他の人の訳が入りません";
+
+    const auto cellA = model->index(*FindRow(*model, "A"), *FindColumn(*model, "en"));
+    const auto cellB = model->index(*FindRow(*model, "B"), *FindColumn(*model, "en"));
+    EXPECT_TRUE(model->data(cellA, Qt::BackgroundRole).isValid()) << "他の人の訳にしたセルに色がありません";
+    EXPECT_TRUE(model->data(cellA, Qt::ToolTipRole).toString().contains("SavedA"));
+    EXPECT_FALSE(model->data(cellB, Qt::BackgroundRole).isValid());
+
+    QFile history(historyPath);
+    ASSERT_TRUE(history.open(QFile::ReadOnly)) << "履歴のファイルがありません";
+    const auto lines = history.readAll().trimmed().split('\n');
+    history.close();
+    ASSERT_EQ(lines.size(), 1);
+    const auto entry = QJsonDocument::fromJson(lines[0]).object();
+    EXPECT_EQ(entry["file"].toString(), QString("Actors"));
+    EXPECT_EQ(entry["original"].toString(), QString("A"));
+    EXPECT_EQ(entry["language"].toString(), QString("en"));
+    EXPECT_EQ(entry["before"].toString(), QString("SavedA"));
+    EXPECT_EQ(entry["after"].toString(), QString("TheirsA"));
+
+    model->setData(cellA, "MineA");
+    EXPECT_FALSE(model->data(cellA, Qt::BackgroundRole).isValid()) << "自分で編集したセルの色が消えません";
+    QFile::remove(historyPath);
+}
+
+TEST_F(EditedCsvReloadTest, NotifiesFileMarks)
+{
+    // ファイルの一覧の目印として、未保存の編集・他の人の訳を取り込んだこと・決めていない衝突を知らせること
+    WriteAnalyzeResult(R"([{"original": "A", "type": ["name"]}, {"original": "B", "type": ["name"]}])");
+    auto manager = std::make_shared<EditDataManager>();
+    MainCSVTable table(&component, manager);
+    struct Marks { bool modified = false; bool changedByOthers = false; bool hasConflicts = false; };
+    Marks marks;
+    QObject::connect(&table, &MainCSVTable::fileMarksChanged, [&marks](const QString& fileName, bool modified, bool changedByOthers, bool hasConflicts) {
+        if(fileName == "Actors") { marks = {modified, changedByOthers, hasConflicts}; }
+    });
+    auto* model = OpenSavedActors(component, manager, table);
+    ASSERT_NE(model, nullptr);
+    EXPECT_FALSE(marks.modified);
+    const auto column = *FindColumn(*model, "en");
+    const auto cellA = model->index(*FindRow(*model, "A"), column);
+
+    model->setData(cellA, "MineA");
+    EXPECT_TRUE(marks.modified);
+
+    //他の人が別のセルを変える
+    WriteTextFile(editingCsv, "original,en,type\nA,SavedA,name\nB,TheirsB,name\n");
+    EXPECT_TRUE(WaitUntil([&marks]() { return marks.changedByOthers; }, 5000)) << "他の人の訳を取り込んだことを知らせていません";
+    EXPECT_FALSE(marks.hasConflicts);
+
+    //他の人が同じセルを変え、あとで決める
+    WriteTextFile(editingCsv, "original,en,type\nA,TheirsA,name\nB,TheirsB,name\n");
+    EXPECT_TRUE(HandleConflictDialog([](QDialog& dialog, QTableWidget&) { dialog.reject(); }));
+    EXPECT_TRUE(marks.hasConflicts) << "決めていない衝突を知らせていません";
+
+    //保存の前に聞いて決めると、衝突の目印が消える
+    QTimer poll;
+    QObject::connect(&poll, &QTimer::timeout, []() {
+        auto* dialog = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+        if(dialog != nullptr && dialog->objectName() == "mergeConflictDialog") { dialog->accept(); }
+    });
+    poll.start(50);
+    table.syncWithAllFiles();
+    EXPECT_FALSE(marks.hasConflicts);
+    QFile::remove(MainCSVTable::changeHistoryPath(component.setting->langscoreProjectDirectory));
 }

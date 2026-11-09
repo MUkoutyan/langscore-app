@@ -88,7 +88,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     auto fileMenu = AddMenu(tr("File"));
     auto openGameProj = fileMenu->addAction(tr("Open Game Project..."));
     auto saveProj     = fileMenu->addAction(tr("Save Langscore Project..."));
-    recentProjMenu = fileMenu->addMenu(tr("Recent Project"));
+    recentProjMenu = fileMenu->addMenu(tr("Recent Projects"));
     updateRecentMenu();
 
     auto quit = fileMenu->addAction(tr("Quit"));
@@ -117,7 +117,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     editMenu->addSeparator();
     auto undoView = editMenu->addAction(tr("Show Undo View..."));
 
-    auto validationAction = new QAction(tr("Validation all file..."), this);
+    auto validationAction = new QAction(tr("Validate All Files..."), this);
     validationAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_V);
     editMenu->addAction(validationAction);
     editMenu->addSeparator();
@@ -248,7 +248,7 @@ void FormTaskBar::updateRecentMenu()
 
         if(dir.exists() == false){
             //ディレクトリが見つかりません。プロジェクト終了時に履歴からこの項目を削除します。
-            action->setToolTip(tr("Not Found Directory. Delete this item from the history at the end of the project."));
+            action->setToolTip(tr("Directory not found. This item will be removed from the history when the project is closed."));
         }
 
         connect(action, &QAction::triggered, this, [this, path]()
