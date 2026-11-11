@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QWidget>
+#include <QPointer>
 #include <QTreeWidgetItem>
 #include <QTableWidget>
 #include <QGraphicsPixmapItem>
@@ -86,7 +87,7 @@ private:
 
     void setup();
 
-    //最後に表示していたファイル・タブ・表の位置。プロジェクトごとにアプリの設定へ保存し、開き直したときに戻す
+    //最後に表示していたファイル・タブ・表の位置。プロジェクトごとにアプリの設定へ保存し、開き直したときに復元する
     QString viewStateGroup;
     void saveViewState();
     void restoreViewState();
@@ -96,7 +97,7 @@ private:
     void setFontList(std::vector<QString> fontPaths);
 
     void changeEnabledUIState(bool enable);
-    //プラグインの追加前は追加のボタンだけを、追加後はテストプレイ・書き出しなどのボタンを出す
+    //プラグインの追加前は追加ボタンのみ、追加後はテストプレイ・書き出しなどのボタンを表示する
     void updateExportButtonsVisible();
 
     void receive(DispatchType type, const QVariantList& args) override;
@@ -109,7 +110,11 @@ private:
     void applyEditingTranslationsToExport();
     void finishExport(bool openExportFolder = true);
     void launchTestPlay();
-    //テストプレイの前に書き出している間は true。書き出しが終わったらゲームを起動する
+    void showLogTab();
+    void restoreTabBeforeLog();
+    //ログのタブを表示する前のタブ。処理が成功したらこのタブに戻す
+    QPointer<QWidget> tabBeforeLog;
+    //テストプレイ前の書き出し中は true。書き出しの完了後にゲームを起動する
     bool testPlayAfterExport = false;
 
     void changeUIColor();
@@ -118,6 +123,7 @@ private:
     void setupRemoteHub();
     void updateFollowGameButton();
     void setHasUnappliedEdits(bool hasEdits);
+    void updateApplyToGameButton();
     QPushButton* followGameButton = nullptr;
     QPushButton* applyToGameButton = nullptr;
     //ゲーム実行時の書き出しの場合、書き出し先のフォルダーを開かない

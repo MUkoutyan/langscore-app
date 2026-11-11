@@ -36,7 +36,7 @@ public:
 class DeepLTranslationServiceTest : public ::testing::Test
 {
 protected:
-    // API キーは実行ファイルと同じフォルダの settings.ini に保存されるため、前後で消しておく
+    // API キーは実行ファイルと同じフォルダの settings.ini に保存されるため、前後で削除する
     static void SetUpTestSuite() { QFile::remove(SettingsPath()); }
     static void TearDownTestSuite() { QFile::remove(SettingsPath()); }
 
@@ -103,7 +103,7 @@ TEST_F(DeepLTranslationServiceTest, NorwegianTarget)
 
 TEST_F(DeepLTranslationServiceTest, TraditionalChineseTarget)
 {
-    // zh-tw 列の翻訳が繁体字（ZH-HANT）として送信されること
+    // zh-tw 列の翻訳が繁体字の ZH-HANT として送信されること
     SetApiKey("dummy-key:fx");
     TestableDeepLService service;
     int errorCount = 0;
@@ -115,7 +115,7 @@ TEST_F(DeepLTranslationServiceTest, TraditionalChineseTarget)
 
 TEST(DeepLRetryTest, RetryOnlyWhenBusy)
 {
-    // 混み合っている（429）・一時的な不具合（5xx）のときだけ、待ち時間を延ばしながら送り直すこと
+    // 429 の混雑や 5xx の一時的な不具合の場合のみ、待ち時間を延ばしながら再送すること
     EXPECT_EQ(DeepLTranslationService::retryDelayMs(429, 0), 1000);
     EXPECT_EQ(DeepLTranslationService::retryDelayMs(503, 2), 4000);
     EXPECT_EQ(DeepLTranslationService::retryDelayMs(429, 0, "3"), 3000);

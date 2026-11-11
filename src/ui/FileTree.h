@@ -65,7 +65,7 @@ public:
     void clear();
 
     bool selectFile(const QString& fileName);
-    //選んでいるファイル。ファイル名（画像はフルパス）を返す。selectFile で選び直せる
+    //選択中のファイル名を返す。画像の場合はフルパス。selectFile で選び直せる
     QString currentFile() const;
 
     void setupTree();
@@ -92,9 +92,9 @@ public:
     void updateTreeVisibility();
 
     void clearErrors();
-    //ファイルの翻訳の進捗を表示する（fileName は拡張子付きでもよい）
+    //ファイルの翻訳の進捗を表示する。fileName は拡張子付きでもよい
     void setFileProgress(const QString& fileName, int translatedRows, int totalRows);
-    //ファイルに目印を付ける。未保存の編集は名前を太字・斜体に、他の人の訳を取り込んだ・決めていない衝突があるファイルは進捗の横にアイコンを付ける
+    //ファイルの状態を表示する。未保存の編集がある場合は名前を太字・斜体にし、リモートの翻訳文の取り込みや未解決の衝突がある場合は進捗の横にアイコンを表示する
     void setFileMarks(const QString& fileName, bool modified, bool changedByOthers, bool hasConflicts);
 
 signals:
@@ -107,7 +107,7 @@ signals:
 
     // MainタブでJSONを表示する
     void showMainFile(const QString& treeItemName, const QString& fileName);
-    // Mainタブで検証結果（ValidationErrorInfo::id）のセルを選択する
+    // Mainタブで、ValidationErrorInfo::id で指定した検証結果のセルを選択する
     void selectMainError(quint64 errorId);
     //スクリプトの検証結果を選んだとき。スクリプトの表で、そのスクリプトの原文の行を選ぶ
     void selectScriptError(const QString& scriptFileName, const QString& original);
@@ -124,7 +124,6 @@ signals:
     // タブ切り替え
     void setTabIndex(int index);
 
-    // その他必要なsignalを追加
     void notifyScriptTreeItemCheckChanged(QString scriptName, Qt::CheckState check);
 
 private:
@@ -135,7 +134,7 @@ private:
     void expandItemsWithChildren(QTreeWidgetItem* item);
     void resetItemVisibility(QTreeWidgetItem* item);
     void updateTreeItemText();
-    //項目に覚えた目印（setFileMarks）と進捗の説明から、フォント・アイコン・説明を付け直す
+    //setFileMarks で項目に保持した状態と進捗の説明から、フォント・アイコン・説明を更新する
     void applyFileMarks(QTreeWidgetItem* item);
 
     void receive(DispatchType type, const QVariantList& args) override;
@@ -146,7 +145,6 @@ private:
     QHBoxLayout* searchLayout = nullptr;
     bool isFiltering = false;
 
-    // 以下を追加
     QToolButton* settingButton = nullptr;
     QWidget* settingPane = nullptr;
     QCheckBox* showHiddenCheckBox = nullptr;
@@ -184,7 +182,7 @@ private:
 private slots:
     void onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image);
     void showContextMenu(const QPoint& position);
-    void toggleItemVisibility(QTreeWidgetItem* targetItem); // hideSelectedItem をこちらに変更します
+    void toggleItemVisibility(QTreeWidgetItem* targetItem);
     void toggleShowHiddenFiles(bool isChecked);
     
     //検証で使用するメソッド

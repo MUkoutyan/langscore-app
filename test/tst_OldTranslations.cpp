@@ -7,8 +7,8 @@
 
 TEST(OldTranslationsTest, KeepAndRemove)
 {
-    // 今の原文に無い行の訳は古い翻訳に残り、訳の無い行（原文と同じ文だけ）は残さないこと。
-    // 選んだ原文だけ・ファイルごと・すべてを削除できること
+    // 現在の原文に無い行の翻訳文は古い翻訳に残り、原文と同じ文のみで翻訳文の無い行は残さないこと。
+    // 選択した原文のみ・ファイルごと・すべてを削除できること
     QTemporaryDir tempDir;
     const auto editing = tempDir.filePath("editing");
     QDir().mkpath(editing);

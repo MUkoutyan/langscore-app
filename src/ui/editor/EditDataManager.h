@@ -43,16 +43,16 @@ public:
     MainCSVTableModel* findMainCSVModel(const QString& filePath) const;
 
     bool saveModel(const QString& filePath);
-    //変更したファイルだけを保存する。他の人が同じファイルを保存していれば、その変更を取り込む
+    //変更したファイルのみ保存する。リモートで同じファイルが保存されていれば、その変更を取り込む
     bool saveAllModels(const QString& editingDirectory);
-    //読み込んだメインの表のファイル（editing のCSVのパス）
+    //読み込んだメインの表の、editing の CSV のパス
     QStringList mainCSVFiles() const;
 
     bool hasUnsavedChanges(const QString& filePath) const;
-    //検証が終わったときに呼ぶ。検証の後に編集したセルの記録を、開いたすべてのファイルで消す
+    //検証の完了時に呼ぶ。開いたすべてのファイルで、検証後に編集したセルの記録をクリアする
     void clearEditedSinceValidation();
     void closeSession(const QString& filePath);
-    // 全セッションを破棄する（再解析・プロジェクト切り替えで内容が古くなるため）
+    // 再解析やプロジェクト切り替えで内容が古くなるため、全セッションを破棄する
     void closeAllSessions() { sessions_.clear(); }
 
 signals:

@@ -16,7 +16,7 @@ namespace langscore {
 
 namespace
 {
-    //書き出したときの editing のCSVの内容（ハッシュ）を記録するファイル。
+    //書き出し時の editing の CSV の内容のハッシュを記録するファイル。
     //保存では開いたファイルをすべて書き直すため、更新日時ではなく内容で変更を判定する
     QString ExportedHashesPath(const settings& setting)
     {
@@ -37,7 +37,7 @@ namespace
         return QCryptographicHash::hash(file.readAll(), QCryptographicHash::Md5).toHex();
     }
 
-    //divisi の書き出し先（config::exportDirectory と同じ）。言語ごとに書き出す場合は言語ごとのフォルダ
+    //divisi の書き出し先で、config::exportDirectory と同じ。言語ごとに書き出す場合は言語ごとのフォルダ
     QStringList ExportFolders(const settings& setting)
     {
         const QDir langscoreProjectDir(setting.langscoreProjectDirectory);
@@ -52,14 +52,14 @@ namespace
         return folders;
     }
 
-    //原文の一致確認用。editing のCSVは改行を \n にそろえて読むため、書き出したCSV側もそろえる
+    //原文の一致確認用。editing の CSV は改行コードを \n に統一して読むため、書き出した CSV 側も統一する
     QString ToKey(QString text)
     {
         return text.replace("\r\n", "\n");
     }
 
     //Scripts.csv は、1列目が原文ではなく「ファイル名:行:列」か「ファイル名:パラメータ名」のキーになる。
-    //プラグインはこのキーで訳を引くため、キーから原文を引けるようにする
+    //プラグインはこのキーで翻訳文を引くため、キーから原文を引けるようにする
     QHash<QString, QString> ScriptOriginalOfKey(const QString& editJsonPath)
     {
         QHash<QString, QString> originalOfKey;
@@ -85,7 +85,7 @@ namespace
         const settings& setting
     )
     {
-        //原文の列はゲーム側のデータと一致確認をするため、読んだ値（クォートを含む）をそのまま書き込む
+        //原文の列はゲーム側のデータと一致確認をするため、クォートを含む読み込んだ値をそのまま書き込む
         auto rows = readCsv(exportPath);
         if(rows.empty() || rows[0].empty()) { return false; }
 
@@ -124,7 +124,7 @@ namespace
             }
         }
 
-        //divisi と同じ形（BOM 付き、行の区切りは \n、末尾に改行なし）で書く
+        //divisi と同じく、BOM 付き・行の区切りは \n・末尾に改行なしの形式で書く
         QStringList lines;
         for(const auto& fields : rows) {
             lines.append(QStringList(fields.begin(), fields.end()).join(','));

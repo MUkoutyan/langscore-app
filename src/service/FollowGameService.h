@@ -8,8 +8,8 @@ class QFileSystemWatcher;
 class QTimer;
 
 //テストプレイ中のゲーム連携
-//・ゲームが起動しているかを1秒ごとに確かめ、NotifyGameRunning で知らせる
-//・FollowGame で追従している間は、ゲームで表示している文章を ShowGameText で知らせる
+//・ゲームが起動しているかを1秒ごとに確認し、NotifyGameRunning で通知する
+//・FollowGame で追従している間は、ゲームで表示している文章を ShowGameText で通知する
 //・ApplyToGame で、編集した翻訳をゲームの翻訳ファイルに反映する
 class FollowGameService : public ComponentBase, public QObject
 {

@@ -97,7 +97,7 @@ void UpdatePluginDialog::checkButtonStatus()
         this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
         return;
     }
-    //デバッグ用のプラグインの追加・削除だけでも書き出せるようにする
+    //デバッグ用のプラグインの追加・削除のみでも書き出せるようにする
     if(setting->writeObj.overwriteLangscore == false &&
        setting->writeObj.overwriteLangscoreCustom == false &&
        setting->writeObj.enableRemoteHub == _initialEnableRemoteHub){

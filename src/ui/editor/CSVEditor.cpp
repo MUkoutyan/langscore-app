@@ -36,7 +36,7 @@ using namespace langscore;
 
 namespace
 {
-    //エディター内でコピーした表。貼り付けるときは表の形をそのまま使う
+    //エディター内でコピーした表。貼り付け時は表の形をそのまま使う
     const QString CellsMimeType = "application/x-langscore-cells";
 
     //区切り文字・"・改行を含む値は " で囲み、" は "" にする
@@ -48,8 +48,9 @@ namespace
         return field;
     }
 
-    //区切り文字と改行で区切った表を読む。
-    //" で始まる値は次の " までを1つの値とし（区切り文字・改行を含められる）、"" は " にする。値の途中の " はそのまま残す
+    //区切り文字と改行で区切った表を読む
+    //" で始まる値は次の " までを1つの値とするため、区切り文字・改行を含められる
+    //"" は " にする。値の途中の " はそのまま残す
     QList<QStringList> ParseCells(const QString& text, QChar separator)
     {
         QList<QStringList> rows;
@@ -111,10 +112,10 @@ CSVEditor::CSVEditor(ComponentBase* component, QWidget* parent)
     this->setSelectionMode(QAbstractItemView::ExtendedSelection);
     this->setSortingEnabled(false);
     this->setContextMenuPolicy(Qt::CustomContextMenu);
-    //セルを選んで文字を打つだけで入力を始められるようにする（IME の入力も含む）
+    //セルを選択して文字を入力するだけで、IME の入力も含めて編集を始められるようにする
     this->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed | QAbstractItemView::AnyKeyPressed);
 
-    //行の番号を出す。行の高さは表示したときに内容に合わせ、その後は手で変えられる
+    //行番号を表示する。行の高さは表示時に内容に合わせ、その後は手動で変更できる
     this->verticalHeader()->setVisible(true);
     this->verticalHeader()->setSectionResizeMode(QHeaderView::Interactive);
 
@@ -189,7 +190,7 @@ void CSVEditor::setupActions()
     retranslateAction = new QAction(tr("Retranslate Selected Cells (Overwrite)"), this);
     connect(retranslateAction, &QAction::triggered, this, &CSVEditor::retranslateSelectedCells);
 
-    //ショートカットはメニューバーの「編集」に付いているため、ここでは付けない（二重に付けると両方効かなくなる）
+    //ショートカットはメニューバーの「編集」に設定済のため、ここでは設定しない。二重に設定すると両方とも効かなくなる
     undoAction = history->createUndoAction(this, tr("Undo"));
     redoAction = history->createRedoAction(this, tr("Redo"));
 
@@ -619,7 +620,7 @@ void CSVEditor::onBatchTranslationCompleted(int batchId, const QList<Translation
     }
     
     if (progressDialog) {
-        //個々の内容はメッセージ欄に出しているため、状態の欄には件数だけを出す
+        //個々の内容はメッセージ欄に出力済のため、状態の欄には件数のみ表示する
         progressDialog->showCompletion(successCount, results.size());
     }
     
@@ -671,7 +672,7 @@ void CSVEditor::selectAndEditNextCell(const QModelIndex& from, int rowStep, int 
     if(model() == nullptr) { return; }
     if(from.isValid() == false || from.model() != model()) { return; }
 
-    //編集できない列（原文・種類）は飛ばす。表の端まで来たら何もしない
+    //原文・種類など編集できない列は飛ばす。表の端に達したら何もしない
     int row = from.row() + rowStep;
     int column = from.column() + columnStep;
     while(0 <= row && row < model()->rowCount() && 0 <= column && column < model()->columnCount())
@@ -706,7 +707,7 @@ void CSVEditor::cellEditsApplied(const QModelIndex& firstIndex)
 
 bool CSVEditor::edit(const QModelIndex& index, EditTrigger trigger, QEvent* event)
 {
-    //文字を打って編集を始めたときは、表計算ソフトと同じく元の文章を置き換える（MultiLineEditDelegate::setEditorData）
+    //文字入力で編集を始めたときは、表計算ソフトと同様に元の文章を置き換える。置き換えは MultiLineEditDelegate::setEditorData で行う
     _replaceTextOnEdit = (trigger == AnyKeyPressed);
     const bool result = QTableView::edit(index, trigger, event);
     _replaceTextOnEdit = false;
@@ -745,7 +746,7 @@ void CSVEditor::keyPressEvent(QKeyEvent* event)
         return;
     }
     else if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-        //選択範囲の並びは選んだ順とは限らないため、今のセル（最後に選んだセル）を開く
+        //選択範囲の並びは選択順とは限らないため、最後に選択したセルである currentIndex を開く
         if(currentIndex().isValid()) {
             edit(currentIndex());
             return;
@@ -837,7 +838,7 @@ void CSVEditor::copy()
 
     auto* mimeData = new QMimeData();
     mimeData->setData(CellsMimeType, getSelectedCellsAsText(',').toUtf8());
-    //他のアプリには、1つのセルなら値そのもの、複数ならタブ区切り（Excel などと同じ形式）で渡す
+    //他のアプリには、1セルなら値そのもの、複数セルなら Excel などと同じタブ区切りで渡す
     mimeData->setText(indexes.size() == 1 ? model()->data(indexes.front(), Qt::DisplayRole).toString() : getSelectedCellsAsText('\t'));
     QGuiApplication::clipboard()->setMimeData(mimeData);
 }
@@ -849,7 +850,7 @@ void CSVEditor::paste()
     QModelIndexList indexes = getSelectedIndexes();
     if(indexes.isEmpty()) { return; }
 
-    //Windowsのクリップボードは改行が\r\nなので、\nにそろえてから分割する
+    //Windowsのクリップボードは改行コードが \r\n のため、\n に統一してから分割する
     const auto toLF = [](QString text) { return text.replace("\r\n", "\n"); };
     QList<QStringList> cells;
     if(mimeData->hasFormat(CellsMimeType))
@@ -963,7 +964,7 @@ QModelIndexList CSVEditor::getSelectedIndexes() const
     return selectionModel()->selectedIndexes();
 }
 
-//選択したセルを、区切り文字で区切った表にする。各行は改行で終える（空の最後の行も残すため）
+//選択したセルを、区切り文字で区切った表にする。空の最終行も残すため、各行は改行で終える
 QString CSVEditor::getSelectedCellsAsText(QChar separator) const
 {
     QModelIndexList indexes = getSelectedIndexes();
@@ -979,7 +980,7 @@ QString CSVEditor::getSelectedCellsAsText(QChar separator) const
         return a.column() < b.column();
         });
 
-    // 選択された範囲を特定（Ctrl+クリックなどの矩形でない選択もあるため、列は全インデックスから求める）
+    // 選択範囲を特定する。Ctrl+クリックなどで矩形でない選択もあるため、列は全インデックスから求める
     int minRow = indexes.first().row();
     int maxRow = indexes.last().row();
     auto [minColIt, maxColIt] = std::minmax_element(indexes.begin(), indexes.end(), [](const QModelIndex& a, const QModelIndex& b) {
@@ -1015,7 +1016,7 @@ QString CSVEditor::getSelectedCellsAsText(QChar separator) const
 
 void CSVEditor::setData(QModelIndex index, QVariant value, int role)
 {
-    //履歴のセルは元のモデルのもの（executeEditCommand）。表示していないファイルのセルも書き換えられる
+    //履歴のセルは executeEditCommand で元のモデルのセルとして記録している。表示していないファイルのセルも書き換えられる
     const_cast<QAbstractItemModel*>(index.model())->setData(index, value, role);
 }
 

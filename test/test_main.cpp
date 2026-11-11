@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
     if(qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
         qputenv("QT_QPA_PLATFORM", "offscreen");
     }
-    // exe の隣にコピーした Qt の DLL からはプラグインの場所が分からないため、Qt のインストール先を教える
+    // exe の隣にコピーした Qt の DLL からはプラグインの場所が分からないため、Qt のインストール先を指定する
     if(qEnvironmentVariableIsEmpty("QT_PLUGIN_PATH")) {
         qputenv("QT_PLUGIN_PATH", LANGSCORE_QT_PLUGIN_DIR);
     }

@@ -29,7 +29,7 @@ AnalyzeDialog::AnalyzeDialog(ComponentBase *setting, QWidget *parent) :
     connect(this->ui->analyzeButton, &QPushButton::clicked, this, &AnalyzeDialog::invokeAnalyze);
 
     this->ui->invokeLog->setVisible(false);
-    //ゲームへの変更の説明とプラグインの設定は、プロジェクトをドロップしてから出す
+    //ゲームへの変更の説明とプラグインの設定は、プロジェクトのドロップ後に表示する
     this->ui->startNoticeLabel->setVisible(false);
     this->ui->pluginOptionGroup->setVisible(false);
 
@@ -193,14 +193,14 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
     }
     else 
     {
-        //解析結果を.csvで保存していたので、.lsjsonが無ければ強制的に再解析にする。
+        //以前は解析結果を .csv で保存していたため、.lsjson が無ければ強制的に再解析する
         emit this->toAnalyzeMode();
         this->ui->analyzeButton->setEnabled(true);
         this->ui->label->setVisible(false);
         this->ui->lineEdit->setText(this->setting->langscoreProjectDirectory);
         this->ui->lineEdit->setReadOnly(false);
         this->ui->invokeLog->setVisible(true);
-        //翻訳CSVの書き出し先のフォルダ名は、プロジェクトの種類で変わる（VXAce: Data/Translate, MV・MZ: data/translate）
+        //翻訳CSVの書き出し先のフォルダ名はプロジェクトの種類で異なる。VXAce は Data/Translate、MV・MZ は data/translate
         const QFileInfo translateDir(this->setting->translateDirectoryPath());
         //翻訳作業を開始すると、ゲーム側に以下の変更を行います。
         //・Langscoreプラグインを自動で追加します。
@@ -219,12 +219,12 @@ void AnalyzeDialog::openFile(QString gameProjDirPath)
 void AnalyzeDialog::invokeAnalyze()
 {
     this->setting->defaultLanguage = settings::getLowerBcp47Name(QLocale::system());
-    //プラグインの書き出しで使うため、解析の前にプロジェクトへ保存しておく
+    //プラグインの書き出しで使うため、解析の前にプロジェクトへ保存する
     this->setting->writeObj.enableLanguagePatch = this->ui->enablePatch->isChecked();
     this->setting->writeObj.enableTranslateDefLang = this->ui->enableTransDefLang->isChecked();
     this->setting->writeObj.enableRemoteHub = this->ui->enableRemoteHub->isChecked();
     this->ui->analyzeButton->setEnabled(false);
-    //SaveProject を dispatch すると、編集画面に残っている前のプロジェクトの表まで保存されるため、設定だけを保存する
+    //SaveProject を dispatch すると、編集画面に残っている前のプロジェクトの表まで保存されるため、設定のみ保存する
     this->setting->saveForProject();
     this->ui->invokeLog->clear();
     this->invokeStep = InvokeStep::Analyze;

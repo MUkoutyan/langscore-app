@@ -5,7 +5,7 @@
 
 class QKeySequenceEdit;
 
-//セルの編集で使うキー（確定・改行など）を変えるダイアログ
+//確定・改行など、セルの編集で使うキーを変更するダイアログ
 class EditKeySettingsDialog : public QDialog
 {
     Q_OBJECT

@@ -103,7 +103,7 @@ public:
     struct BasicData
     {
         QString fileName = "";       // analyzeフォルダにおけるファイル名
-        QString filePath = "";       // analyzeフォルダにおけるファイルのパス(絶対パス)
+        QString filePath = "";       // analyzeフォルダにおけるファイルの絶対パス
 
         bool ignore = false;
         bool visible = true;
@@ -143,7 +143,7 @@ public:
         bool exportByLanguage = false;
         bool overwriteLangscore = false;
         bool overwriteLangscoreCustom = false;
-        //デバッグ用のプラグインをゲームに入れるか
+        //デバッグ用のプラグインをゲームに追加するか
         bool enableRemoteHub = false;
         bool enableTranslateDefLang = true;
         bool enableLanguagePatch = false;
@@ -161,7 +161,7 @@ public:
     std::vector<Language> languages;
     QString defaultLanguage;
     bool isFirstExported;
-    //ゲームにプラグインを追加したか。追加するまでは、翻訳CSVを書き出せない
+    //ゲームにプラグインを追加したか。追加前は翻訳CSVを書き出せない
     bool isPluginRegistered;
     bool isShowHiddenFilesOnTree;
 

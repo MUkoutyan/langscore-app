@@ -6,9 +6,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 
 namespace langscore {
+
+//csv.hpp
+enum class GitConflictSide;
+struct GitConflictSides;
 
 class FastCSVContainer {
 public:
@@ -72,7 +77,12 @@ public:
 
     // データ初期化
     bool loadFromCsvData(const std::vector<std::vector<CellData>>& csvData);
+    //Git の競合マーカーがあるファイルは、ローカル側である HEAD の内容として読む
     bool loadFromFile(const CellData& filePath);
+    //ファイルを1回だけ読み、Git の競合マーカーがあれば、ローカル側とリモート側に分けて sides に格納する。競合マーカーの無いファイルは両方とも同じ内容になる
+    //競合マーカーがあり Git から競合の内容を取得できる場合は、競合マーカーではなく Git の内容を使い、base も格納する
+    //ファイルを開けなかった場合のみ false を返す。空のファイルは両方とも空のまま true を返す
+    static bool loadGitConflictSidesFromFile(const CellData& filePath, GitConflictSides& sides);
     bool saveToFile(const CellData& filePath) const;
     CellData unescapeCSVField(const CellData& field) const;
     CellData escapeCSVField(const CellData& field) const;
@@ -84,7 +94,7 @@ public:
     inline CellData& at(RowIndex row, ColumnIndex col);
     inline CellData& at(RowIndex row, const CellData& columnName);
 
-    // 安全アクセス（範囲チェック付き）
+    // 範囲チェック付きのアクセス
     bool getValue(RowIndex row, ColumnIndex col, CellData& out) const;
     bool getValue(RowIndex row, const CellData& columnName, CellData& out) const;
     bool setValue(RowIndex row, ColumnIndex col, const CellData& value);
@@ -132,11 +142,13 @@ public:
     
 
 private:
+    bool loadFromFileContents(const QByteArray& contents, GitConflictSide side);
+
     QStringList headers_;
     std::vector<std::vector<CellData>> data_;
     std::unordered_map<CellData, ColumnIndex> columnNameToIndex_;
 
-    // インデックス検索用（オプション：大きなデータセット用）
+    // 大きなデータセットの検索用インデックス
     mutable std::unordered_map<ColumnIndex, std::unordered_map<CellData, std::vector<RowIndex>>> columnValueIndex_;
     mutable bool indexBuilt_ = false;
 
@@ -144,6 +156,17 @@ private:
     void updateColumnIndex(RowIndex row, ColumnIndex col, const CellData& oldValue, const CellData& newValue) const;
     void validateRowColumn(RowIndex row, ColumnIndex col) const;
     void rebuildColumnNameMap();
+};
+
+//Git で競合したファイルの内容
+struct GitConflictSides
+{
+    FastCSVContainer ours;   //ローカル側。競合マーカーが無い場合は空
+    FastCSVContainer theirs; //リモート側
+    //共通の祖先である base。Git から取得できた場合のみ格納する
+    std::optional<FastCSVContainer> base;
+    //ファイルに競合マーカーがあったか
+    bool hasConflictMarkers = false;
 };
 
 // インライン実装

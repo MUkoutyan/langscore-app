@@ -16,8 +16,8 @@
 #endif
 #include <windows.h>
 
-//pid のプロセスが動いていて、writtenAt（プロセスIDを書いた時刻）より前に起動したものなら true。
-//プロセスIDは使い回されるため、書いた後に起動したプロセスは別のものとして扱う
+//pid のプロセスが動作中で、プロセスIDを書き込んだ時刻 writtenAt より前に起動したものなら true。
+//プロセスIDは再利用されるため、書き込み後に起動したプロセスは別のものとして扱う
 static bool IsProcessRunningSince(quint32 pid, const QDateTime& writtenAt)
 {
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
@@ -58,11 +58,11 @@ FollowGameService::FollowGameService(ComponentBase* t)
         }
         this->readTimer->start();
     };
-    //ファイルの作り直しでも監視が外れるため、フォルダーも監視する。
+    //ファイルの再作成でも監視が外れるため、フォルダーも監視する。
     connect(this->remoteHubWatcher, &QFileSystemWatcher::directoryChanged, this, watchCurrentFile);
     connect(this->remoteHubWatcher, &QFileSystemWatcher::fileChanged, this, watchCurrentFile);
 
-    //ゲームが起動しているか（テストプレイの開始・終了）を確かめる
+    //テストプレイの開始・終了を検知するため、ゲームが起動しているかを確認する
     auto* gameCheckTimer = new QTimer(this);
     gameCheckTimer->setInterval(1000);
     connect(gameCheckTimer, &QTimer::timeout, this, [this]() {
@@ -160,7 +160,7 @@ void FollowGameService::applyToGame()
         this->dispatch(NotifyApplyToGame, {0});
         return;
     }
-    //VXAceでは書き出したCSVをパッキング後に消しているため、divisiで書き出し直してからパッキングする
+    //VXAceでは書き出したCSVをパッキング後に削除しているため、divisiで再度書き出してからパッキングする
     if(this->setting->projectType == settings::VXAce) {
         this->dispatch(ExportForGame, {});
         return;
@@ -174,7 +174,7 @@ QString FollowGameService::remoteHubDirectoryPath() const
     return this->setting->langscoreProjectDirectory + "/remote";
 }
 
-//Langscore_RemoteHub は起動時に自分のプロセスIDを pid に書く。そのプロセスが動いていれば起動中
+//Langscore_RemoteHub は起動時に自身のプロセスIDを pid に書き込む。そのプロセスが動作中であれば起動中とみなす
 bool FollowGameService::isGameRunning() const
 {
     if(this->setting->gameProjectPath.isEmpty()) { return false; }

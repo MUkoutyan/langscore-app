@@ -31,15 +31,15 @@ enum UserRole : int
     ERROR_ID,
     ERROR_ITEM,
     BASE_TEXT_ITEM,
-    PROGRESS_STATE,     //翻訳の進捗（ProgressState）。未設定なら進捗が分からない
+    PROGRESS_STATE,     //ProgressState で表す翻訳の進捗。未設定の場合は進捗が不明
     ERROR_ORIGINAL,     //スクリプトの検証結果の原文。スクリプトの表で該当する行を選ぶのに使う
-    PROGRESS_TOOLTIP,   //進捗の説明。目印の説明と合わせて表示する
+    PROGRESS_TOOLTIP,   //進捗の説明。状態表示の説明と合わせて表示する
     MARK_MODIFIED,      //未保存の編集がある
-    MARK_CHANGED_BY_OTHERS, //他の人の訳を取り込んだセルがある
-    MARK_CONFLICT,      //他の人の保存と衝突し、まだ決めていないセルがある
+    MARK_CHANGED_BY_OTHERS, //リモートの翻訳文を取り込んだセルがある
+    MARK_CONFLICT,      //未解決の衝突がある
 };
 
-//翻訳が終わっていない項目だけを表示するときに使う
+//翻訳が完了していない項目のみ表示するときに使う
 enum ProgressState : int { Incomplete = 1, Complete = 2 };
 
 namespace {
@@ -201,7 +201,7 @@ void FileTree::setupBasicsTree()
         child->setData(TreeColIndex::Name, UserRole::FILE_NAME, file.fileName);
         child->setData(TreeColIndex::Name, UserRole::BASE_TEXT_ITEM, fileName);
         child->setForeground(TreeColIndex::Name, Qt::white);
-        //VISIBLE が無いとチェックの変更が設定に書かれない（itemChanged）
+        //VISIBLE が無いと、itemChanged でチェックの変更が設定に書き込まれない
         child->setData(0, UserRole::VISIBLE, file.visible);
         child->setHidden(file.visible == false);
         child->setCheckState(TreeColIndex::CheckBox, file.ignore ? Qt::Unchecked : Qt::Checked);
@@ -294,7 +294,7 @@ void FileTree::setupMainTree()
         return a.order < b.order;
     });
 
-    // 親子関係を構築（親がルート=0の場合はmainItemに、それ以外は親マップの子として追加）
+    // 親子関係を構築する。親がルート=0の場合は mainItem に、それ以外は親マップの子として追加する
     for(const auto& mapOrder : mapOrderList) {
         QTreeWidgetItem* child = mapItems[mapOrder.mapID];
 
@@ -411,7 +411,7 @@ void FileTree::setupGraphicsTree()
 
     for(const auto& graphInfo : graphList)
     {
-        //ファイル前提で組まれた処理なので、フォルダなら無視
+        //ファイル前提の処理のため、フォルダは無視する
         if(graphInfo.isFolder) { continue; }
 
         // Build directory hierarchy
@@ -494,7 +494,7 @@ void FileTree::itemSelected()
     auto selectedItems = this->treeWidget->selectedItems();
     if(selectedItems.empty()) { return; }
     auto item = selectedItems[0];
-    //検証結果の項目はファイル名を持たないので、結果が付いているファイルの項目を開き、そのセルへ移動する
+    //検証結果の項目はファイル名を持たないため、結果が付いているファイルの項目を開き、そのセルへ移動する
     quint64 errorId = 0;
     QString errorOriginal;
     if(item->data(TreeColIndex::Name, UserRole::ERROR_ITEM).toBool() && item->parent()) {
@@ -508,10 +508,10 @@ void FileTree::itemSelected()
     const auto treeType = topLevelItem->data(TreeColIndex::CheckBox, UserRole::ITEM_TYPE);
     if(treeType == TreeItemType::Map || treeType == TreeItemType::Basic) {
         auto fileName = item->data(TreeColIndex::Name, UserRole::FILE_NAME).toString();
-        //「Basics」などの見出しはファイルではないので、表を空にしない
+        //「Basics」などの見出しはファイルではないため、表を空にしない
         if(fileName.isEmpty()) { return; }
         emit setTabIndex(1);
-        //表示名の「(n/n)」は子の項目の数なので、表の名前には付けない
+        //表示名の「(n/n)」は子の項目数のため、表の名前には付けない
         auto displayName = item->data(TreeColIndex::Name, UserRole::BASE_TEXT_ITEM).toString();
         if(displayName.isEmpty()) { displayName = item->text(TreeColIndex::Name); }
         emit showMainFile(displayName, fileName);
@@ -542,7 +542,7 @@ void FileTree::itemSelected()
         if(item == topLevelItem) { return; }
         if(item->parent() == topLevelItem) { return; }
 
-        //画像の項目はファイルのフルパスを FILE_PATH に持っている（FILE_NAME は未設定）
+        //画像の項目はファイルのフルパスを FILE_PATH に持ち、FILE_NAME は未設定
         auto path = item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
         if(path.isEmpty()) { return; }
         emit showGraphicsImage(path);
@@ -635,7 +635,7 @@ void FileTree::itemChanged(QTreeWidgetItem* _item, int column)
             else if(current == Qt::PartiallyChecked) { newCheckVal = Qt::Unchecked; }
         }
 
-        //選んでいる項目をまとめて切り替える。見出し・検証結果・別のツリーの項目は対象外
+        //選択中の項目をまとめて切り替える。見出し・検証結果・別のツリーの項目は対象外
         std::vector<QUndoCommand*> result;
         for(auto* item : selectedItems)
         {
@@ -782,7 +782,7 @@ void FileTree::writeToScriptListSetting(QTreeWidgetItem* item, bool ignore)
 
 void FileTree::writeToPictureListSetting(QTreeWidgetItem* item, bool ignore)
 {
-    //画像の項目はファイルのフルパスを FILE_PATH に持っている（FILE_NAME は未設定）
+    //画像の項目はファイルのフルパスを FILE_PATH に持ち、FILE_NAME は未設定
     auto filePath = item->data(TreeColIndex::Name, UserRole::FILE_PATH).toString();
     if(filePath.isEmpty()) { return; }
     filePath = this->setting->toIgnorePicturePath(filePath);
@@ -871,7 +871,7 @@ void FileTree::updateTreeTextColor()
 
 void FileTree::onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* item, int column, const QImage& image)
 {
-    //読み込み中にツリーが作り直されると item は削除済みになる。
+    //読み込み中にツリーが再構築されると item は削除済みになる。
     //現在のツリーに存在する項目かを graphicsItemMap で確認してから使う
     auto it = graphicsItemMap.constFind(filePath);
     if(it == graphicsItemMap.cend() || it.value() != item) { return; }
@@ -882,7 +882,6 @@ void FileTree::onGraphicsImageLoaded(const QString& filePath, QTreeWidgetItem* i
     }
 }
 
-// ファイルの末尾に以下のメソッドを追加
 
 void FileTree::setupSearchBar()
 {
@@ -909,7 +908,7 @@ void FileTree::setupSearchBar()
 
     popupLayout->addWidget(showHiddenCheckBox);
 
-    //翻訳が終わっていないファイルだけを表示する（Basics・Main）
+    //Basics・Main で、翻訳が完了していないファイルのみ表示する
     this->showUntranslatedOnly = ComponentBase::getAppSettings().value("FileTree/showUntranslatedOnly", false).toBool();
     auto* untranslatedOnlyCheckBox = new QCheckBox(tr("Show Untranslated Files Only"), settingPane);
     untranslatedOnlyCheckBox->setChecked(this->showUntranslatedOnly);
@@ -990,7 +989,7 @@ bool FileTree::filterTreeItem(QTreeWidgetItem* item, const QString& searchText, 
 
     if(shouldShow) {
         auto visible = item->data(0, UserRole::VISIBLE);
-        //非表示に設定された項目のみ隠す（resetItemVisibility と同じ条件）
+        //resetItemVisibility と同じ条件で、非表示に設定された項目のみ隠す
         if(visible.isValid() && visible.toBool() == false) {
             shouldShow = false;
         }
@@ -1125,8 +1124,8 @@ void FileTree::setFileProgress(const QString& fileName, int translatedRows, int 
     auto* item = this->findTreeItemByFileName(langscore::withoutAllExtension(fileName));
     if(item == nullptr) { return; }
 
-    //進捗が初めて分かったとき（開いた直後）だけ表示を絞り直す。
-    //編集中に終わったファイルがその場で消えないよう、それ以降は絞り込みを変えたときに反映する
+    //開いた直後など、進捗が初めて判明したときのみ表示を絞り直す
+    //編集中に翻訳が完了したファイルがその場で消えないよう、それ以降は絞り込みの変更時に反映する
     const bool wasUnknown = item->data(0, UserRole::PROGRESS_STATE).isValid() == false;
     item->setData(0, UserRole::PROGRESS_STATE, (0 < totalRows && translatedRows < totalRows) ? ProgressState::Incomplete : ProgressState::Complete);
     if(wasUnknown && this->showUntranslatedOnly && this->visibilityUpdatePending == false)
@@ -1149,7 +1148,7 @@ void FileTree::setFileProgress(const QString& fileName, int translatedRows, int 
     const auto percent = translatedRows * 100 / totalRows;
     item->setText(TreeColIndex::Progress, QString("%1%").arg(percent));
     item->setData(0, UserRole::PROGRESS_TOOLTIP, tr("Translated: %1 / %2 rows").arg(translatedRows).arg(totalRows));
-    //終わったファイルが一目で分かるよう色を変える
+    //翻訳が完了したファイルが一目で分かるよう色を変える
     item->setForeground(TreeColIndex::Progress, (translatedRows == totalRows) ? QColor(120, 200, 120) : QColor(170, 170, 170));
     this->applyFileMarks(item);
 }
@@ -1175,19 +1174,19 @@ void FileTree::applyFileMarks(QTreeWidgetItem* item)
     font.setItalic(modified);
     item->setFont(TreeColIndex::Name, font);
 
-    //衝突は決める必要があるため、取り込んだ印より優先する
+    //衝突は解決が必要なため、リモートの翻訳文の取り込みより優先して表示する
     QStringList lines;
     QIcon icon;
     if(hasConflicts)
     {
         icon = this->style()->standardIcon(QStyle::SP_MessageBoxQuestion);
-        //他の人の保存と衝突したセルがあります。表示すると、どちらの訳にするか選べます
+        //編集が競合したセルがあります。
         lines.append(tr("Some cells have conflicting edits."));
     }
     if(changedByOthers)
     {
         if(hasConflicts == false) { icon = this->style()->standardIcon(QStyle::SP_BrowserReload); }
-        //他の人の訳を取り込んだセルがあります（色の付いたセル）
+        //翻訳文を取り込みました。
         lines.append(tr("Translations were imported."));
     }
     if(modified) {
@@ -1209,8 +1208,8 @@ void FileTree::receive(DispatchType type, const QVariantList& args)
 {
     if(type == DispatchType::NotifyFinishValidateCSV)
     {
-        //検証したファイルの結果だけが新しくなるため、検証結果の表示をすべて作り直す
-        //（検証結果そのものは ValidationService が検証の前に消す）
+        //検証したファイルの結果のみ更新されるため、検証結果の表示をすべて再構築する
+        //検証結果そのものは、検証の前に ValidationService がクリアする
         this->rebuildErrorTree();
     }
     else if(type == DispatchType::ChangeValidationFilter)
@@ -1522,7 +1521,7 @@ void FileTree::updateTreeVisibility()
     this->update();
 }
 
-//翻訳が終わっていない項目と、それを子に持つ項目だけを残す。戻り値は表示するか
+//翻訳が完了していない項目と、それを子に持つ項目のみ残す。戻り値は表示するかどうか
 bool FileTree::hideTranslatedItems(QTreeWidgetItem* item)
 {
     bool hasVisibleChild = false;
@@ -1548,7 +1547,7 @@ void FileTree::clearErrors()
     this->runtimeData->updateList.clear();
     this->runtimeData->errorsRevision++;
 
-    // 既存のツリーアイテムからエラー表示（子アイテムとアイコン）を削除
+    // 既存のツリーアイテムから、エラー表示の子アイテムとアイコンを削除
     const int topLevelCount = this->treeWidget->topLevelItemCount();
     for(int i = 0; i < topLevelCount; ++i)
     {
@@ -1634,7 +1633,7 @@ QTreeWidgetItem* FileTree::findTreeItemRecursive(QTreeWidgetItem* parent, const 
 
         QString itemFileName = child->data(TreeColIndex::Name, UserRole::FILE_NAME).toString();
 
-        //検証結果の鍵は拡張子なしの名前（Actors）、項目は拡張子付き（Actors.json）なので、拡張子を除いて比べる
+        //検証結果のキーは Actors のような拡張子なしの名前、項目は Actors.json のような拡張子付きのため、拡張子を除いて比較する
         if(langscore::withoutAllExtension(itemFileName) == fileName)
         {
             return child;
@@ -1717,7 +1716,7 @@ void FileTree::updateErrorTree()
         for(auto& info : infoList)
         {
             const bool isShown = this->runtimeData->isErrorShown(info);
-            //shown は「ツリーに追加済み」の印。絞り込みで隠したものも、絞り込みを変えるまで追加しない
+            //shown は「ツリーに追加済み」を示すフラグ。絞り込みで隠したものも、絞り込みを変えるまで追加しない
             const bool alreadyAdded = info.shown;
             info.shown = true;
             if(isShown == false) { continue; }
@@ -1744,7 +1743,7 @@ void FileTree::updateErrorTree()
                     child->setIcon(TreeColIndex::Name, this->attentionIcon);
                     child->setForeground(TreeColIndex::Name, QColor(236, 11, 0));
                 }
-                //スクリプトは editing のCSVの行番号では場所が分からないため、原文を出す
+                //スクリプトは editing のCSVの行番号では場所が分からないため、原文を表示する
                 const auto place = original.isEmpty() ? tr("Line") + QString::number(info.row) : original.left(30);
                 child->setText(TreeColIndex::Name, place + " : " + info.getErrorText());
                 child->setData(TreeColIndex::Name, UserRole::ERROR_ID, info.id);
@@ -1757,7 +1756,7 @@ void FileTree::updateErrorTree()
 
     for(auto& [targetItem, state] : targetStates)
     {
-        // アイコンの設定（エラー優先で、警告は次点とする）
+        // アイコンを設定する。エラーを優先し、警告は次点とする
         targetItem->setIcon(TreeColIndex::Name, state.hasError ? this->attentionIcon : state.hasWarning ? this->warningIcon : QIcon());
         if(state.children.isEmpty() == false)
         {
@@ -1768,7 +1767,7 @@ void FileTree::updateErrorTree()
     this->treeWidget->setUpdatesEnabled(true);
 }
 
-//絞り込みを変えたときに、検証結果の項目を作り直す
+//絞り込みを変えたときに、検証結果の項目を再構築する
 void FileTree::rebuildErrorTree()
 {
     {

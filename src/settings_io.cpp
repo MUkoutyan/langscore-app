@@ -82,7 +82,7 @@ namespace {
                 relativeFolder.replace('/', QDir::separator());
                 info.folder = relativeFolder;
 
-                //除外リストには画像フォルダからの相対パスが入っている（FileTree::writeToPictureListSetting）
+                //FileTree::writeToPictureListSetting により、除外リストには画像フォルダからの相対パスが格納されている
                 const auto relativePath = setting->toIgnorePicturePath(pict.absoluteFilePath());
                 auto& pixtureList = setting->writeObj.ignorePicturePath;
                 if(std::ranges::find(pixtureList, relativePath) != pixtureList.end()) {
@@ -141,7 +141,7 @@ void settings::load(QString path)
     if(projectType == ProjectType::None) {
         QFileInfo lsProjFile(path);
         auto parentDir = lsProjFile.absolutePath();
-        //パスの途中にある "_langscore" は残し、末尾のものだけを取り除く
+        //パスの途中にある "_langscore" は残し、末尾のもののみ取り除く
         const QString suffix = "_langscore";
         if(parentDir.endsWith(suffix)) {
             parentDir.chop(suffix.size());
@@ -173,7 +173,7 @@ void settings::load(QString path)
     writeObj.enableRemoteHub            = write[key(JsonKey::EnableRemoteHub)].toBool(false);
     writeObj.writeMode                  = write[key(JsonKey::WriteType)].toInt(-1);
     this->isFirstExported = write[key(JsonKey::IsFirstExported)].toBool();
-    //書き出し済みのプロジェクトは、書き出しのときにプラグインも追加している
+    //書き出し済みのプロジェクトは、書き出し時にプラグインも追加済
     this->isPluginRegistered = write["IsPluginRegistered"].toBool(this->isFirstExported);
 
     this->isShowHiddenFilesOnTree = write["IsShowHiddenFilesOnTree"].toBool();
@@ -543,7 +543,7 @@ void deserializeMapInfoList(settings* s, const QJsonArray& basicScripts)
                     QJsonValue v = objs[key];
                     if(v.isObject()) {
                         QJsonObject mapObj = v.toObject();
-                        // キー（マップID）を数値に変換してidとして埋め込む
+                        // マップIDであるキーを数値に変換し、id として埋め込む
                         bool ok = false;
                         int mapId = key.toInt(&ok);
                         if(ok) {
@@ -784,7 +784,7 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
             info.ignore = jsonScript[key(JsonKey::Ignore)].toBool(false);
             info.visible = jsonScript["IsVisible"].toBool(true);
 
-            //解析結果（Scripts.lsjson）の行はそのまま残し、保存されている無視設定だけを反映する
+            //解析結果である Scripts.lsjson の行はそのまま残し、保存されている無視設定のみ反映する
             if(jsonScript.contains(key(JsonKey::IgnorePoints)) && jsonScript[key(JsonKey::IgnorePoints)].isArray()) {
                 auto ignorePointArray = jsonScript[key(JsonKey::IgnorePoints)].toArray();
                 for(const auto& jsonPoint : ignorePointArray) {
@@ -806,7 +806,7 @@ void deserializeScripts(settings* s, const QJsonArray& jsonScripts, const QStrin
                         rc.col = obj[key(JsonKey::Col)].toInteger();
                         pos.d = rc;
                     }
-                    //以前の形式は無視する行だけを Ignore キーなしで保存していたため、キーが無い場合は無視扱いにする
+                    //以前の形式は無視する行のみを Ignore キーなしで保存していたため、キーが無い場合は無視扱いにする
                     const bool ignore = obj[key(JsonKey::Ignore)].toBool(true);
                     auto line = std::ranges::find_if(info.lines, [&pos](const auto& l) {
                         return l.type == pos.type && l.d == pos.d;

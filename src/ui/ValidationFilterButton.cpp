@@ -27,7 +27,7 @@ ValidationFilterButton::ValidationFilterButton(ComponentBase* component, QWidget
     this->setPopupMode(QToolButton::InstantPopup);
     auto* filterMenu = new QMenu(this);
     this->setMenu(filterMenu);
-    //項目は開くたびに有効な言語から作る
+    //項目は開くたびに有効な言語から作成する
     connect(filterMenu, &QMenu::aboutToShow, this, [this, filterMenu]()
     {
         filterMenu->clear();

@@ -32,12 +32,12 @@
 #include "dialog/UpdatePluginDialog.h"
 
 //-------------------------------------------------------------------
-// Langscore_RemoteHub (テストプレイ中のゲームへの追従・反映) のテスト
+// テストプレイ中のゲームへの追従・反映を行う Langscore_RemoteHub のテスト
 //
-// 確認する内容 (優先度順)
+// 確認する内容。優先度順
 //  1. ゲームのプロジェクトを壊さないこと
 //  2. 壊れた pid / current.json で落ちないこと
-//  3. Langscore のプロジェクト (翻訳の表・編集履歴) を壊さないこと
+//  3. 翻訳の表・編集履歴など、Langscore のプロジェクトを壊さないこと
 //  4. ボタンの状態・枠の位置などの動き
 //-------------------------------------------------------------------
 namespace
@@ -94,7 +94,7 @@ namespace
         return result;
     }
 
-    //MZ のゲームプロジェクトを作り、Actors の解析結果 (原文 A, B) を置く
+    //MZ のゲームプロジェクトを作り、原文 A, B を持つ Actors の解析結果を置く
     void SetupProject(RemoteHubTestComponent& component, const QString& gameDir)
     {
         WriteFile(gameDir + "/Game.rmmzproject", "RPGMZ");
@@ -180,7 +180,7 @@ namespace
         return parts;
     }
 
-    //枠の付いたセルの原文と列 (言語)。枠が無ければ空
+    //枠の付いたセルの原文と言語の列。枠が無ければ空
     std::pair<QString, QString> FramedCell(CSVEditor* editor)
     {
         const auto index = editor->framedCell();
@@ -298,7 +298,7 @@ TEST_F(RemoteHubTest, BrokenPidMeansNotRunning)
 
 TEST_F(RemoteHubTest, ReusedPidIsNotRunning)
 {
-    // pid を書いた後に起動した別のプロセス (プロセスIDの使い回し) は、ゲームとして扱わない
+    // プロセスIDの再利用により pid の書き込み後に起動した別のプロセスは、ゲームとして扱わない
     WriteModeComponent writeMode(&component, nullptr);
     auto parts = FindParts(writeMode);
     ASSERT_NE(parts.follow, nullptr);
@@ -390,9 +390,10 @@ TEST_F(RemoteHubTest, ApplySavesProject)
     WriteModeComponent writeMode(&component, nullptr);
     auto parts = FindParts(writeMode);
     ASSERT_NE(parts.apply, nullptr);
+    WriteOwnPid();
 
     component.history->push(new QUndoCommand("edit"));
-    ASSERT_TRUE(parts.apply->isEnabled());
+    ASSERT_TRUE(WaitUntil([&]() { return parts.apply->isEnabled(); }, 3000));
     component.received.clear();
     parts.apply->click();
     EXPECT_NE(std::ranges::find(component.received, ComponentBase::SaveProject), component.received.end());
@@ -425,7 +426,7 @@ TEST_F(RemoteHubTest, FollowButtonFollowsGameState)
 
 TEST_F(RemoteHubTest, OnlyAddPluginButtonBeforeRegistered)
 {
-    // プラグインの追加前は追加のボタンだけ。追加後はテストプレイ・追従・反映・プラグインの更新・書き出しを出す
+    // プラグインの追加前は追加ボタンのみ。追加後はテストプレイ・追従・反映・プラグインの更新・書き出しを表示する
     component.setting->isPluginRegistered = false;
     WriteModeComponent writeMode(&component, nullptr);
     writeMode.show();
@@ -473,11 +474,13 @@ TEST_F(RemoteHubTest, ExportButtonsAreDisabledWhileFollowing)
 
 TEST_F(RemoteHubTest, ApplyButtonIsEnabledOnlyWithEdits)
 {
-    // 反映するものが無ければ無効。編集すると有効になり、反映した直後は無効になる
+    // ゲームの実行中でも、反映するものが無ければ無効。編集すると有効になり、反映した直後は無効になる
     component.setting->isFirstExported = true;
     WriteModeComponent writeMode(&component, nullptr);
     auto parts = FindParts(writeMode);
     ASSERT_NE(parts.apply, nullptr);
+    WriteOwnPid();
+    ASSERT_TRUE(WaitUntil([&]() { return parts.follow->isEnabled(); }, 3000));
     EXPECT_FALSE(parts.apply->isEnabled());
 
     component.history->push(new QUndoCommand("edit"));
@@ -486,9 +489,26 @@ TEST_F(RemoteHubTest, ApplyButtonIsEnabledOnlyWithEdits)
     EXPECT_FALSE(parts.apply->isEnabled());
 }
 
+TEST_F(RemoteHubTest, ApplyButtonIsEnabledOnlyWhileGameRunning)
+{
+    // 編集があっても、ゲームが起動していなければ無効。起動すると有効になり、終了すると無効に戻る
+    component.setting->isFirstExported = true;
+    WriteModeComponent writeMode(&component, nullptr);
+    auto parts = FindParts(writeMode);
+    ASSERT_NE(parts.apply, nullptr);
+    component.history->push(new QUndoCommand("edit"));
+    EXPECT_FALSE(parts.apply->isEnabled());
+
+    WriteOwnPid();
+    ASSERT_TRUE(WaitUntil([&]() { return parts.apply->isEnabled(); }, 3000));
+
+    QFile::remove(hubDir + "/pid");
+    ASSERT_TRUE(WaitUntil([&]() { return parts.apply->isEnabled() == false; }, 3000));
+}
+
 TEST_F(RemoteHubTest, ApplyBeforeFirstExportDoesNothing)
 {
-    // 一度も書き出していなければ、反映せずに書き出しを促す (ゲームの翻訳ファイルを作らない)
+    // 一度も書き出していなければ、ゲームの翻訳ファイルを作らずに書き出しを促す
     component.setting->isFirstExported = false;
     WriteModeComponent writeMode(&component, nullptr);
     auto parts = FindParts(writeMode);
@@ -534,7 +554,7 @@ TEST_F(RemoteHubTest, FrameFollowsShownText)
     WriteCurrent({ShownText("B", "Actors.csv")});
     ASSERT_TRUE(WaitUntil([&]() { return FramedCell(parts.editor) == std::pair<QString, QString>{"B", "en"}; }, 5000));
 
-    // VXAce の改行 (\r\n) でも同じ行
+    // VXAce の改行コード \r\n でも同じ行
     WriteCurrent({ShownText("Line1\r\nLine2", "Actors.csv")});
     EXPECT_TRUE(WaitUntil([&]() { return FramedCell(parts.editor).first == "Line1\nLine2"; }, 5000));
 
@@ -607,7 +627,7 @@ TEST(RemoteHubFrame, FramedCellIsDrawnGreen)
 
 TEST(RemoteHubDialog, RemoteHubCheckBoxEnablesWrite)
 {
-    // デバッグ用のプラグインの追加・削除だけでも書き出せる。元に戻したら書き出せない
+    // デバッグ用のプラグインの追加・削除のみでも書き出せる。元に戻したら書き出せない
     auto setting = std::make_shared<settings>();
     setting->isPluginRegistered = true;
     setting->writeObj.overwriteLangscore = false;
@@ -631,7 +651,7 @@ TEST(RemoteHubDialog, RemoteHubCheckBoxEnablesWrite)
 
 TEST(RemoteHubDialog, AddPluginNeedsNoOverwrite)
 {
-    // プラグインの追加では上書きの項目を出さず、何も選ばなくても書き出せる
+    // プラグインの追加では上書きの項目を表示せず、何も選ばなくても書き出せる
     auto setting = std::make_shared<settings>();
     setting->isPluginRegistered = false;
     setting->writeObj.overwriteLangscore = false;
@@ -649,7 +669,7 @@ TEST(RemoteHubDialog, AddPluginNeedsNoOverwrite)
 
 TEST(RemoteHubDialog, HoveredOptionIsDescribed)
 {
-    // オプションにマウスを乗せると説明欄にそのオプションの説明を出し、離すと消す
+    // オプションにマウスを乗せると説明欄にそのオプションの説明を表示し、離すと消す
     auto setting = std::make_shared<settings>();
     setting->isPluginRegistered = true;
     UpdatePluginDialog dialog(setting);

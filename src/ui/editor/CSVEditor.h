@@ -44,7 +44,7 @@ public:
     // Selection operations
     void selectAll();
 
-    //文字を打って編集を始めたところか。そのときは元の文章を置き換える
+    //文字入力で編集を開始した直後か。その場合は元の文章を置き換える
     bool isReplacingTextOnEdit() const { return _replaceTextOnEdit; }
     //セルを入力している途中か
     bool isEditingCell() const { return state() == QAbstractItemView::EditingState; }
@@ -132,8 +132,8 @@ private:
     // Translation
     std::unique_ptr<TranslationManager> translationManager;
     TranslationProgressDialog* progressDialog;
-    // 翻訳要求時の (行, 列) → 書き込み先のセル。
-    // 翻訳中に並べ替え・絞り込み・ファイル切り替えが行われても、正しいセルに書き込む（または破棄する）ため
+    // 翻訳要求時の (行, 列) → 書き込み先のセル
+    // 翻訳中に並べ替え・絞り込み・ファイル切り替えが行われても、正しいセルへの書き込み、または破棄を行うために使う
     QMap<std::pair<int, int>, QPersistentModelIndex> pendingTranslationCells;
 
     void onHeaderSectionClicked(int logicalIndex);

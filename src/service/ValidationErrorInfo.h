@@ -11,8 +11,8 @@ struct ValidationErrorInfo
         EmptyCol = 0,       //翻訳文が空
         NotFoundEsc,        //原文にある制御文字が翻訳文に含まれていない
         UnclosedEsc,        //[]で閉じる必要のある制御文字が閉じられていない
-        IncludeCR,          //翻訳文にCR改行が含まれている。(マップのみ検出)
-        NotEQLang,          //設定した言語とCSVを内の言語列に差異がある
+        IncludeCR,          //翻訳文にCR改行が含まれている。マップのみ検出
+        NotEQLang,          //設定した言語とCSV内の言語列に差異がある
         PartiallyClipped,   //テキストの最後の文字が少し見切れる
         FullyClipped,       //完全に見えない文字がある
         OverTextCount,      //テキストの文字数が多すぎる

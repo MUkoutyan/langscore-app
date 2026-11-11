@@ -74,13 +74,13 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
     , _finishInvoke(false)
     , _showAllScriptContents(false)
 {
-    //進捗の計算は全行を数えるため、まとめて編集したとき（貼り付け・削除・Undoなど）は最後に1回だけ行う
+    //進捗の計算は全行を数えるため、貼り付け・削除・Undo などでまとめて編集したときは最後に1回だけ行う
     this->updateTimer->setSingleShot(true);
     this->updateTimer->setInterval(0);
     connect(this->updateTimer, &QTimer::timeout, this, &MainCSVTable::updateProgressLabel);
 
-    //他の人が editing のCSVを保存したら、表に取り込む。
-    //保存は一時ファイルからの置き換えで行われることが多く、ファイルの監視が外れるため、フォルダも監視して付け直す
+    //リモートで editing の CSV が保存されたら、表に取り込む
+    //保存は一時ファイルからの置き換えで行われることが多く、ファイルの監視が外れるため、フォルダも監視して再登録する
     this->fileChangeTimer->setSingleShot(true);
     this->fileChangeTimer->setInterval(500);
     connect(this->fileChangeTimer, &QTimer::timeout, this, &MainCSVTable::syncChangedFiles);
@@ -96,7 +96,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
 
     auto appSettings = ComponentBase::getAppSettings();
 
-    //設定ポップアップ（列・フォント・幅など、表示の細かい設定をまとめる）
+    //列・フォント・幅など、表示の細かい設定をまとめた設定ポップアップ
     {
         settingPane->setWindowFlags(Qt::Popup);
         settingPane->setVisible(false);
@@ -112,7 +112,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
         fixedWidthLayout->addWidget(fixedWidthSpinBox);
         layout->addLayout(fixedWidthLayout);
 
-        //前回の設定を戻す
+        //前回の設定を復元する
         languageFontCheck->setChecked(appSettings.value("MainCSVTable/useLanguageFont", false).toBool());
         fixedWidthCheck->setChecked(appSettings.value("MainCSVTable/fixedCellWidth", false).toBool());
         fixedWidthSpinBox->setValue(appSettings.value("MainCSVTable/cellWidth", 100).toInt());
@@ -238,7 +238,7 @@ MainCSVTable::MainCSVTable(ComponentBase* component, std::weak_ptr<EditDataManag
         this->syncWithFile(this->currentFileName, false);
         this->currentModel->saveToFile(this->currentFileName);
         this->resolveMergeConflicts(*this->currentModel, this->currentFileName);
-        //終わるまで押せないようにする（NotifyFinishValidateCSV で戻す）
+        //完了するまで押せないようにする。NotifyFinishValidateCSV で有効に戻す
         this->validateButton->setEnabled(false);
         this->dispatch(DispatchType::ValidateCSV, {this->currentFileName});
     });
@@ -291,7 +291,7 @@ MainCSVTable::ViewPosition MainCSVTable::viewPosition() const
 
 void MainCSVTable::restoreViewPosition(const ViewPosition& position)
 {
-    //showMainFileText が行の高さを合わせるのを待ってから戻す
+    //showMainFileText が行の高さを合わせるのを待ってから復元する
     QTimer::singleShot(0, this, [this, position]() {
         this->selectCell(position.row, position.column);
         this->csvEditor->verticalScrollBar()->setValue(position.scroll);
@@ -307,13 +307,13 @@ void MainCSVTable::selectCell(int row, int column)
     auto sourceIdx = this->currentModel->index(row, column);
     QModelIndex selectIdx = _proxyModel ? _proxyModel->mapFromSource(sourceIdx) : QModelIndex(sourceIdx);
     if(selectIdx.isValid()) {
-        //今のセルも移す。移さないと、Enter や文字の入力で前のセルが編集される
+        //currentIndex も移動する。移動しないと、Enter や文字入力で前のセルが編集される
         this->csvEditor->selectionModel()->setCurrentIndex(selectIdx, QItemSelectionModel::ClearAndSelect);
         this->csvEditor->scrollTo(selectIdx, QTableWidget::ScrollHint::PositionAtCenter);
     }
 }
 
-//表示中のファイルの検証結果（ValidationErrorInfo::id）のセルを選択する
+//ValidationErrorInfo::id で指定した、表示中のファイルの検証結果のセルを選択する
 void MainCSVTable::selectError(quint64 errorId)
 {
     if(this->currentModel == nullptr) { return; }
@@ -353,7 +353,7 @@ bool MainCSVTable::highlightRowByOriginal(const QString& original, const QString
     if(originalColumn < 0) { return false; }
     if(framedColumn < 0) { framedColumn = originalColumn; }
 
-    //VXAce は改行が \r\n のため、改行をそろえて比べる
+    //VXAce は改行コードが \r\n のため、改行コードを統一して比較する
     const auto key = QString(original).remove('\r');
     for(int row = 0; row < this->currentModel->rowCount(); ++row) 
     {
@@ -397,7 +397,7 @@ void MainCSVTable::selectNextError(bool forward)
         columnOfLanguage.insert(this->currentModel->headerData(column, Qt::Horizontal, Qt::UserRole).toString(), column);
     }
 
-    //検証結果のセルを、表示上の位置（行, 列）で並べる。隠れている行・列は飛ばす
+    //検証結果のセルを、表示上の (行, 列) の位置で並べる。隠れている行・列は飛ばす
     std::vector<QModelIndex> errorCells;
     for(const auto& info : fileErrors->second)
     {
@@ -414,7 +414,7 @@ void MainCSVTable::selectNextError(bool forward)
     };
     std::ranges::sort(errorCells, byPosition);
 
-    //今のセルより後かつ最初のものへ。端まで来たら反対側に戻る
+    //currentIndex より後の最初のセルへ移動する。端に達したら反対側に戻る
     const auto current = this->csvEditor->currentIndex();
     QModelIndex target;
     if(forward)
@@ -431,7 +431,7 @@ void MainCSVTable::selectNextError(bool forward)
     this->csvEditor->scrollTo(target, QTableView::ScrollHint::PositionAtCenter);
 }
 
-//ファイル名の後ろに、保存していない変更があることを示す「*」を付ける
+//ファイル名の後ろに、未保存の変更があることを示す「*」を付ける
 void MainCSVTable::updateFileNameLabel()
 {
     const bool modified = (this->currentModel != nullptr && this->currentModel->isModified());
@@ -456,7 +456,7 @@ void MainCSVTable::clear()
 {
     this->csvEditor->blockSignals(true);
 
-    //モデルは EditDataManager が所有しているので、参照を外すだけにする
+    //モデルは EditDataManager が所有しているため、参照を外すのみとする
     if(_proxyModel) {
         _proxyModel->setSourceModel(nullptr);
     }
@@ -480,9 +480,10 @@ this->mainFileName->setText("");
     if(watchedPaths.isEmpty() == false) { this->fileWatcher->removePaths(watchedPaths); }
     this->fileChangeTimer->stop();
     this->changedFiles.clear();
+    this->lockedFileRetryCounts.clear();
 }
 
-//ファイルのモデルを返す。まだ読み込んでいなければ読み込む（EditDataManager がファイルごとに保持する）
+//ファイルのモデルを返す。未読み込みの場合は読み込む。モデルは EditDataManager がファイルごとに保持する
 MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
 {
     auto manager = loadFileManager.lock();
@@ -501,8 +502,8 @@ MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
     connect(mainModel, &langscore::CSVEditorTableModel::changedByOthers, this, &MainCSVTable::recordChangeByOthers, Qt::UniqueConnection);
     connect(mainModel, &langscore::CSVEditorTableModel::markStateChanged, this, &MainCSVTable::notifyFileMarks, Qt::UniqueConnection);
 
-    //他の人の保存に気づけるよう、ファイルとフォルダを監視する。
-    //editing のフォルダは初めて保存するまで無いことがあるため、作られたことに気づけるよう親のフォルダも監視する
+    //リモートの保存を検知できるよう、ファイルとフォルダを監視する
+    //editing のフォルダは初回保存まで存在しない場合があるため、作成を検知できるよう親のフォルダも監視する
     const auto& projectFolder = this->setting->langscoreProjectDirectory;
     if(QFileInfo::exists(projectFolder) && this->fileWatcher->directories().contains(projectFolder) == false) {
         this->fileWatcher->addPath(projectFolder);
@@ -514,7 +515,7 @@ MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
         this->fillModelFromFiles(*mainModel, fileName);
         return mainModel;
     }
-    //読み込んだ後に有効にした言語の列は無いので、type 列の前に足す
+    //読み込み後に有効にした言語の列は存在しないため、type 列の前に追加する
     QStringList headers;
     for(int column = 0; column < mainModel->columnCount(); ++column) {
         headers.append(mainModel->headerData(column, Qt::Horizontal, DataType::FilterText).toString());
@@ -530,7 +531,7 @@ MainCSVTableModel* MainCSVTable::loadModel(const QString& fileName)
     return mainModel;
 }
 
-//言語の有効・無効を変えたとき、表示中のファイルに言語の列を足す
+//言語の有効・無効を切り替えたとき、表示中のファイルに言語の列を追加する
 void MainCSVTable::refreshLanguageColumns()
 {
     if(this->currentModel == nullptr) { return; }
@@ -558,7 +559,7 @@ void MainCSVTable::fillModelFromFiles(langscore::CSVEditorTableModel& model, con
 
     //editing側に保存した翻訳を適用する
     if(loadedFromAnalyzeResult && QFile::exists(editedData)) {
-        //原文が変わった・消えた行の訳は、保存すると消えてしまうため古い翻訳として残す
+        //原文が変更・削除された行の翻訳文は、保存すると失われるため古い翻訳として残す
         int originalColumn = 0;
         for(int column = 0; column < model.columnCount(); ++column) {
             if(model.headerData(column, Qt::Horizontal, Qt::UserRole).toString() == "original") { originalColumn = column; }
@@ -572,7 +573,7 @@ void MainCSVTable::fillModelFromFiles(langscore::CSVEditorTableModel& model, con
     }
 }
 
-//原文が変わった・消えた行の訳（古い翻訳）を一覧にし、削除できるようにする
+//原文が変更・削除された行の翻訳文である古い翻訳を一覧表示し、削除できるようにする
 void MainCSVTable::showOldTranslationsDialog()
 {
     const auto editingFolder = this->setting->langscoreProjectDirectory + "/editing";
@@ -650,7 +651,7 @@ void MainCSVTable::showOldTranslationsDialog()
     dialog.exec();
 }
 
-//ファイルの進捗（すべての言語が埋まった行の数, 全体の行数）
+//ファイルの進捗として、すべての言語が埋まった行の数と全体の行数を返す
 std::pair<int, int> MainCSVTable::fileProgress(const QString& fileName)
 {
     const auto editedData = this->setting->langscoreProjectDirectory + "/editing/" + withoutExtension(fileName) + ".csv";
@@ -685,8 +686,8 @@ void MainCSVTable::notifyAllFileProgress()
     notifyFiles(this->setting->writeObj.mapDataInfo);
 }
 
-//全検証の前に呼ぶ。divisiはediting/にあるCSVだけを検証するため、
-//まだ開いていないファイルも読み込んでおき、保存でediting/に書かれるようにする
+//全検証の前に呼ぶ。divisi は editing/ にある CSV のみを検証するため、
+//未表示のファイルも読み込み、保存時に editing/ へ書き込まれるようにする
 void MainCSVTable::loadAllMainFiles()
 {
     const auto analyzeFolder = this->setting->analyzeDirectoryPath();
@@ -749,7 +750,7 @@ void MainCSVTable::resolveMergeConflicts(langscore::CSVEditorTableModel& model, 
     const auto conflicts = model.mergeConflicts();
     if(conflicts.empty()) { return; }
 
-    //ファイルには自分の訳で保存してある。他の人の訳にしたセルだけ書き換えて保存し直す
+    //ファイルにはローカルの翻訳文で保存済。リモートの翻訳文を選んだセルのみ書き換えて再保存する
     const auto choices = this->askConflicts(csvPath, model, conflicts, false);
     for(size_t i = 0; i < conflicts.size(); ++i)
     {
@@ -758,8 +759,8 @@ void MainCSVTable::resolveMergeConflicts(langscore::CSVEditorTableModel& model, 
         model.setData(model.index(conflict.row, conflict.column), conflict.theirs);
     }
 
-    //保存し直す間に他の人が保存していれば、もう一度選んでもらう
-    //保存できなかった場合は、同じ衝突を繰り返し出さないよう次の保存に任せる
+    //再保存の間にリモートで保存されていれば、再度ユーザーに選択させる
+    //保存できなかった場合は、同じ衝突を繰り返し表示しないよう次の保存に任せる
     if(model.saveToFile(csvPath)) {
         this->resolveMergeConflicts(model, csvPath);
     }
@@ -780,10 +781,10 @@ std::vector<MainCSVTable::ConflictChoice> MainCSVTable::askConflicts(const QStri
 
     QDialog dialog(this);
     dialog.setObjectName("mergeConflictDialog");
-    //編集の衝突
+    //編集の競合
     dialog.setWindowTitle(tr("Edit Conflict"));
     dialog.resize(900, 450);
-    //%1 のこれらのセルを、他の人も別の訳に変えていました。セルごとにどちらの訳にするか選んでください。\nCtrl・Shift で複数の行を選ぶと、まとめて選べます。
+    //%1 の内容が競合しました。セルごとに適用する翻訳文を選んでください。\nCtrl や Shift を押すと複数選択できます。
     auto* label = new QLabel(tr("The contents of %1 conflict. Choose the translation to apply for each cell.\nHold Ctrl or Shift to select multiple rows.").arg(fileName), &dialog);
     label->setWordWrap(true);
 
@@ -837,7 +838,7 @@ std::vector<MainCSVTable::ConflictChoice> MainCSVTable::askConflicts(const QStri
             choiceBoxes[static_cast<size_t>(row)]->setCurrentIndex(choice);
         }
     };
-    //選んだ行を自分の訳にする・他の人の訳にする・すべて自分の訳にする・すべて他の人の訳にする
+    //選択した行をローカルの翻訳文にする・選択した行をリモートの翻訳文にする・すべてローカルの翻訳文にする・すべてリモートの翻訳文にする
     auto* selectedYoursButton = new QPushButton(tr("Use Yours for Selected"), &dialog);
     selectedYoursButton->setObjectName("selectedYoursButton");
     auto* selectedTheirsButton = new QPushButton(tr("Use Theirs for Selected"), &dialog);
@@ -855,10 +856,10 @@ std::vector<MainCSVTable::ConflictChoice> MainCSVTable::askConflicts(const QStri
     choiceLayout->addStretch();
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dialog);
-    //決めた訳にする
+    //決定
     buttons->button(QDialogButtonBox::Ok)->setText(tr("Apply"));
     if(canPostpone) {
-        //あとで決める（表示したとき・保存する前にもう一度聞く）
+        //あとで決める。表示時と保存前に再度確認する
         buttons->addButton(tr("Decide Later"), QDialogButtonBox::RejectRole);
     }
     connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
@@ -870,7 +871,7 @@ std::vector<MainCSVTable::ConflictChoice> MainCSVTable::askConflicts(const QStri
     layout->addLayout(choiceLayout);
     layout->addWidget(buttons);
 
-    //あとで決める・閉じた場合は、どのセルも決めない（保存する前は自分の訳）
+    //あとで決める、または閉じた場合はどのセルも決めない。保存前はローカルの翻訳文のまま
     if(dialog.exec() != QDialog::Accepted) { return choices; }
     for(size_t i = 0; i < conflicts.size(); ++i)
     {
@@ -901,7 +902,7 @@ void MainCSVTable::recordChangeByOthers(const QString& original, const QString& 
         }
     }
 
-    //1行に1件の JSON で足していく
+    //1行に1件の JSON で追記する
     const auto path = changeHistoryPath(this->setting->langscoreProjectDirectory);
     QDir().mkpath(QFileInfo(path).absolutePath());
     QFile file(path);
@@ -938,10 +939,10 @@ void MainCSVTable::showChangeHistoryDialog()
     const auto path = changeHistoryPath(this->setting->langscoreProjectDirectory);
     QDialog dialog(this);
     dialog.setObjectName("changeHistoryDialog");
-    //他の人の変更
+    //リモートの変更
     dialog.setWindowTitle(tr("Changes by Others"));
     dialog.resize(900, 500);
-    //他の人が保存し、表に取り込んだ訳の履歴です（新しい順）。取り込んだセルは、編集するまで色を付けています。
+    //リモートの翻訳文です。編集するとハイライトは解除されます。
     auto* label = new QLabel(tr("Translations by another worker. The highlight disappears when you edit the cell."), &dialog);
     label->setWordWrap(true);
 
@@ -980,7 +981,7 @@ void MainCSVTable::showChangeHistoryDialog()
     }
     table->resizeRowsToContents();
 
-    //色を消す・履歴を削除
+    //ハイライトをクリア・履歴を削除
     auto* clearHighlightButton = new QPushButton(tr("Clear Highlights"), &dialog);
     clearHighlightButton->setToolTip(tr("Removes the highlight from the cells changed by someone else in all files."));
     auto* deleteButton = new QPushButton(tr("Delete History"), &dialog);
@@ -1026,7 +1027,7 @@ void MainCSVTable::syncWithFile(const QString& csvPath, bool canPostpone)
     const auto choices = this->askConflicts(csvPath, *model, conflicts, canPostpone);
     for(size_t i = 0; i < conflicts.size(); ++i)
     {
-        //あとで決めたセルは、次に読み直したときにもう一度衝突として出る
+        //あとで決めるを選んだセルは、次の読み直し時に再度衝突として表示する
         if(choices[i] == ConflictChoice::Later) { continue; }
         model->resolveConflict(conflicts[i], choices[i] == ConflictChoice::Theirs);
     }
@@ -1061,7 +1062,7 @@ void MainCSVTable::watchLoadedFiles()
 
 void MainCSVTable::syncChangedFiles()
 {
-    //セルの入力中や、ダイアログを表示している間は、終わるまで待つ
+    //セルの入力中やダイアログの表示中は、終了するまで待つ
     if(this->csvEditor->isEditingCell() || QApplication::activeModalWidget() != nullptr) {
         this->fileChangeTimer->start();
         return;
@@ -1074,11 +1075,27 @@ void MainCSVTable::syncChangedFiles()
     this->changedFiles.clear();
     for(const auto& path : paths)
     {
+        //ファイル同期ソフトなどが書き込み中の間は読み込めない
+        //書き込み完了後に通知が来ない場合もあるため、少し後に読み直す
+        if(QFile::exists(path) && QFile(path).open(QIODevice::ReadOnly) == false) {
+            //権限が無いなど、開けない状態が続く場合は諦める。次にファイルが変更されたときに再度読み直す
+            constexpr int maxRetryCount = 20;   //500ms 間隔で約10秒
+            const auto retryCount = this->lockedFileRetryCounts.value(path) + 1;
+            if(retryCount > maxRetryCount) {
+                this->lockedFileRetryCounts.remove(path);
+                continue;
+            }
+            this->lockedFileRetryCounts[path] = retryCount;
+            this->changedFiles.insert(path);
+            this->fileChangeTimer->start();
+            continue;
+        }
+        this->lockedFileRetryCounts.remove(path);
         if(path == this->currentFileName) {
             this->syncWithFile(path, true);
             continue;
         }
-        //表示していないファイルは、他の人だけが変えたセルを取り込む。衝突したセルは表示・保存するときに聞く
+        //非表示のファイルは、リモートのみで変更されたセルを取り込む。衝突したセルは表示時・保存時に確認する
         auto* model = manager->findMainCSVModel(path);
         if(model != nullptr) { model->syncWithFile(path); }
     }
@@ -1087,7 +1104,7 @@ void MainCSVTable::syncChangedFiles()
 void MainCSVTable::showMainFileText(QString treeItemName, QString fileName)
 {
     auto* mainModel = this->loadModel(fileName);
-    //表示中のファイルを選び直したとき（検証結果の項目を選んだときなど）は、行の高さの計算などをやり直さない
+    //検証結果の項目の選択などで表示中のファイルを選び直したときは、行の高さの計算などをやり直さない
     if(mainModel != nullptr && mainModel == this->currentModel && fileName == this->currentTreeFileName) {
         this->currentTreeItemName = treeItemName;
         this->updateFileNameLabel();
@@ -1108,7 +1125,7 @@ if(mainModel == nullptr) {
     }
     mainModel->setUseLanguageFont(this->languageFontCheck->isChecked());
 
-    //未保存の印と進捗を、編集や保存に合わせて更新する
+    //未保存の「*」と進捗を、編集や保存に合わせて更新する
     this->modelConnections.append(connect(mainModel, &MainCSVTableModel::modifiedChanged, this, &MainCSVTable::updateFileNameLabel));
     this->modelConnections.append(connect(mainModel, &QAbstractItemModel::dataChanged, this->updateTimer, qOverload<>(&QTimer::start)));
     this->modelConnections.append(connect(mainModel, &QAbstractItemModel::modelReset, this, &MainCSVTable::updateProgressLabel));
@@ -1117,7 +1134,7 @@ if(mainModel == nullptr) {
 
     const auto editedData = this->setting->langscoreProjectDirectory + "/editing/" + withoutExtension(fileName) + ".csv";
     this->currentFileName = editedData;
-    //検証結果はファイルのベース名をキーにしている（ValidationService / FileTree）
+    //ValidationService と FileTree の検証結果は、ファイルのベース名をキーにしている
     this->updateValidateResultListButton();
     if(this->validateResultDialog->isVisible()) { this->updateValidateResultTable(); }
     
@@ -1144,7 +1161,7 @@ if(mainModel == nullptr) {
     this->updateProgressLabel();
     this->validateButton->setEnabled(true);
 
-    //表示していない間に他の人が保存していれば取り込み、衝突したセルは表を表示してから聞く
+    //非表示の間にリモートで保存されていれば取り込み、衝突したセルは表の表示後に確認する
     QTimer::singleShot(0, this, [this, editedData]() {
         if(this->currentFileName == editedData) { this->syncWithFile(editedData, true); }
     });
@@ -1242,13 +1259,13 @@ void MainCSVTable::receive(DispatchType type, const QVariantList& args)
 {
     if(type == DispatchType::SaveProject)
     {
-        //保存は WriteModeComponent が行う。受け取る順番によらず印を消せるよう、保存の後に更新する
+        //保存は WriteModeComponent が行う。受け取る順番によらず「*」を消せるよう、保存後に更新する
         QTimer::singleShot(0, this, &MainCSVTable::updateFileNameLabel);
     }
     else if(type == DispatchType::NotifyFinishValidateCSV)
     {
         this->validateButton->setEnabled(this->currentModel != nullptr);
-        //検証の結果が新しくなったので、検証の後に編集したセルの記録を消す
+        //検証結果が更新されたため、検証後に編集したセルの記録をクリアする
         if(auto manager = this->loadFileManager.lock()) {
             manager->clearEditedSinceValidation();
         }
@@ -1268,11 +1285,11 @@ void MainCSVTable::updateValidateResultListButton()
     this->validateResultListButton->setEnabled(errors.find(showFileName) != errors.end());
 }
 
-//検証結果の一覧とセルの色を、今の結果と表示の絞り込みに合わせる
+//検証結果の一覧とセルの色を、現在の結果と表示の絞り込みに合わせる
 void MainCSVTable::refreshValidationView()
 {
     this->cellErrorLog->setVisible(false);
-    //一覧は件数が多いと作るのに時間がかかるため、開いているときだけ作る（開くときにも作る）
+    //一覧は件数が多いと作成に時間がかかるため、表示中と表示時にのみ作成する
     if(this->validateResultDialog->isVisible()) {
         this->updateValidateResultTable();
     }
@@ -1351,7 +1368,7 @@ void MainCSVTable::updateValidateResultTable()
         };
         {
             //info内のrowはCSVファイルの行数が格納される。
-            //CSVにはヘッダーが含まれるため実質1インデックスとなり、エディターの行の番号（垂直ヘッダー）と同じになる。
+            //CSVにはヘッダーが含まれるため実質1始まりとなり、エディターの垂直ヘッダーの行番号と一致する。
             auto item = createItem((1 <= info.row) ? QString::number(info.row) : tr("File"));
             this->validateResultTable->setItem(row, col++, item);
         }

@@ -34,7 +34,7 @@ ValidationService::ValidationService(ComponentBase* t)
             this->dispatch(StatusMessage, {tr("Validation failed. Please check the log."), 5000});
         }
         this->_finishInvoke = true;
-        //結果の1件ずつはログに出さないため、件数だけ出す
+        //個々の結果はログに出力しないため、件数のみ出力する
         size_t numErrors = 0, numWarnings = 0;
         for(const auto& [fileName, errors] : this->runtimeData->errors) {
             for(const auto& error : errors) {
@@ -58,14 +58,14 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
     this->_pendingText.clear();
     this->runtimeData->updateList.clear();
     if(type == DispatchType::ValidateCSV) {
-        //検証するファイルの結果だけを消し、他のファイルの結果は残す
+        //検証するファイルの結果のみクリアし、他のファイルの結果は残す
         for(const auto& var : args) {
             checkFileList.append(var.toString());
             this->runtimeData->errors.erase(QFileInfo(var.toString()).baseName());
         }
     }
     else {
-        //編集表と行がそろうよう、書き出し先ではなくアプリ側エディターのCSVを検証する
+        //編集表と行が一致するよう、書き出し先ではなくアプリ側エディターのCSVを検証する
         checkFileList = ValidationTargetFiles(*this->setting);
         this->runtimeData->errors.clear();
     }
@@ -82,8 +82,8 @@ void ValidationService::receive(DispatchType type, const QVariantList& args)
     this->setting->validateObj.csvNameList.clear();
 }
 
-//editing にあるCSVのうち、今のゲームにあり、翻訳から除外していないファイルだけを返す。
-//ゲームから消したファイルや除外したファイルのCSVは editing に残るが、検証はしない
+//editing にある CSV のうち、現在のゲームに存在し、翻訳から除外していないファイルのみ返す。
+//ゲームから削除したファイルや除外したファイルのCSVは editing に残るが、検証はしない
 QStringList ValidationService::ValidationTargetFiles(const settings& setting)
 {
     const auto editingFolder = setting.langscoreProjectDirectory + "/editing";
@@ -220,7 +220,7 @@ std::vector<ValidationErrorInfo> ValidationService::processJsonBuffer(const QStr
             break;
         }
 
-        // 完全な JSON オブジェクトを抽出（trim() して不要な空白を除去）
+        // 完全な JSON オブジェクトを抽出し、trim() で不要な空白を除去する
         QString jsonStr = input.mid(start, end - start + 1).trimmed();
 
         // UTF-8 に変換してから QJsonDocument でパース
@@ -311,7 +311,7 @@ void ValidationService::addErrorText(QString text)
     }
     if(infos.empty() == false) { this->runtimeData->errorsRevision++; }
 
-    //検証結果（JSON の行）は件数が多いとログが重くなるため、それ以外の行だけをログに出す
+    //JSON の行である検証結果は件数が多いとログが重くなるため、それ以外の行のみログに出力する
     QStringList logLines;
     for(const auto& line : input.left(input.size() - pendingLength).split(QChar(0x0A))) {
         const auto trimmed = line.trimmed();

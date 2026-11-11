@@ -9,7 +9,7 @@ namespace langscore
 {
 namespace
 {
-    //CSV を読むと原文の改行 \r\n が \n になるため、改行をそろえてから比較する
+    //CSV の読み込みで原文の改行コード \r\n が \n に変わるため、改行コードを統一してから比較する
     QString ToKey(QString text) { return text.replace("\r\n", "\n"); }
 
     bool SaveRows(const QString& path, const QStringList& headers, const std::vector<QStringList>& rows)
@@ -61,7 +61,7 @@ int KeepOldTranslations(const QString& editingCsvPath, const QSet<QString>& curr
         const auto& original = editing.at(row, QString("original"));
         if(currentKeys.contains(ToKey(original))) { continue; }
 
-        //原文と同じ文（既定の言語の列）だけの行は、残す訳が無い
+        //既定の言語の列など、原文と同じ文のみの行は残す翻訳文が無い
         QHash<QString, QString> translations;
         for(const auto& language : editing.headers())
         {

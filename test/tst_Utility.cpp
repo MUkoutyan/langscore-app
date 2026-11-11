@@ -10,7 +10,7 @@ TEST(Utility, WordCountAscii)
 
 TEST(Utility, WordCountJapanese)
 {
-    // 日本語文字（BMP）は toLatin1() が 0 になり、カウント対象となる
+    // BMP の日本語文字は toLatin1() が 0 になり、カウント対象となる
     EXPECT_EQ(langscore::wordCountUTF8(QString::fromUtf8("あいう")), 3);
 }
 

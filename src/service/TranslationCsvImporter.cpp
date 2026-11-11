@@ -6,7 +6,7 @@ namespace langscore {
 
 namespace
 {
-    //改行を \n にそろえる
+    //改行コードを \n に統一する
     QString ToLf(QString text)
     {
         text.replace("\r\n", "\n");
@@ -23,14 +23,14 @@ namespace
     }
 
     //原文の一致確認用。改行の種類と、先頭・末尾の改行の有無は区別しない。
-    //以前の divisi は、複数行の文章の末尾（または先頭）に改行を付けて書き出していたため
+    //以前の divisi は、複数行の文章の末尾または先頭に改行を付けて書き出していたため
     QString ToKey(const QString& text)
     {
         return TrimLineBreaks(ToLf(text));
     }
 
-    //訳の先頭・末尾の改行を、エディターの原文に合わせて取り除く。
-    //以前のCSVでは、原文と一緒に訳にも末尾の改行が付いている
+    //翻訳文の先頭・末尾の改行を、エディターの原文に合わせて取り除く。
+    //以前の CSV では、原文と同様に翻訳文にも末尾の改行が付いている
     QString FitEdgeLineBreaks(QString text, const QString& original)
     {
         text = ToLf(text);

@@ -13,7 +13,7 @@
 
 namespace langscore {
 
-class CSVEditorTableModel : public QAbstractTableModel 
+class CSVEditorTableModel : public QAbstractTableModel
 {
     Q_OBJECT
 public:
@@ -53,37 +53,44 @@ public:
         return currentShowFileName;
     }
 
-    //保存したときに、他の人が同じセルを別の訳に変えていたセル。ファイルには自分の訳で保存している
+    //ローカルとリモートの両方で編集されたセル
     struct MergeConflict {
         int row = 0;
         int column = 0;
-        QString mine;
-        QString theirs;
+        QString mine;   //ローカルの翻訳文
+        QString theirs; //リモートの翻訳文
     };
-    //最後の保存で起きた衝突
+    //saveToFile時に検出した衝突。戻り値のセルはローカルの翻訳文で保存済
     const std::vector<MergeConflict>& mergeConflicts() const { return _mergeConflicts; }
-    //他の人が保存したファイルを読み直し、他の人だけが変えたセルを表へ取り込む。
-    //両方が別の訳に変えたセルは、表もそのままにして返す。resolveConflict で決めるまで、読み直すたびに返す
+
+    //ファイルを読み直し、リモートの変更を表に取り込む。
+    //取り込んだ際に衝突した場合は戻り値で返す。
+    //衝突したセルは resolveConflict で解決するまで衝突した状態で保持する。
     std::vector<MergeConflict> syncWithFile(const QString& path);
-    //衝突したセルをどちらの訳にするか決める。決めた後は、そのセルを衝突として扱わない
+
+    //衝突したセルをどちらの翻訳文にするか決める
     void resolveConflict(const MergeConflict& conflict, bool useTheirs);
-    //他の人の訳にしたセルの印を消す（自分で編集したセルの印は、編集したときに消える）
+    //リモートの翻訳文を読み込んでハイライトしていた箇所をクリアする
     void clearChangedByOthers();
-    //他の人の訳にしたセルがあるか
+    //リモートの翻訳文を読み込んでハイライトしているセルがあるか
     bool hasChangesByOthers() const { return _changedByOthers.isEmpty() == false; }
-    //他の人の保存と衝突して、まだ決めていないセルがあるか
+    //未解決の衝突が残っているか
     bool hasConflicts() const { return _conflictCells.isEmpty() == false; }
 
-    //保存してから編集されたか
+    //保存後に編集したか
     bool isModified() const { return _modified; }
-    //保存が必要か。編集したか、ファイルに無い列（後から有効にした言語など）がある
+    //保存が必要か。次のいずれかに当てはまる場合は true
+    //・編集した
+    //・ファイルに無い列がある（後から有効にした言語など）
+    //・ファイルに Git の競合マーカーが残っている
     bool needsSave() const;
-    //検証の後に編集したセルの記録を消す（検証が終わったときに呼ぶ）
+    //検証後に編集したセルの記録をクリアする。検証の完了時に呼ぶ
     void clearEditedSinceValidation();
-    //すべての言語が埋まっている行の数と、全体の行数
+    //全言語の翻訳文が埋まっている行の数と、全体の行数を返す
     std::pair<int, int> translatedRowCount() const;
 
-    //セル・ファイル全体の検証結果のうち、表示の絞り込みで隠していないもの
+    //表示フィルターで除外されていない検証結果を返す
+    //cellErrors はセル単位、fileErrors はファイル全体の結果
     std::vector<const ValidationErrorInfo*> cellErrors(int row, int col) const;
     std::vector<const ValidationErrorInfo*> fileErrors() const;
 
@@ -102,61 +109,79 @@ public:
 
 signals:
     void modifiedChanged(bool modified);
-    //他の人の訳をセルに取り込んだ（他の人だけが変えたセル・衝突で他の人の訳を選んだセル）
+    //リモートの翻訳文をセルに読み込んだ
+    //対象はリモートのみで変更されたセルと、衝突の解決でリモートを選んだセル
     void changedByOthers(const QString& original, const QString& language, const QString& before, const QString& after);
-    //未保存・他の人の訳にしたセル・衝突の有無が変わったかもしれない（ファイルの一覧の目印を付け直す）
+    //未保存・リモートの読み込み・衝突のいずれかの状態が変化した可能性がある
+    //ファイル一覧の表示の更新に使う
     void markStateChanged();
 
 private:
     void setModified(bool modified);
-    //表を作り直すとセルの位置が変わるため、保存したときの値の記録を捨てる（変更ありのまま残す）
+    //保存時の値の記録を破棄する。表を再構築するとセルの位置が変わり、記録が使えなくなるため
+    //変更あり状態は保存するまで維持する
     void forgetSavedValues();
-    //表示中のファイルの検証結果。セルの索引を必要なら作り直してから返す。無ければ nullptr
+    //表示中のファイルの検証結果を返す。無い場合は nullptr
+    //必要に応じて _errorIndex を再構築してから返す
     const std::vector<ValidationErrorInfo>* indexedFileErrors() const;
-    //セルを書き換えたことを記録する（未保存の印・検証の後に編集したセル）
+    //セルの書き換えを記録し、未保存状態と検証後に編集したセルを更新する
     void recordEdit(int row, int col, const QString& oldValue, const QString& newValue);
 
-    //複数人で同じ editing のCSVを共有したときに、他の人の訳を消さずに保存するための処理
-    //読み書きしたファイルの内容を、他の人の変更と比べる元として覚える
+    //---- CSVを共同編集するための処理 ----
+    //リモートの変更を消さずに保存するために使う
+    //以下、セルのキーは (改行コードを統一した原文, 言語) の組
+
+    //読み書きしたファイルの内容を、リモートの変更を検出するための比較元として保持する
     void rememberFileContents(const FastCSVContainer& file);
-    //他の人だけが変えたセルを表へ取り込む。自分も変えていて訳が違うセルは、衝突として返す
-    std::vector<MergeConflict> takeChangesFromFile(const FastCSVContainer& file);
-    //セルのファイルの値を覚え直す。未保存の印も、ファイルの値と比べて付け直す
+    //ファイルからリモートの変更を表へ取り込む
+    //ローカルでも編集されたセルは取り込まず、衝突として返す
+    //gitConflicts に含まれるセルは、ローカルで未編集でも文章が異なれば衝突として返す
+    std::vector<MergeConflict> takeChangesFromFile(const FastCSVContainer& file, const QSet<std::pair<QString, QString>>& gitConflicts);
+    //Gitで競合したローカルとリモートの両方を比べ、文章が異なるセルのキーを返す
+    //GitConflictSides.baseがある場合、リモートで未変更のセルはsides.theirsをローカルの翻訳文に書き換える
+    //GitConflictSides.baseが無い場合、文章が異なるセルをすべて返す
+    QSet<std::pair<QString, QString>> mergeGitConflictSides(GitConflictSides& sides) const;
+    //保持しているファイルの値を更新し、その値と比べて未保存状態を更新する
     void rememberFileValue(int row, int column, const QString& value);
-    //セルを他の人の訳にし、印を付けて changedByOthers で知らせる
+    //セルをリモートの翻訳文に書き換えてハイライトし、changedByOthers を送出する
     void takeTheirs(int row, int column, const QString& theirs);
-    //(改行をそろえた原文, 言語)。原文の列が無ければ空
+    //セルのキーを返す。原文の列が無い場合は空
     std::pair<QString, QString> cellKey(int row, int column) const;
-    //表の内容に、表に無い列・行をファイルから足したもの
+    //表の内容に、ファイルにのみ存在する列・行を加えて返す
     FastCSVContainer withUnknownContents(const FastCSVContainer& file) const;
 
     langscore::FastCSVContainer csvContainer;
     bool _modified = false;
-    //保存してから書き換えたセルの、保存したときの値。すべて元に戻すと「変更あり」を解除する
+    //保存後に書き換えたセルの保存時の値。すべて元に戻ると変更あり状態を解除する
     QHash<std::pair<int, int>, QString> _savedValues;
-    //記録を捨てた変更があるか（forgetSavedValues）。あれば保存するまで「変更あり」のままにする
+    //forgetSavedValues で記録を破棄した変更があるか。ある場合は保存するまで変更あり状態を維持する
     bool _modifiedWithoutRecord = false;
+    //最後に読み直したファイルに Git の競合マーカーがあったか。保存すると消える
+    bool _fileHasGitConflictMarkers = false;
+    //検証後に編集したセル (行, 列)
     QSet<std::pair<int, int>> _editedSinceValidation;
-    //最後に読み書きしたときのファイルの列と訳。(改行をそろえた原文, 言語) → 訳
+    //最後に読み書きしたときのファイルの列名
     QStringList _fileHeaders;
+    //最後に読み書きしたときのファイルの翻訳文。セルのキー → 翻訳文
     QHash<std::pair<QString, QString>, QString> _fileValues;
-    //読み込んだときにファイルにあり、表に無かった行の原文（古い翻訳へ移した行）。保存で消す
+    //読み込み時にファイルにあり表に無かった行の原文。古い翻訳へ移した行で、保存時にファイルから削除する
     QSet<QString> _rowsLeftAtLoad;
+    //mergeConflicts() が返す衝突したセル
     std::vector<MergeConflict> _mergeConflicts;
-    //他の人の訳にしたセル。(改行をそろえた原文, 言語) → 変わる前の訳。自分で編集するまで印を付ける
+    //リモートの翻訳文を読み込んだセル。セルのキー → 読み込む前の翻訳文。ローカルで編集するまでハイライトする
     QHash<std::pair<QString, QString>, QString> _changedByOthers;
-    //他の人の保存と衝突して、まだ決めていないセル（最後に読み直したときの衝突）
+    //最後にファイルを読み直したときに検出した、未解決の衝突のセル (行, 列)
     QSet<std::pair<int, int>> _conflictCells;
     QString currentShowFileName;
     bool useLanguageFont = false;
     std::shared_ptr<settings> _settings = nullptr;
     std::shared_ptr<ComponentBase::RuntimeData> _runtimeData = nullptr;
-    //セルを描くたびに全件を調べると、結果が多いときに重くなるため、(行, 言語) から引けるようにしておく
+    //検証結果の索引。描画のたびに全件を走査すると結果が多いときに重いため、(行, 言語) で引けるようにする
     struct ErrorIndex {
         quint64 revision = ~0ull;
         size_t size = 0;
         QHash<std::pair<int, QString>, std::vector<size_t>> cells; //(表の行, 言語) → errors の位置
-        std::vector<size_t> fileLevel;                             //行も言語も無い、ファイル全体の結果
+        std::vector<size_t> fileLevel;                             //行と言語を持たない、ファイル全体の結果
     };
     mutable ErrorIndex _errorIndex;
     int _sortedColumn = -1;

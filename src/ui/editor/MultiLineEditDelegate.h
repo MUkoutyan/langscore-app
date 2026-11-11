@@ -6,7 +6,7 @@
 #include <QKeySequence>
 #include <array>
 
-//セルの編集で使うキー。アプリの設定（settings.ini）に保存する
+//セルの編集で使うキー。アプリの設定ファイル settings.ini に保存する
 struct EditKeyBindings
 {
     enum Action { Confirm, ConfirmAndMoveDown, ConfirmAndMoveRight, NewLine, Cancel, Count };
@@ -18,9 +18,9 @@ struct EditKeyBindings
     static QString actionName(Action action);
     //押したキーに割り当てた動作。無ければ Count
     Action find(const QKeyEvent* event) const;
-    //テンキーの Enter と Enter、Shift+Tab の記録のされ方の違いをそろえたキー（同じキーかの比較に使う）
+    //テンキーの Enter と Enter、Shift+Tab の表現の違いを統一したキー。同じキーかの比較に使う
     static QKeySequence normalized(const QKeySequence& key);
-    //エディタの下に出す、キーの説明（動作ごと）
+    //エディタの下に表示する、動作ごとのキーの説明
     QStringList guideItems() const;
 };
 
@@ -61,13 +61,13 @@ private:
     //割り当てたキーなら、その動作をして true を返す
     bool handleKey(QKeyEvent* event);
 
-    // 編集終了を1度だけ通知する（確定でエディタを閉じる際の FocusOut で二重に通知しないため）
+    // 編集終了を1度だけ通知する。確定でエディタを閉じる際の FocusOut による二重通知を防ぐ
     void finishEditing(MoveTo moveTo);
     bool _finished = false;
 
 signals:
     // 編集終了と、次に移るセルを通知する
     void editingFinished(MultiLineEditDelegate::MultiLineTextEdit::MoveTo moveTo);
-    // 入力を取り消して閉じる（Esc）
+    // Esc で入力を取り消して閉じる
     void editingCanceled();
 };

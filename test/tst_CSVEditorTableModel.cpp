@@ -35,7 +35,7 @@ TEST_F(CSVEditorTableModelTest, LoadJson)
 // 不具合の再発防止
 TEST_F(CSVEditorTableModelTest, LoadJsonKeepsQuotes)
 {
-    // JSON の文字列はCSVエスケープされていないので、引用符がそのまま残ること
+    // JSON の文字列はCSVエスケープされていないため、引用符がそのまま残ること
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([
         {"original": "\"Hello\"", "type": []},
@@ -55,7 +55,7 @@ TEST_F(CSVEditorTableModelTest, SetDataRejectsReadOnlyColumn)
     EXPECT_EQ(model.getCell(0, 0).value(), QString("Hello"));
     EXPECT_EQ(model.getCell(0, 1).value(), QString("name"));
 
-    // 言語列は今までどおり編集できること
+    // 言語列は従来どおり編集できること
     model.insertColumn(1, "en");
     EXPECT_TRUE(model.setData(model.index(0, 1), "Hi"));
     EXPECT_EQ(model.getCell(0, 1).value(), QString("Hi"));
@@ -75,7 +75,7 @@ TEST_F(CSVEditorTableModelTest, TypeColumnWithMultipleTypes)
 
 TEST_F(CSVEditorTableModelTest, ModifiedUntilSaved)
 {
-    // 編集すると未保存になり、保存すると戻ること
+    // 編集すると未保存状態になり、保存すると解除されること
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}])")));
     model.insertColumn(1, "en");
@@ -88,7 +88,7 @@ TEST_F(CSVEditorTableModelTest, ModifiedUntilSaved)
 
 TEST_F(CSVEditorTableModelTest, TranslatedRowCountIgnoresDisabledLanguage)
 {
-    // 有効な言語がすべて埋まった行だけを翻訳済みとして数えること
+    // 有効な言語がすべて埋まった行のみ翻訳済みとして数えること
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([
         {"original": "A", "type": []},
@@ -108,7 +108,7 @@ TEST_F(CSVEditorTableModelTest, TranslatedRowCountIgnoresDisabledLanguage)
 
 TEST_F(CSVEditorTableModelTest, EditedCellHidesStaleError)
 {
-    // 検証の後に編集したセルは、次の検証まで結果の色とアイコンを出さないこと
+    // 検証後に編集したセルは、次の検証まで結果の色とアイコンを表示しないこと
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}])")));
     model.insertColumn(1, "en");
@@ -136,7 +136,7 @@ TEST_F(CSVEditorTableModelTest, EditedCellHidesStaleError)
 
 TEST_F(CSVEditorTableModelTest, MergeTranslationWithLineBreak)
 {
-    // 改行（\n・\r\n）を含む原文の翻訳を保存し、読み直して戻せること
+    // \n・\r\n の改行を含む原文の翻訳文を保存し、読み直して戻せること
     for(const QByteArray original : {QByteArray(R"(a\nb)"), QByteArray(R"(a\r\nb)")})
     {
         const auto json = "[{\"original\": \"" + original + "\", \"type\": []}]";
@@ -159,7 +159,7 @@ TEST_F(CSVEditorTableModelTest, MergeTranslationWithLineBreak)
 TEST_F(CSVEditorTableModelTest, IsLanguageColumnWithoutSettings)
 {
     // settings 未設定や範囲外の列でも、IsLanguageColumn の問い合わせで落ちないこと
-    // （MainCSVTable は setSettings より前に proxy へ setSourceModel している）
+    // MainCSVTable は setSettings より前に proxy へ setSourceModel している
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}])")));
     EXPECT_FALSE(model.headerData(0, Qt::Horizontal, DataType::IsLanguageColumn).toBool());
@@ -168,7 +168,7 @@ TEST_F(CSVEditorTableModelTest, IsLanguageColumnWithoutSettings)
 
 TEST_F(CSVEditorTableModelTest, ValidationFilterHidesLanguage)
 {
-    // 言語で絞り込んだ検証結果はセルに出ないこと。検証中に結果が増えても反映されること
+    // 言語で絞り込んだ検証結果はセルに表示されないこと。検証中に結果が増えても反映されること
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}])")));
     model.insertColumn(1, "en");
@@ -201,8 +201,8 @@ TEST_F(CSVEditorTableModelTest, ValidationFilterHidesLanguage)
 
 TEST_F(CSVEditorTableModelTest, RowNumberMatchesValidationRow)
 {
-    // 行の番号（垂直ヘッダー）は1から始まり、検索で行を絞り込んでも元の行の番号のままであること。
-    // 検証結果の行（CSVのヘッダーを0行目とした行）と同じ番号になる
+    // 垂直ヘッダーの行番号は1から始まり、検索で行を絞り込んでも元の行番号のままであること。
+    // CSV のヘッダーを0行目とする検証結果の行番号と一致する
     langscore::CSVEditorTableModel model;
     ASSERT_TRUE(model.loadFromJsonFile(WriteJson(R"([{"original": "Hello", "type": []}, {"original": "World", "type": []}])")));
     EXPECT_EQ(model.headerData(0, Qt::Vertical).toInt(), 1);
@@ -215,7 +215,7 @@ TEST_F(CSVEditorTableModelTest, RowNumberMatchesValidationRow)
 }
 
 //-------------------------------------------------------------------
-// 複数人で同じ editing のCSVを共有したときの保存
+// 複数人で同じ editing の CSV を共有したときの保存
 //-------------------------------------------------------------------
 namespace
 {
@@ -249,7 +249,7 @@ namespace
 
 TEST_F(CSVEditorTableModelTest, SaveKeepsOtherPersonsEdit)
 {
-    // 読み込んだ後に他の人が別のセルを保存していたら、その訳を消さずに取り込むこと
+    // 読み込み後にリモートで別のセルが保存されていたら、その翻訳文を消さずに取り込むこと
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,fr,type\nA,,,name\nB,,,name\n");
     langscore::CSVEditorTableModel model;
@@ -268,7 +268,7 @@ TEST_F(CSVEditorTableModelTest, SaveKeepsOtherPersonsEdit)
 
 TEST_F(CSVEditorTableModelTest, SaveReportsConflict)
 {
-    // 同じセルを両方が別の訳にしたら、自分の訳で保存して衝突として残すこと
+    // 同じセルをローカルとリモートで別の翻訳文にしたら、ローカルの翻訳文で保存して衝突として残すこと
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nA,Old,name\n");
     langscore::CSVEditorTableModel model;
@@ -285,7 +285,7 @@ TEST_F(CSVEditorTableModelTest, SaveReportsConflict)
     EXPECT_EQ(model.mergeConflicts()[0].theirs, QString("Theirs"));
     EXPECT_EQ(CellOf(langscore::CSVEditorTableModel(csvPath), "A", "en"), QString("Mine"));
 
-    // 他の人の訳を選んで保存し直すと、衝突は残らないこと
+    // リモートの翻訳文を選んで再保存すると、衝突は残らないこと
     ASSERT_TRUE(model.setData(model.index(0, 1), "Theirs"));
     ASSERT_TRUE(model.saveToFile(csvPath));
     EXPECT_TRUE(model.mergeConflicts().empty());
@@ -294,7 +294,7 @@ TEST_F(CSVEditorTableModelTest, SaveReportsConflict)
 
 TEST_F(CSVEditorTableModelTest, SaveKeepsUnknownRowsAndColumns)
 {
-    // 他の人が足した行（解析し直して増えた原文）と言語の列を、保存で消さないこと
+    // リモートで再解析して増えた原文の行や追加された言語の列を、保存で削除しないこと
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nA,,name\n");
     langscore::CSVEditorTableModel model;
@@ -313,7 +313,7 @@ TEST_F(CSVEditorTableModelTest, SaveKeepsUnknownRowsAndColumns)
 
 TEST_F(CSVEditorTableModelTest, SaveDropsRowsMovedToOldTranslations)
 {
-    // 読み込んだときに表に無かった行（古い翻訳へ移した行）は、今までどおり保存で消すこと
+    // 古い翻訳へ移した行など、読み込み時に表に無かった行は、従来どおり保存で削除すること
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nHello,Hi,name\nRemoved,Gone,name\n");
     langscore::CSVEditorTableModel model;
@@ -330,7 +330,7 @@ TEST_F(CSVEditorTableModelTest, SaveDropsRowsMovedToOldTranslations)
 
 TEST_F(CSVEditorTableModelTest, NeedsSaveOnlyWhenChanged)
 {
-    // 開いただけのファイルは保存しない。編集したか、ファイルに無い列を足したら保存する
+    // 開いただけのファイルは保存しない。編集したか、ファイルに無い列を追加したら保存する
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nA,,name\n");
     langscore::CSVEditorTableModel model;
@@ -345,7 +345,7 @@ TEST_F(CSVEditorTableModelTest, NeedsSaveOnlyWhenChanged)
     ASSERT_TRUE(model.setData(model.index(0, 1), "Hi"));
     EXPECT_TRUE(model.needsSave());
 
-    // まだ editing のCSVが無いファイルは保存する（検証は editing のCSVだけを対象にする）
+    // 検証は editing の CSV のみを対象にするため、editing の CSV がまだ無いファイルは保存する
     langscore::CSVEditorTableModel unsaved;
     ASSERT_TRUE(unsaved.loadFromJsonFile(WriteJson(R"([{"original": "A", "type": []}])")));
     EXPECT_TRUE(unsaved.needsSave());
@@ -353,7 +353,7 @@ TEST_F(CSVEditorTableModelTest, NeedsSaveOnlyWhenChanged)
 
 TEST_F(CSVEditorTableModelTest, SyncTakesOtherPersonsEditWithoutSaving)
 {
-    // 保存しなくても、他の人だけが変えたセルを表へ取り込めること。取り込んだだけなら未保存にならないこと
+    // 保存しなくても、リモートのみで変更されたセルを表へ取り込めること。取り込みのみでは未保存状態にならないこと
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nA,,name\nB,,name\n");
     langscore::CSVEditorTableModel model;
@@ -368,7 +368,7 @@ TEST_F(CSVEditorTableModelTest, SyncTakesOtherPersonsEditWithoutSaving)
 
 TEST_F(CSVEditorTableModelTest, SyncReportsConflictUntilResolved)
 {
-    // 両方が変えたセルは表を変えずに返し、決めるまで読み直すたびに返すこと
+    // 両方で変更されたセルは表を変えずに返し、解決するまで読み直すたびに返すこと
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nA,Old,name\n");
     langscore::CSVEditorTableModel model;
@@ -383,7 +383,7 @@ TEST_F(CSVEditorTableModelTest, SyncReportsConflictUntilResolved)
     EXPECT_EQ(CellOf(model, "A", "en"), QString("Mine"));
     EXPECT_EQ(model.syncWithFile(csvPath).size(), 1u) << "あとで決めた衝突が、読み直しても出ません";
 
-    // 他の人の訳にすると、ファイルと同じなので未保存ではなくなること
+    // リモートの翻訳文を選ぶとファイルと同じ値になるため、未保存状態が解除されること
     model.resolveConflict(conflicts[0], true);
     EXPECT_EQ(CellOf(model, "A", "en"), QString("Theirs"));
     EXPECT_FALSE(model.isModified());
@@ -392,7 +392,7 @@ TEST_F(CSVEditorTableModelTest, SyncReportsConflictUntilResolved)
 
 TEST_F(CSVEditorTableModelTest, ConflictResolvedAsMineIsSaved)
 {
-    // 自分の訳にした衝突は、次の保存で衝突にならずに自分の訳を書くこと
+    // ローカルの翻訳文を選んだ衝突は、次の保存で衝突にならずにローカルの翻訳文を書き込むこと
     const auto csvPath = tempDir.filePath("Actors.csv");
     WriteCsv(csvPath, "original,en,type\nA,Old,name\n");
     langscore::CSVEditorTableModel model;
@@ -409,4 +409,27 @@ TEST_F(CSVEditorTableModelTest, ConflictResolvedAsMineIsSaved)
     ASSERT_TRUE(model.saveToFile(csvPath));
     EXPECT_TRUE(model.mergeConflicts().empty());
     EXPECT_EQ(CellOf(langscore::CSVEditorTableModel(csvPath), "A", "en"), QString("Mine"));
+}
+
+TEST_F(CSVEditorTableModelTest, GitConflictMarkersNeedSaveAfterTakingTheirs)
+{
+    // Git の競合をすべてリモートの翻訳文にして表に未保存の編集が無くなっても、競合マーカーを消すために保存が必要なこと
+    const auto csvPath = tempDir.filePath("Actors.csv");
+    WriteCsv(csvPath, "original,en,type\nA,Mine,name\nB,,name\n");
+    langscore::CSVEditorTableModel model;
+    ASSERT_TRUE(model.loadFromEditCSVFile(csvPath));
+
+    WriteCsv(csvPath, "original,en,type\n<<<<<<< HEAD\nA,Mine,name\n=======\nA,Theirs,name\n>>>>>>> 1234567\nB,,name\n");
+    const auto conflicts = model.syncWithFile(csvPath);
+    ASSERT_EQ(conflicts.size(), 1u);
+    model.resolveConflict(conflicts[0], true);
+    EXPECT_FALSE(model.isModified());
+    EXPECT_TRUE(model.needsSave()) << "競合の印が残ったファイルを保存しません";
+
+    ASSERT_TRUE(model.saveToFile(csvPath));
+    EXPECT_FALSE(model.needsSave());
+    QFile file(csvPath);
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_FALSE(file.readAll().contains("<<<<<<<"));
+    EXPECT_EQ(CellOf(langscore::CSVEditorTableModel(csvPath), "A", "en"), QString("Theirs"));
 }

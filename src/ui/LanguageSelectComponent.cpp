@@ -63,7 +63,7 @@ LanguageSelectComponent::LanguageSelectComponent(QLocale locale, ComponentBase* 
     });
     connect(defaultCheck, &QCheckBox::clicked, this, [this](bool is){
         if(is && this->getUseLang() == false){
-            // 変更前にチェックされていたデフォルト言語を特定（設定から取得）
+            // 変更前にチェックされていたデフォルト言語を設定から特定する
             LanguageSelectComponent* previousDefaultComponent = nullptr;
             QString previousDefaultLang = this->setting->defaultLanguage;
             

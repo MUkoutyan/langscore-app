@@ -2,7 +2,7 @@
 #include <QStandardItemModel>
 #include "CSVEditorSortFilterProxyModel.h"
 
-// 列0: 原文、列1: 翻訳（言語列 "en"）
+// 列0: 原文、列1: 言語列 "en" の翻訳文
 class SourceModel : public QStandardItemModel
 {
 public:

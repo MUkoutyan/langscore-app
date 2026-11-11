@@ -162,7 +162,7 @@ bool EditDataManager::saveAllModels(const QString& editingDirectory)
     // 全てのセッションを保存
     for (const auto& [originalPath, session] : sessions_)
     {
-        //変更していないファイルは保存しない。共有フォルダで、他の人の保存を古い内容で上書きしないようにする
+        //未変更のファイルは保存しない。共有フォルダで、リモートの変更を古い内容で上書きしないようにする
         const auto* mainModel = findMainCSVModel(originalPath);
         if(mainModel != nullptr && mainModel->needsSave() == false) { continue; }
 

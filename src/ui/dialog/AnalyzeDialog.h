@@ -31,7 +31,7 @@ protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
 
 private:
-    //翻訳作業の開始で、divisi を順に実行する。解析→プラグインと翻訳CSVの書き出し→パッキング（VXAceのみ）
+    //翻訳作業の開始時に divisi を順に実行する。解析→プラグインと翻訳CSVの書き出し→パッキングの順で、パッキングは VXAce のみ
     enum class InvokeStep {
         None,
         Analyze,

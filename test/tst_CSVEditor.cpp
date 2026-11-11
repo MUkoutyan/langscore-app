@@ -30,7 +30,7 @@ protected:
         ])");
         file.close();
 
-        //列は original, en, type の順になる（MainCSVTable::showMainFileText と同じく original の後ろに言語列を入れる）
+        //MainCSVTable::showMainFileText と同じく original の後ろに言語列を入れるため、列は original, en, type の順になる
         model = std::make_unique<langscore::CSVEditorTableModel>();
         ASSERT_TRUE(model->loadFromJsonFile(jsonPath));
         model->insertColumn(1, "en");
@@ -43,7 +43,7 @@ protected:
 
     void TearDown() override
     {
-        //ビューがモデルを参照しているので、先にビューを破棄する
+        //ビューがモデルを参照しているため、先にビューを破棄する
         editor.reset();
         model.reset();
         manager.reset();
@@ -58,7 +58,7 @@ protected:
 
 TEST_F(CSVEditorTest, PasteWindowsLineEnding)
 {
-    // 他のアプリの複数行の文章は1つのセルに入り、改行が \n にそろい、コピー時に付く末尾の改行は除かれること
+    // 他のアプリの複数行の文章は1つのセルに入り、改行が \n に統一され、コピー時に付く末尾の改行は除かれること
     QGuiApplication::clipboard()->setText("Hi\r\nYo\r\n");
     SelectCell(0, 1);
     editor->paste();
@@ -84,7 +84,7 @@ TEST_F(CSVEditorTest, PasteSpreadsheetCells)
     editor->paste();
     EXPECT_EQ(model->getCell(0, 1).value(), QString("Line1\nLine2"));
     EXPECT_EQ(model->getCell(1, 1).value(), QString("Say \"hi\", ok"));
-    // 右隣の type 列は編集できないので書き換わらない
+    // 右隣の type 列は編集できないため書き換わらない
     EXPECT_EQ(model->getCell(0, 2).value(), QString("name"));
 }
 
@@ -124,8 +124,8 @@ TEST_F(CSVEditorTest, PasteSkipsReadOnlyColumn)
 
 TEST_F(CSVEditorTest, ClearSkipsOriginalColumn)
 {
-    // original 列と言語列をまとめて選んで削除しても、original 列は消えないこと
-    //CSVEditor::setText は this を捕まえた singleShot を登録するため、テストではモデルへ直接書き込む
+    // original 列と言語列をまとめて選択して削除しても、original 列は消えないこと
+    //CSVEditor::setText は this をキャプチャした singleShot を登録するため、テストではモデルへ直接書き込む
     model->setCell(0, 1, "Hi");
     editor->selectionModel()->select(model->index(0, 0), QItemSelectionModel::ClearAndSelect);
     editor->selectionModel()->select(model->index(0, 1), QItemSelectionModel::Select);
@@ -159,7 +159,7 @@ TEST_F(CSVEditorTest, NextCellStopsAtTableEdge)
 
 TEST_F(CSVEditorTest, NextCellFromEditedCell)
 {
-    // 次のセルは今のセルではなく、編集したセルから決めること（飛び飛びに選んだ場合など）
+    // 飛び飛びに選択した場合など、次のセルは currentIndex ではなく編集したセルから決めること
     editor->selectionModel()->setCurrentIndex(model->index(1, 1), QItemSelectionModel::ClearAndSelect);
     editor->selectAndEditNextCell(model->index(0, 0), 0, 1);
     EXPECT_EQ(editor->currentIndex(), model->index(0, 1));
@@ -167,7 +167,7 @@ TEST_F(CSVEditorTest, NextCellFromEditedCell)
 
 TEST_F(CSVEditorTest, UndoAfterSwitchingModel)
 {
-    // 別のファイルを開いた（proxy の元のモデルを差し替えた）後でも、編集を元に戻せること
+    // 別のファイルを開いて proxy の元のモデルを差し替えた後でも、編集を元に戻せること
     QSortFilterProxyModel proxy;
     proxy.setSourceModel(model.get());
     editor->setModel(&proxy);
@@ -184,7 +184,7 @@ TEST_F(CSVEditorTest, UndoAfterSwitchingModel)
 
 TEST_F(CSVEditorTest, TypingReplacesText)
 {
-    // セルを選んで文字を打つと、元の文章を置き換えて編集を始めること
+    // セルを選択して文字を入力すると、元の文章を置き換えて編集を始めること
     model->setCell(0, 1, "Old");
     editor->selectionModel()->setCurrentIndex(model->index(0, 1), QItemSelectionModel::ClearAndSelect);
     QKeyEvent key(QEvent::KeyPress, Qt::Key_X, Qt::NoModifier, "x");
@@ -196,7 +196,7 @@ TEST_F(CSVEditorTest, TypingReplacesText)
 
 TEST_F(CSVEditorTest, ModifiedClearedWhenReverted)
 {
-    // 保存したときの値に戻すと、変更ありの印が消えること
+    // 保存時の値に戻すと、変更あり状態が解除されること
     EXPECT_FALSE(model->isModified());
     model->setData(model->index(0, 1), "Hi");
     EXPECT_TRUE(model->isModified());

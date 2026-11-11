@@ -153,7 +153,7 @@ private:
     QUndoStack* history;
     std::shared_ptr<settings> setting;
     std::unique_ptr<TreeNode> rootItem;
-    //Undo 履歴が指している古い項目。言語の変更で作り直しても履歴が使えるよう残しておく
+    //Undo 履歴が指している古い項目。言語の変更で再構築しても履歴が使えるよう保持する
     std::vector<std::unique_ptr<TreeNode>> retiredRootItems;
     QStringList enableLangNames;
     std::unordered_map<QString, QString> typeNameTranslateList;
@@ -178,7 +178,7 @@ class ClipDetectSettingTree : public QTreeView
 public:
     explicit ClipDetectSettingTree(std::shared_ptr<settings> settings, QUndoStack* history, QWidget* parent = nullptr);
 
-    //force: 言語が変わっていなくても作り直す。設定を読み直した後（Undo 履歴を破棄した後）に使う
+    //force: 言語が変わっていなくても再構築する。設定の読み直しで Undo 履歴を破棄した後に使う
     void setup(bool force = false);
 private:
 

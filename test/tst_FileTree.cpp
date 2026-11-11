@@ -72,8 +72,8 @@ TEST_F(FileTreeTest, SearchShowsVisibleItems)
 
 TEST_F(FileTreeTest, ValidationErrorShownOnFileWithExtension)
 {
-    // 検証結果は拡張子なしの名前（Actors）で届くが、拡張子付きの項目（Actors.json）に表示されること。
-    // 次の検証が終わったら、前回の表示は消えること
+    // 検証結果は Actors のような拡張子なしの名前で届くが、Actors.json のような拡張子付きの項目に表示されること。
+    // 次の検証が完了したら、前回の表示は消えること
     auto* treeWidget = tree->findChild<QTreeWidget*>();
     ASSERT_NE(treeWidget, nullptr);
     auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
@@ -92,7 +92,7 @@ TEST_F(FileTreeTest, ValidationErrorShownOnFileWithExtension)
     component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
     EXPECT_EQ(actors->childCount(), 1) << "Actors.json の項目に検証結果が表示されていません";
 
-    //次の検証で結果が無くなったら（ValidationService が消す）、終わったときに表示も消えること
+    //次の検証で ValidationService が結果をクリアしたら、完了時に表示も消えること
     component->runtimeData->errors.clear();
     component->dispatch(ComponentBase::NotifyFinishValidateCSV, {});
     EXPECT_EQ(actors->childCount(), 0) << "次の検証の後も前回の検証結果が残っています";
@@ -101,7 +101,7 @@ TEST_F(FileTreeTest, ValidationErrorShownOnFileWithExtension)
 
 TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat)
 {
-    // 画像のチェックを外すと、divisi が比較する形式（ゲームフォルダからの相対パス・拡張子なし）で除外リストに入ること
+    // 画像のチェックを外すと、ゲームフォルダからの相対パス・拡張子なしという divisi が比較する形式で除外リストに入ること
     QTemporaryDir tempDir;
     const auto gameDir = tempDir.filePath("Game");
     QDir().mkpath(gameDir + "/img/faces");
@@ -132,7 +132,7 @@ TEST_F(FileTreeTest, IgnorePictureWrittenInDivisiFormat)
 // 不具合の再発防止
 TEST_F(FileTreeTest, SelectValidationErrorShowsItsFile)
 {
-    // 検証結果の項目を押すと、結果が付いているファイルを開くこと（空のファイル名で表を空にしない）
+    // 検証結果の項目を押すと、結果が付いているファイルを開くこと。空のファイル名で表を空にしない
     auto* treeWidget = tree->findChild<QTreeWidget*>();
     ASSERT_NE(treeWidget, nullptr);
     auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
@@ -174,7 +174,7 @@ TEST_F(FileTreeTest, SelectValidationErrorShowsItsFile)
 
 TEST_F(FileTreeTest, ValidationFilterRebuildsErrorItems)
 {
-    // 言語で絞り込むと、その言語の検証結果の項目が消え、戻すと再び出ること
+    // 言語で絞り込むと、その言語の検証結果の項目が消え、戻すと再び表示されること
     auto* treeWidget = tree->findChild<QTreeWidget*>();
     ASSERT_NE(treeWidget, nullptr);
     auto* top = new QTreeWidgetItem(treeWidget, {"Basics"});
@@ -216,7 +216,7 @@ namespace
 
 TEST_F(FileTreeTest, MultiSelectTogglesChecks)
 {
-    // 複数の項目を選んでチェックを外すと、選んだ項目がすべて翻訳対象から外れ、元に戻せること
+    // 複数の項目を選択してチェックを外すと、選択した項目がすべて翻訳対象から外れ、元に戻せること
     component->setting->fetchBasicDataInfo("Actors");
     component->setting->fetchBasicDataInfo("Armors");
     component->setting->fetchBasicDataInfo("Items");
@@ -245,7 +245,7 @@ TEST_F(FileTreeTest, MultiSelectTogglesChecks)
 
 TEST_F(FileTreeTest, ShowUntranslatedOnly)
 {
-    // 翻訳が終わっていないファイルだけを表示できること。Animations は最初から表示しないこと
+    // 翻訳が完了していないファイルのみ表示できること。Animations は最初から表示しないこと
     component->setting->fetchBasicDataInfo("Actors");
     component->setting->fetchBasicDataInfo("Armors");
     component->setting->fetchBasicDataInfo("Animations");
@@ -275,7 +275,7 @@ TEST_F(FileTreeTest, ShowUntranslatedOnly)
 
 TEST_F(FileTreeTest, ScriptErrorsShownUnderScripts)
 {
-    // スクリプトの検証結果（editing/Scripts.csv の行）は、その原文を含むスクリプトの項目に付くこと。
+    // editing/Scripts.csv の行で届くスクリプトの検証結果は、その原文を含むスクリプトの項目に付くこと。
     // ファイル全体の結果は「Script」の見出しに付く
     QTemporaryDir tempDir;
     component->setting->langscoreProjectDirectory = tempDir.path();
@@ -323,7 +323,7 @@ TEST_F(FileTreeTest, ScriptErrorsShownUnderScripts)
 
 TEST_F(FileTreeTest, ValidationFilterIsSaved)
 {
-    // 検証結果の絞り込みはアプリの設定に保存され、次に作ったボタン（次の起動）でも使われること
+    // 検証結果の絞り込みはアプリの設定に保存され、次回起動時に作成したボタンでも使われること
     QToolButton* filterButton = nullptr;
     for(auto* b : tree->findChildren<QToolButton*>()) {
         if(b->menu() != nullptr) { filterButton = b; }
@@ -345,7 +345,7 @@ TEST_F(FileTreeTest, ValidationFilterIsSaved)
 
 TEST_F(FileTreeTest, MainFileNameWithoutChildCount)
 {
-    // 子の数「(n/n)」が付いた項目を選んでも、表に渡す名前には付かないこと
+    // 子の数「(n/n)」が付いた項目を選択しても、表に渡す名前には付かないこと
     auto* treeWidget = tree->findChild<QTreeWidget*>();
     ASSERT_NE(treeWidget, nullptr);
     auto* top = new QTreeWidgetItem(treeWidget, {"Main"});
@@ -363,7 +363,7 @@ TEST_F(FileTreeTest, MainFileNameWithoutChildCount)
 
 TEST_F(FileTreeTest, FileMarks)
 {
-    // 未保存の編集は名前を太字・斜体にし、他の人の訳・衝突は進捗の列にアイコンを付けること。目印が無くなれば元に戻すこと
+    // 未保存の編集は名前を太字・斜体にし、リモートの翻訳文の取り込み・衝突は進捗の列にアイコンを表示すること。状態が解消されれば元に戻すこと
     component->setting->fetchBasicDataInfo("Actors");
     tree->setupBasicsTree();
     auto* actors = FindChild(tree->findChild<QTreeWidget*>()->topLevelItem(0), "Actors.json");
@@ -384,7 +384,7 @@ TEST_F(FileTreeTest, FileMarks)
     tree->setFileMarks("Actors", false, false, false);
     EXPECT_TRUE(actors->icon(1).isNull());
     EXPECT_TRUE(actors->toolTip(0).isEmpty());
-    //進捗が変わっても目印は残ること
+    //進捗が変わっても状態表示は残ること
     tree->setFileMarks("Actors", true, false, false);
     tree->setFileProgress("Actors.json", 2, 2);
     EXPECT_TRUE(actors->font(0).bold());

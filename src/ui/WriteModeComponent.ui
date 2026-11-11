@@ -72,13 +72,6 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QPushButton" name="updateButton">
-       <property name="text">
-        <string>Reanalyze</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item>
@@ -343,6 +336,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="updateButton">
+          <property name="text">
+           <string>Reanalyze Game Project</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="writeButton">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -363,7 +363,7 @@
            </size>
           </property>
           <property name="text">
-           <string>Write Translate CSV</string>
+           <string>Export Translate CSV</string>
           </property>
          </widget>
         </item>

@@ -14,7 +14,7 @@ public:
     struct RuntimeData {
         std::unordered_map<QString, std::vector<ValidationErrorInfo>> errors;
         std::unordered_map<QString, bool> updateList;
-        //errors を作り直したら増やす。セルごとの検証結果の索引（CSVEditorTableModel）を作り直すために使う
+        //errors を再構築したら増やす。CSVEditorTableModel がセルごとの検証結果の索引を再構築するために使う
         quint64 errorsRevision = 0;
 
         //検証結果の表示で隠す言語と種類
@@ -22,7 +22,7 @@ public:
         bool hideErrors = false;
         bool hideWarnings = false;
 
-        //表示の絞り込みで隠していない検証結果か。言語の無い結果（ファイル全体）は種類だけで決める
+        //表示の絞り込みで隠していない検証結果か。ファイル全体の結果など言語の無い結果は、種類のみで判定する
         bool isErrorShown(const ValidationErrorInfo& info) const
         {
             if(info.type == ValidationErrorInfo::Error && hideErrors) { return false; }
@@ -44,12 +44,12 @@ public:
         NotifyFinishValidateCSV,
         SendLog,
         ChangeValidationFilter, //無し。検証結果の表示の絞り込みを変えた
-        //---- テストプレイ中のゲームとの連携（FollowGameService） ----
+        //---- FollowGameService による、テストプレイ中のゲームとの連携 ----
         FollowGame,         //bool ゲームへの追従を始める・止める
         NotifyGameRunning,  //bool ゲームが起動しているか。1秒ごとに送る
         ShowGameText,       //原文, 翻訳ファイル名, ゲームの言語。ゲームで表示している文章
         ApplyToGame,        //無し 編集した翻訳をゲームに反映する
-        ExportForGame,      //無し ゲームに反映するため、翻訳ファイルを書き出し直す（VXAce）
+        ExportForGame,      //無し VXAce でゲームに反映するため、翻訳ファイルを再度書き出す
         NotifyApplyToGame,  //反映したファイルの数。0なら反映する編集が無かった
     };
 

@@ -38,7 +38,7 @@ namespace
 // 仕様の確認。divisi は ValidateCSVNameList に指定されたファイル・フォルダのCSVを検証する
 TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
 {
-    // 1ファイルだけ検証するとき、ValidateCSVNameList には editing フォルダのCSVのフルパスが書かれること
+    // 1ファイルのみ検証するとき、ValidateCSVNameList には editing フォルダのCSVのフルパスが書かれること
     QTemporaryDir tempDir;
     const auto gameDir = tempDir.filePath("Game");
     QDir().mkpath(gameDir);
@@ -66,8 +66,8 @@ TEST(ValidationServiceTest, ValidateCsvWritesEditingFilePath)
 
 TEST(ValidationServiceTest, ValidateAllChecksEditingFolder)
 {
-    // 全検証では、書き出し先ではなく editing フォルダのCSVを検証すること（編集表と行をそろえるため）。
-    // ゲームから消したファイル（解析結果が無い）と、翻訳から除外したファイルのCSVは検証しない
+    // 全検証では、編集表と行を一致させるため、書き出し先ではなく editing フォルダの CSV を検証すること。
+    // ゲームから削除して解析結果が無いファイルと、翻訳から除外したファイルの CSV は検証しない
     QTemporaryDir tempDir;
     ValidationTestComponent component;
     SetupProject(component, tempDir.filePath("Game"));
@@ -97,7 +97,7 @@ TEST(ValidationServiceTest, ValidateAllChecksEditingFolder)
 
 TEST(ValidationServiceTest, ValidateCsvKeepsOtherFileResults)
 {
-    // 1ファイルだけ検証するとき、他のファイルの検証結果は消さないこと
+    // 1ファイルのみ検証するとき、他のファイルの検証結果は削除しないこと
     QTemporaryDir tempDir;
     ValidationTestComponent component;
     SetupProject(component, tempDir.filePath("Game"));
@@ -114,7 +114,7 @@ TEST(ValidationServiceTest, ValidateCsvKeepsOtherFileResults)
 
 TEST(ValidationServiceTest, IgnoreRequestWhileRunning)
 {
-    // 検証の実行中に次の検証を頼んでも始めないこと。前の検証の出力が結果に混ざるため
+    // 検証の実行中に次の検証を要求しても開始しないこと。前の検証の出力が結果に混ざるため
     QTemporaryDir tempDir;
     ValidationTestComponent component;
     SetupProject(component, tempDir.filePath("Game"));
@@ -122,7 +122,7 @@ TEST(ValidationServiceTest, IgnoreRequestWhileRunning)
 
     const auto first = component.setting->langscoreProjectDirectory + "/editing/Actors.csv";
     const auto second = component.setting->langscoreProjectDirectory + "/editing/Items.csv";
-    //終了の通知はイベントループを回すまで届かないので、1回目はまだ実行中の扱い
+    //終了の通知はイベントループを回すまで届かないため、1回目はまだ実行中の扱い
     service.receive(ComponentBase::ValidateCSV, {first});
     service.receive(ComponentBase::ValidateCSV, {second});
 
@@ -130,7 +130,7 @@ TEST(ValidationServiceTest, IgnoreRequestWhileRunning)
     ASSERT_EQ(nameList.size(), 1);
     EXPECT_EQ(nameList[0].toString(), first);
 
-    //終わった後は受け付ける
+    //完了後は受け付ける
     QCoreApplication::processEvents();
     service.receive(ComponentBase::ValidateCSV, {second});
     nameList = ReadValidateNameList(component);

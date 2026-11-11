@@ -93,7 +93,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
         fixedWidthLayout->addWidget(fixedWidthSpinBox);
         paneLayout->addLayout(fixedWidthLayout);
 
-        //前回の設定を戻す
+        //前回の設定を復元する
         auto appSettings = ComponentBase::getAppSettings();
         languageFontCheck->setChecked(appSettings.value("ScriptCSVTable/useLanguageFont", false).toBool());
         fixedWidthCheck->setChecked(appSettings.value("ScriptCSVTable/fixedCellWidth", false).toBool());
@@ -233,7 +233,7 @@ ScriptCSVTable::ScriptCSVTable(ComponentBase* component,
 void ScriptCSVTable::clear()
 {
     if(currentModel)  {
-        //モデルは EditDataManager が所有しているので削除せず、接続だけを解除する
+        //モデルは EditDataManager が所有しているため削除せず、接続のみ解除する
         disconnect(currentModel, nullptr, this, nullptr);
         currentModel = nullptr;
     }
@@ -317,7 +317,7 @@ void ScriptCSVTable::setupScriptTable()
     _proxyModel->setSortState(0, SortOrder::None);
     _proxyModel->setSourceModel(currentModel);
     csvEditor->setModel(_proxyModel);
-    //行の高さは表示したときに内容に合わせる（その後は手で変えられる）
+    //行の高さは表示時に内容に合わせ、その後は手動で変更できる
     QTimer::singleShot(0, this, [this]() { this->csvEditor->resizeRowsToContents(); });
 
     _proxyModel->setHideUncheckRow(showAllScriptContents == false);
@@ -444,7 +444,7 @@ void ScriptCSVTable::uncheckNotContainHiragana()
     }
 }
 
-//表に出ている、そのスクリプトの最初の行。無ければ無効なインデックス
+//表に表示されている、そのスクリプトの最初の行。無ければ無効なインデックス
 QModelIndex ScriptCSVTable::firstVisibleRowOfScript(const QString& scriptFileName) const
 {
     if(currentModel == nullptr || _proxyModel == nullptr) { return {}; }
@@ -457,7 +457,7 @@ QModelIndex ScriptCSVTable::firstVisibleRowOfScript(const QString& scriptFileNam
     return {};
 }
 
-//ファイルツリーでスクリプトを選んだとき、そのスクリプトの先頭の行を表の一番上に出す
+//ファイルツリーでスクリプトを選択したとき、そのスクリプトの先頭の行を表の一番上に表示する
 void ScriptCSVTable::onScriptTableScrollToRow(const QString& scriptFileName)
 {
     //タブを切り替えた直後は表の大きさが決まっていないため、次のイベントで行う

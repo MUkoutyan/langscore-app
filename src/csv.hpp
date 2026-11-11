@@ -38,21 +38,49 @@ static std::vector<QString> parseCsvLine(QString line)
         }
         tmp.push_back(c);
     }
-    //末尾が空の列（"a," の2列目）も1列として扱う
+    //"a," の2列目のような末尾の空の列も1列として扱う
     if(line.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
 
     return cols;
 }
 
-//値はクォートを含んだまま返す。セル内の改行（\r\n / \n）はファイルの内容のまま残す
-static std::vector<std::vector<QString>> readCsv(QString path)
+//Git の pull などで競合したファイルを、どちらの側の内容として読むか
+enum class GitConflictSide
 {
-    //std::ifstream に toLocal8Bit() のパスを渡すと ANSI コードページ外の文字を含むパスを開けないため QFile を使う。
-    //Text モードはセル内の \r も消してしまうため、バイナリで読む
-    QFile file(path);
-    if(file.open(QIODevice::ReadOnly) == false){ return {}; }
+    Ours,   //ローカル側。<<<<<<< から ======= まで
+    Theirs, //リモート側。======= から >>>>>>> まで
+};
 
-    auto lines = QString::fromUtf8(file.readAll()).split('\n');
+//Git の競合マーカーの行と、side ではない側の行を取り除く。||||||| から ======= までの base の行も取り除く。
+//競合マーカーの無いファイルは、そのまま返す
+static QStringList pickGitConflictSide(const QStringList& lines, GitConflictSide side)
+{
+    const auto isMarker = [](const QString& line, const QString& marker) {
+        return line == marker || line == marker + '\r' || line.startsWith(marker + ' ');
+    };
+    enum class Block { Outside, Ours, Base, Theirs };
+    auto block = Block::Outside;
+    QStringList picked;
+    for(const auto& line : lines)
+    {
+        if(block == Block::Outside && isMarker(line, "<<<<<<<")){ block = Block::Ours; continue; }
+        if(block == Block::Ours && isMarker(line, "|||||||")){ block = Block::Base; continue; }
+        if((block == Block::Ours || block == Block::Base) && isMarker(line, "=======")){ block = Block::Theirs; continue; }
+        if(block == Block::Theirs && isMarker(line, ">>>>>>>")){ block = Block::Outside; continue; }
+
+        if(block == Block::Base){ continue; }
+        if(block == Block::Ours && side == GitConflictSide::Theirs){ continue; }
+        if(block == Block::Theirs && side == GitConflictSide::Ours){ continue; }
+        picked.append(line);
+    }
+    return picked;
+}
+
+//ファイルの中身を CSV として読む。値はクォートを含んだまま返す。セル内の改行 \r\n / \n はファイルの内容のまま残す。
+//Git の競合マーカーがあるファイルは、side の側の内容として読む
+static std::vector<std::vector<QString>> parseCsv(const QByteArray& contents, GitConflictSide side = GitConflictSide::Ours)
+{
+    auto lines = pickGitConflictSide(QString::fromUtf8(contents).split('\n'), side);
     if(lines.isEmpty() == false && lines.last().isEmpty()){ lines.removeLast(); }
 
     std::vector<QString> rows;
@@ -67,13 +95,13 @@ static std::vector<std::vector<QString>> readCsv(QString path)
 
         if(num_dq % 2 == 0){
             line_buffer += line;
-            //行の区切りが \r\n のファイルの \r（セル内ではないもの）
+            //行の区切りが \r\n のファイルの、セル外の \r
             if(line_buffer.endsWith('\r')){ line_buffer.chop(1); }
             rows.emplace_back(std::move(line_buffer));
             line_buffer = "";
         }
         else{
-            line_buffer += line+'\n';	//getlineに改行は含まれないのでここで足す
+            line_buffer += line+'\n';	//getlineに改行は含まれないため、ここで追加する
         }
     }
 
@@ -108,7 +136,7 @@ static std::vector<std::vector<QString>> readCsv(QString path)
             }
             tmp.push_back(c);
         }
-        //末尾が空の列（翻訳が未入力の列）も1列として扱う
+        //翻訳が未入力の列など、末尾の空の列も1列として扱う
         if(reachedLineEnd == false && row.isEmpty() == false){ cols.emplace_back(std::move(tmp)); }
 
         csv.emplace_back(std::move(cols));
@@ -117,6 +145,16 @@ static std::vector<std::vector<QString>> readCsv(QString path)
     if(csv.size() < 2){ return {}; }
 
     return csv;
+}
+
+//Git の競合マーカーがあるファイルは、side の側の内容として読む
+static std::vector<std::vector<QString>> readCsv(QString path, GitConflictSide side = GitConflictSide::Ours)
+{
+    //std::ifstream に toLocal8Bit() のパスを渡すと ANSI コードページ外の文字を含むパスを開けないため QFile を使う。
+    //Text モードではセル内の \r も削除されるため、バイナリで読む
+    QFile file(path);
+    if(file.open(QIODevice::ReadOnly) == false){ return {}; }
+    return parseCsv(file.readAll(), side);
 }
 
 static ScriptTextPosition parseScriptNameWithRowCol(QString script)

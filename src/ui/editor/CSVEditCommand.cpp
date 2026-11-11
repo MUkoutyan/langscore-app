@@ -22,7 +22,7 @@ void CSVEditCommand::applyCellEdits(bool isUndo) {
         }
     }
 
-    //最初の実行（編集したとき）は、編集したセルを見ているので知らせない
+    //編集時の最初の実行では、編集したセルが表示中のため通知しない
     if(std::exchange(notifyApplied, true) == false) { return; }
     const auto firstValid = std::ranges::find_if(edits, [](const auto& edit) { return edit.index.isValid(); });
     if(firstValid != edits.end()) {

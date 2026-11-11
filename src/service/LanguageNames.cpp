@@ -74,7 +74,7 @@ namespace langscore {
 
     QString languageDisplayName(const QString& localeName)
     {
-        // BCP-47 形式 (例: "en", "ja", "en-US", "zh-Hant-HK") を想定
+        // "en", "ja", "en-US", "zh-Hant-HK" のような BCP-47 形式を想定
         if(localeName.isEmpty()) {
             return QString();
         }

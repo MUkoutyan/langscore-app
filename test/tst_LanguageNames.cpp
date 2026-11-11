@@ -30,7 +30,7 @@ TEST(LanguageNames, UnderscoreNormalization)
 
 TEST(LanguageNames, CaseInsensitive)
 {
-    // 大文字小文字を区別しない（toLower で正規化される）
+    // toLower で正規化されるため、大文字小文字を区別しない
     EXPECT_FALSE(langscore::languageDisplayName("EN").isEmpty());
     EXPECT_FALSE(langscore::languageDisplayName("JA").isEmpty());
 }

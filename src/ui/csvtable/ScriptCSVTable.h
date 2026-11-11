@@ -28,9 +28,9 @@ public:
     void clear();
 
     void setupScriptTable();
-    //言語の有効・無効を変えたときに、言語の列を作り直す
+    //言語の有効・無効を切り替えたときに、言語の列を再構築する
     void refreshLanguageColumns();
-    //外部エディターで編集した Scripts.csv の翻訳を取り込み、editing に保存する。
+    //外部エディターで編集した Scripts.csv の翻訳文を取り込み、editing に保存する
     //書き換えたセルの数を返す。Scripts.csv ではない・CSVを読めない場合は -1
     int importTranslationCsv(const QString& csvPath);
 void filterScriptTextData(std::vector<ScriptTextData>& scriptDataList);
@@ -56,7 +56,7 @@ signals:
 
 public slots:
     void changeScriptTableItemCheck(QString scriptName, Qt::CheckState);
-    //検証結果を選んだとき、そのスクリプトの原文の行を選ぶ
+    //検証結果を選択したとき、そのスクリプトの原文の行を選択する
     void selectRowByOriginal(const QString& scriptFileName, const QString& original);
     void onScriptTableScrollToRow(const QString& scriptFileName);
     void onScriptTableSelectRow(const QString& scriptFileName);

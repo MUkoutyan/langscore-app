@@ -261,7 +261,7 @@ QModelIndex ClipDetectSettingTreeModel::parent(const QModelIndex& childIndex) co
         return QModelIndex();
     }
 
-    // 親アイテムの親アイテム（祖父母アイテム）を取得
+    // 親アイテムの親である祖父母アイテムを取得
     TreeNode* grandParentItem = parentItem->parent;
     // 祖父母アイテムがnullの場合、空のQModelIndexを返す
     if(grandParentItem == nullptr) {
@@ -684,7 +684,7 @@ void ClipDetectSettingTreeModel::setupClipDetectTree(bool force)
     }
 
     this->beginResetModel();
-    //force は Undo 履歴を破棄した後なので、古い項目を残す必要は無い。
+    //force は Undo 履歴の破棄後に使うため、古い項目を残す必要は無い。
     //ponytail: 言語を変えるたびに古いツリーが残る。履歴の破棄時に消えるので量は小さい
     if(force) {
         retiredRootItems.clear();
@@ -1009,7 +1009,7 @@ void ClipDetectSettingTreeModel::DetectTreeUndo::setValue(settings::ValidateText
 
 settings::ValidateTextInfo& ClipDetectSettingTreeModel::TreeNode::getValidateTextInfo(QString langName)
 {
-    //有効な言語追加時の追従が大変なのでここで追加もする(良くはない)
+    //有効な言語の追加時に追従するのが煩雑なため、ここでも追加する。望ましい実装ではない
     if(this->validateLangMap.find(langName) == this->validateLangMap.end()) {
         this->validateLangMap[langName] = {};
     }
@@ -1073,7 +1073,7 @@ void ClipDetectSettingTree::mousePressEvent(QMouseEvent* event)
         }
     }
 
-    // 2回目のクリック（または同じセルのクリック）でエディタを開く
+    // 2回目のクリック、または同じセルのクリックでエディタを開く
     lastClickedIndex = index;
     edit(index);
     QTreeView::mousePressEvent(event);

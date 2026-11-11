@@ -12,44 +12,10 @@
 //-------------------------------------------------------------------
 // 日本語などを含むフォルダで、実際の divisi.exe を使って
 // 解析 → アプリで翻訳して保存 → 検証 → 書き出し が通ること。
-// アプリをビルドしていない（bin/divisi.exe が無い）場合は飛ばす。
+// アプリをビルドしておらず bin/divisi.exe が無い場合は飛ばす。
 //-------------------------------------------------------------------
 namespace
 {
-    void CopyDirectory(const QString& source, const QString& destination)
-    {
-        QDirIterator it(source, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
-        while(it.hasNext())
-        {
-            const auto filePath = it.next();
-            const auto target = destination + "/" + QDir(source).relativeFilePath(filePath);
-            QDir().mkpath(QFileInfo(target).absolutePath());
-            QFile::copy(filePath, target);
-        }
-    }
-
-    struct ProcessResult
-    {
-        int exitCode = -1;
-        QString output;
-    };
-
-    //アプリ（invoker）と同じ形の引数で divisi を実行する
-    ProcessResult RunDivisi(const QString& configPath, const QString& option)
-    {
-        QProcess process;
-        process.setProcessChannelMode(QProcess::MergedChannels);
-        process.start(LANGSCORE_DIVISI_PATH, {"-c", "\"" + configPath + "\"", option});
-        ProcessResult result;
-        if(process.waitForFinished(120000) == false) {
-            result.output = "timeout";
-            return result;
-        }
-        result.exitCode = process.exitCode();
-        result.output = QString::fromUtf8(process.readAll());
-        return result;
-    }
-
     QString FindFile(const QString& directory, const QString& fileName)
     {
         QDirIterator it(directory, {fileName}, QDir::Files, QDirIterator::Subdirectories);
@@ -88,7 +54,7 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
     const auto actorsJson = setting.analyzeDirectoryPath() + "/Actors.lsjson";
     ASSERT_TRUE(QFile::exists(actorsJson)) << analyze.output.toStdString();
 
-    //アプリで翻訳して editing に保存する（MainCSVTable と同じ並び：original, 言語..., type）
+    //アプリで翻訳して editing に保存する。列は MainCSVTable と同じく original, 言語..., type の順
     setting.load(configPath);
     langscore::CSVEditorTableModel model;
     model.setSettings(std::make_shared<settings>(setting));
@@ -97,7 +63,7 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
     model.insertColumn(2, "en");
     ASSERT_LT(0, model.rowCount());
     const QString translated(u"翻訳済み_한글");
-    //原文が \r\n で改行している行（説明文）には、エディタと同じ \n で改行した訳を入れる
+    //説明文など原文が \r\n で改行している行には、エディタと同じ \n で改行した翻訳文を入れる
     int multiLineRow = -1;
     for(int row = 0; row < model.rowCount(); ++row)
     {
@@ -130,16 +96,16 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
         EXPECT_EQ(reopened.getCell(multiLineRow, 2).value_or(""), QString(u"一行目\n二行目"));
     }
 
-    //検証（アプリの ValidationService と同じく、検証するファイルを設定に書いてから実行する）
+    //検証。アプリの ValidationService と同じく、検証するファイルを設定に書いてから実行する
     setting.validateObj.csvNameList = {editingDir + "/Actors.csv"};
     setting.write(configPath);
     const auto validate= RunDivisi(configPath, "--validate");
     EXPECT_EQ(validate.exitCode, 0) << validate.output.toStdString();
-    //editing のCSVには言語の後に種類の列（type）があるが、言語の列とは数えないこと（NotEQLang = 4 が出ない）
+    //editing の CSV には言語の後に type 列があるが、言語の列として数えず NotEQLang = 4 が出ないこと
     EXPECT_FALSE(validate.output.contains(R"("Summary":4)")) << validate.output.toStdString();
 
-    //書き出し（アプリと同じく、divisiの書き出し後にアプリ側の翻訳を反映してからパッキングする）。
-    //ゲームのフォルダの Data/Translate に、原文と翻訳が化けずに入り、訳の改行が原文と同じ \r\n になること
+    //書き出し。アプリと同じく、divisi の書き出し後にアプリ側の翻訳文を反映してからパッキングする。
+    //ゲームのフォルダの Data/Translate に、原文と翻訳文が化けずに入り、翻訳文の改行が原文と同じ \r\n になること
     setting.validateObj.csvNameList.clear();
     setting.write(configPath);
     const auto exportResult = RunDivisi(configPath, "--exportCSV");
@@ -158,7 +124,7 @@ TEST_P(DivisiJapanesePathTest, AnalyzeValidateExport)
     EXPECT_EQ(packingResult.exitCode, 0) << packingResult.output.toStdString();
 }
 
-//日本語と空白を含むフォルダ・CP932 に無い文字（ハングル）も含むフォルダ。
+//日本語と空白を含むフォルダと、ハングルなど CP932 に無い文字も含むフォルダ。
 //ハングルのフォルダは、divisi が rvcnv.exe に渡すパスを ANSI に変換していたときに解析が失敗していたことの再発防止
 INSTANTIATE_TEST_SUITE_P(
     FolderNames,
@@ -202,12 +168,128 @@ TEST_P(DivisiReadOnlyTest, VXAceReadOnlyScriptsIsOverwritten)
     }
 
     const auto update = RunDivisi(configPath, "--updatePlugin");
-    //後片付けで消せるよう、結果に関係なく書き込みできるように戻す
+    //後片付けで削除できるよう、結果に関係なく書き込み可能に戻す
     QFile::setPermissions(scriptsPath, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser);
 
     EXPECT_EQ(update.exitCode, 0) << update.output.toStdString();
     EXPECT_NE(QFileInfo(scriptsPath).size(), before) << "Scripts.rvdata2 にプラグインが書き込まれていません: " << update.output.toStdString();
 }
 
-//false: 読み取り専用にしない場合（比べるため）
+//false: 比較用の、読み取り専用にしない場合
 INSTANTIATE_TEST_SUITE_P(ReadOnly, DivisiReadOnlyTest, ::testing::Values(false, true));
+
+class DivisiMvReadOnlyTest : public ::testing::TestWithParam<bool> {};
+
+TEST_P(DivisiMvReadOnlyTest, ReadOnlyPluginsJsRegistersLangscore)
+{
+    // MV・MZ では Langscore を js/plugins.js に登録しないとゲームで使われない。
+    // plugins.js が読み取り専用でも登録されること。以前は書き込みに失敗しても成功として終わっていた
+    if(QFile::exists(LANGSCORE_DIVISI_PATH) == false) {
+        GTEST_SKIP() << "divisi.exe がありません。アプリをビルドしてから実行してください";
+    }
+
+    QTemporaryDir tempDir;
+    const auto gameDir = tempDir.filePath("Game");
+    QDir().mkpath(gameDir + "/js/plugins");
+    QDir().mkpath(gameDir + "/data");
+    const auto pluginsPath = gameDir + "/js/plugins.js";
+    {
+        QFile project(gameDir + "/Game.rpgproject");
+        ASSERT_TRUE(project.open(QFile::WriteOnly));
+        project.write("RPGMV 1.6.2");
+        QFile plugins(pluginsPath);
+        ASSERT_TRUE(plugins.open(QFile::WriteOnly));
+        plugins.write("// Generated by RPG Maker.\n// Do not edit this file directly.\nvar $plugins =\n[\n];\n");
+    }
+
+    settings setting;
+    setting.setGameProjectPath(gameDir);
+    ASSERT_EQ(setting.projectType, settings::MV);
+    setting.defaultLanguage = "ja";
+    setting.languages = {
+        settings::Language{.languageName = "ja", .enable = true},
+        settings::Language{.languageName = "en", .enable = true},
+    };
+    const auto configPath = setting.langscoreProjectDirectory + "/config.json";
+    QDir().mkpath(setting.langscoreProjectDirectory);
+    setting.write(configPath);
+
+    if(GetParam()) {
+        ASSERT_TRUE(QFile::setPermissions(pluginsPath, QFileDevice::ReadOwner | QFileDevice::ReadUser));
+        ASSERT_FALSE(QFileInfo(pluginsPath).isWritable());
+    }
+    const auto update = RunDivisi(configPath, "--updatePlugin");
+    //後片付けで削除できるよう、結果に関係なく書き込み可能に戻す
+    QFile::setPermissions(pluginsPath, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser | QFileDevice::WriteUser);
+
+    EXPECT_EQ(update.exitCode, 0) << update.output.toStdString();
+    QFile plugins(pluginsPath);
+    ASSERT_TRUE(plugins.open(QFile::ReadOnly));
+    EXPECT_TRUE(plugins.readAll().contains(R"("name":"Langscore")")) << "plugins.js に Langscore が登録されていません: " << update.output.toStdString();
+}
+
+//false: 比較用の、読み取り専用にしない場合
+INSTANTIATE_TEST_SUITE_P(ReadOnly, DivisiMvReadOnlyTest, ::testing::Values(false, true));
+
+TEST(DivisiVXAceScriptOrderTest, CustomScriptIsPlacedBelowLangscore)
+{
+    // langscore_custom は langscore の Langscore モジュールに定義を追加するため、langscore より下に無いと
+    // ゲームの起動時に NameError になる。プラグインの追加で langscore のすぐ下に置かれること。
+    // 以前の divisi が langscore より上に置いたゲームも、プラグインの更新で並べ直されること
+    if(QFile::exists(LANGSCORE_DIVISI_PATH) == false) {
+        GTEST_SKIP() << "divisi.exe がありません。アプリをビルドしてから実行してください";
+    }
+
+    QTemporaryDir tempDir;
+    const auto gameDir = tempDir.filePath("Game");
+    CopyDirectory(QString(LANGSCORE_TEST_SOURCE_DIR) + "/Project1", gameDir);
+
+    settings setting;
+    setting.setGameProjectPath(gameDir);
+    setting.defaultLanguage = "ja";
+    setting.languages = {
+        settings::Language{.languageName = "ja", .enable = true},
+        settings::Language{.languageName = "en", .enable = true},
+    };
+    const auto configPath = setting.langscoreProjectDirectory + "/config.json";
+    QDir().mkpath(setting.langscoreProjectDirectory);
+    setting.write(configPath);
+    const auto analyze = RunDivisi(configPath, "--analyze");
+    ASSERT_EQ(analyze.exitCode, 0) << analyze.output.toStdString();
+
+    //_list.csv のスクリプト名の並び。divisi はプラグインの追加・更新時に、ここから Scripts.rvdata2 を作成する
+    const auto listPath = setting.analyzeDirectoryPath() + "/Scripts/_list.csv";
+    const auto ReadScriptLines = [&listPath]() {
+        QFile file(listPath);
+        if(file.open(QFile::ReadOnly) == false) { return QList<QByteArray>(); }
+        auto lines = file.readAll().split('\n');
+        for(auto& line : lines) { line = line.trimmed(); }
+        return lines;
+    };
+    const auto IndexOfScript = [](const QList<QByteArray>& lines, const QByteArray& name) {
+        const auto found = std::ranges::find_if(lines, [&name](const QByteArray& line) { return line.endsWith("," + name); });
+        return found == lines.end() ? -1 : int(std::distance(lines.begin(), found));
+    };
+    const auto ExpectCustomBelowLangscore = [&](const ProcessResult& update) {
+        ASSERT_EQ(update.exitCode, 0) << update.output.toStdString();
+        const auto lines = ReadScriptLines();
+        const auto langscore = IndexOfScript(lines, "langscore");
+        ASSERT_LE(0, langscore);
+        EXPECT_EQ(IndexOfScript(lines, "langscore_custom"), langscore + 1) << lines.join('\n').toStdString();
+    };
+
+    ExpectCustomBelowLangscore(RunDivisi(configPath, "--updatePlugin"));
+
+    //以前の divisi が作成した、langscore_custom が langscore より上にある並びにしてから更新する
+    {
+        auto lines = ReadScriptLines();
+        const auto custom = IndexOfScript(lines, "langscore_custom");
+        ASSERT_LE(0, custom);
+        const auto customLine = lines.takeAt(custom);
+        lines.insert(IndexOfScript(lines, "langscore"), customLine);
+        QFile file(listPath);
+        ASSERT_TRUE(file.open(QFile::WriteOnly));
+        file.write(lines.join("\r\n"));
+    }
+    ExpectCustomBelowLangscore(RunDivisi(configPath, "--updatePlugin"));
+}

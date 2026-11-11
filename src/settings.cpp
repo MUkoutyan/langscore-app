@@ -47,13 +47,13 @@ void settings::setGameProjectPath(QString absoluteGameProjectPath)
     this->useGameTranslateFolderForExport();
 }
 
-//書き出し先は langscore プロジェクトのフォルダからの相対パスで持つ（WriteDialog・divisi）
+//WriteDialog・divisi と同じく、書き出し先は langscore プロジェクトのフォルダからの相対パスで保持する
 void settings::useGameTranslateFolderForExport()
 {
     this->writeObj.exportDirectory = QDir(this->langscoreProjectDirectory).relativeFilePath(this->translateDirectoryPath());
 }
 
-//以前のバージョンの既定の書き出し先（langscore プロジェクトのフォルダの中）のままか
+//書き出し先が、以前のバージョンの既定である langscore プロジェクトのフォルダ内のままか
 bool settings::isExportDirectoryInLangscoreFolder() const
 {
     const QDir langscoreDir(this->langscoreProjectDirectory);
@@ -181,7 +181,7 @@ settings::TextValidateTypeMap settings::getValidationCsvData(QString fileName)
 
 settings::TextValidateTypeMap& settings::getValidationCsvDataRef(QString fileName)
 {
-    //部分一致だと別のファイルに当たるため、拡張子を除いた名前で完全に一致させる
+    //部分一致では別のファイルに一致するため、拡張子を除いた名前で完全一致させる
     fileName = langscore::withoutAllExtension(fileName);
     const auto isSameFile = [&fileName](const auto& data) {
         return langscore::withoutAllExtension(data.fileName) == fileName;

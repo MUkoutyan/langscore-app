@@ -85,7 +85,7 @@ void DeepLTranslationService::onTranslationFinished()
     TranslationRequest request = it.value();
     pendingRequests.erase(it);
 
-    //多くのセルを続けて翻訳すると DeepL が 429 を返すことがあるため、待ってから送り直す
+    //多くのセルを続けて翻訳すると DeepL が 429 を返すことがあるため、待ってから再送する
     const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     const int retryCount = retryCounts.value(request.requestId, 0);
     const int delay = retryDelayMs(httpStatus, retryCount, reply->rawHeader("Retry-After"));
@@ -151,7 +151,7 @@ int DeepLTranslationService::retryDelayMs(int httpStatus, int retryCount, const 
 
 QString DeepLTranslationService::mapLanguageCode(const QString& langCode) const
 {
-    //GetTranslationLanguageCode で変換済みの DeepL コード（"NB", "ZH-HANT" など）はそのまま使う
+    //"NB", "ZH-HANT" など、GetTranslationLanguageCode で変換済みの DeepL コードはそのまま使う
     const QString upper = langCode.trimmed().toUpper();
     if(getSupportedLanguages().contains(upper)) {
         return upper;

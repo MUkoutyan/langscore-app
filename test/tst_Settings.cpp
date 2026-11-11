@@ -232,7 +232,7 @@ TEST_F(SettingsTest, SetGameProjectPathJapanese)
 
 TEST_F(SettingsTest, LoadWithLangscoreInParentPath)
 {
-    // 親フォルダ名に "_langscore" を含んでも、末尾の "_langscore" だけを除去してゲームフォルダを求めること
+    // 親フォルダ名に "_langscore" を含んでも、末尾の "_langscore" のみ除去してゲームフォルダを求めること
     auto dir = tempDir.filePath("my_langscore_work/Game");
     WriteFile(dir + "/Game.rmmzproject", {});
 
@@ -250,7 +250,7 @@ TEST_F(SettingsTest, LoadWithLangscoreInParentPath)
 
 TEST_F(SettingsTest, ScriptPartialIgnoreRoundTrip)
 {
-    // 一部の行だけ無視したスクリプトの無視設定が、保存→読み込みで失われないこと
+    // 一部の行のみ無視したスクリプトの無視設定が、保存→読み込みで失われないこと
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);
@@ -358,7 +358,7 @@ TEST_F(SettingsTest, PluginRegisteredRoundTrip)
 
 TEST_F(SettingsTest, BasicDataVisibleRoundTrip)
 {
-    // ツリーで非表示にした基本データ（IsVisible）が読み込みで復元されること
+    // ツリーで非表示にした基本データの IsVisible が読み込みで復元されること
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);
@@ -421,7 +421,7 @@ TEST_F(SettingsTest, ScriptIgnoreAllLinesCanBeUnignored)
     ASSERT_NE(script, nullptr);
     EXPECT_FALSE(script->ignore);
 
-    // 1行だけ無視を外せば、スクリプトは無視の扱いでなくなること
+    // 1行のみ無視を外せば、スクリプトは無視の扱いでなくなること
     ASSERT_NE(FindLine(*script, 1), nullptr);
     FindLine(*script, 1)->ignore = false;
     EXPECT_FALSE(script->isIgnore());
@@ -452,7 +452,7 @@ TEST_F(SettingsTest, IgnorePictureSameNameInOtherFolder) // [1]
     WriteFile(dir + "/img/characters/Actor1.png", "dummy");
     settings s;
     s.setGameProjectPath(dir);
-    //divisi と同じ形式（ゲームフォルダからの相対パス・拡張子なし）で保存する
+    //divisi と同じく、ゲームフォルダからの相対パス・拡張子なしの形式で保存する
     s.writeObj.ignorePicturePath = {"img/faces/Actor1"};
     auto configPath = WriteConfig(s);
 
@@ -490,7 +490,7 @@ TEST_F(SettingsTest, LoadTwiceKeepsControlCharList)
 
 TEST_F(SettingsTest, SetupFontListTwiceNoDuplicate)
 {
-    // フォント一覧を作り直しても、同じフォントが重複して登録されないこと
+    // フォント一覧を再構築しても、同じフォントが重複して登録されないこと
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);
@@ -506,8 +506,8 @@ TEST_F(SettingsTest, SetupFontListTwiceNoDuplicate)
 
 TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi)
 {
-    // 無視した行は、divisi が無視対象として扱う形式（Ignore キーが無いか false）で保存されること
-    //divisi は Ignore が true の項目を読み飛ばす（javascriptreader.hpp / rubyreader.hpp の applyIgnoreScriptsAndSwapLineInfo）
+    // 無視した行は、Ignore キーが無いか false という、divisi が無視対象として扱う形式で保存されること
+    //divisi は javascriptreader.hpp / rubyreader.hpp の applyIgnoreScriptsAndSwapLineInfo で、Ignore が true の項目を読み飛ばす
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);
@@ -534,7 +534,7 @@ TEST_F(SettingsTest, ScriptIgnorePointReadableByDivisi)
 // 不具合の再発防止：新規プロジェクトの書き出し先が、ゲームのフォルダではなく _langscore フォルダの中になっていた
 TEST_F(SettingsTest, DefaultExportDirectoryIsGameTranslateFolder)
 {
-    // 書き出し先は langscore プロジェクトのフォルダからの相対パスとして使われる（WriteDialog・divisi）
+    // WriteDialog・divisi では、書き出し先は langscore プロジェクトのフォルダからの相対パスとして使われる
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);
@@ -546,7 +546,7 @@ TEST_F(SettingsTest, DefaultExportDirectoryIsGameTranslateFolder)
 
 TEST_F(SettingsTest, DetectsOldExportDirectory)
 {
-    // 以前のバージョンの書き出し先（langscore のフォルダの中）を見分け、ゲームの翻訳フォルダへ変えられること
+    // 以前のバージョンの書き出し先である langscore のフォルダ内を判別し、ゲームの翻訳フォルダへ変更できること
     auto dir = MakeProject("Game", "Game.rmmzproject");
     settings s;
     s.setGameProjectPath(dir);

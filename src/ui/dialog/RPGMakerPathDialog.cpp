@@ -25,7 +25,7 @@ RPGMakerPathDialog::RPGMakerPathDialog(QWidget* parent)
     this->setWindowTitle(tr("RPG Maker Location"));
     this->setMinimumWidth(560);
 
-    //入力欄の右に、フォルダーを選ぶボタンを並べる
+    //入力欄の右に、フォルダーを選択するボタンを並べる
     const auto PathRow = [this](QLineEdit* edit, QString placeholder) {
         edit->setPlaceholderText(placeholder);
         auto* browse = new QPushButton(tr("Browse..."), this);

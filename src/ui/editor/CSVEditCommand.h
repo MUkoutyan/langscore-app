@@ -13,7 +13,7 @@ struct CSVEditCommand : public QUndoCommand
     struct CellEdit {
         //並べ替え・絞り込みで行が移動しても同じセルを指すよう、永続インデックスで保持する。
         //CSVEditor は表示用の proxy ではなく元のモデルのセルを入れるため、ファイルの切り替えや列を隠した後も有効のまま。
-        //モデルの作り直し（言語の列の追加など）で無効になった場合は、Undo/Redo の対象外になる。
+        //言語の列の追加などでモデルを再構築して無効になった場合は、Undo/Redo の対象外になる。
         QPersistentModelIndex index;
         QVariant oldValue;
         QVariant newValue;

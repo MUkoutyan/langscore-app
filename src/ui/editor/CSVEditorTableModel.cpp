@@ -19,12 +19,12 @@ namespace langscore {
 
 namespace
 {
-    //CSV を読むと改行 \r\n が \n になるため、改行をそろえてから比較する
+    //CSV の読み込みで改行コード \r\n が \n に変わるため、改行コードを統一してから比較する
     QString ToKey(QString text) { return text.replace("\r\n", "\n"); }
 
     bool IsTranslationColumn(const QString& header) { return header != "original" && header != "type"; }
 
-    //改行をそろえた原文 → 行
+    //改行コードを統一した原文 → 行
     QHash<QString, size_t> RowsOfOriginal(const FastCSVContainer& container)
     {
         QHash<QString, size_t> result;
@@ -93,7 +93,6 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
 
     beginResetModel();
 
-    // コンテナをクリア
     csvContainer.clear();
 
     // ヘッダーを設定
@@ -117,11 +116,10 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
         csvData.push_back({originalText, typeText});
     }
 
-    // FastCSVContainerにデータを読み込み
     bool success = csvContainer.loadFromCsvData(csvData);
 
     forgetSavedValues();
-    //まだ editing のCSVを読んでいない。読む場合は mergeTranslationsFromCsv で覚える
+    //editing の CSV はまだ読み込んでいない。読み込む場合は mergeTranslationsFromCsv で保持する
     rememberFileContents({});
     _rowsLeftAtLoad.clear();
     _changedByOthers.clear();
@@ -131,14 +129,21 @@ bool CSVEditorTableModel::loadFromJsonFile(const QString& filePath)
     return success;
 }
 
-//共有フォルダなどで、読み込んだ後に他の人が同じファイルを保存していた場合は、
-//その人の変更を取り込んでから保存する。両方が変えたセルは自分の訳で保存し、mergeConflicts に残す
+//共有フォルダなどで、読み込んだ後にリモートで同じファイルが保存されていた場合は、
+//リモートの変更を取り込んでから保存する。両方で変更されたセルはローカルの翻訳文で保存し、mergeConflicts に残す
 bool CSVEditorTableModel::saveToFile(const QString& path)
 {
     _mergeConflicts.clear();
-    FastCSVContainer file;
-    const bool hasFile = QFile::exists(path) && file.loadFromFile(path) && file.hasColumn("original");
-    if(hasFile) { _mergeConflicts = takeChangesFromFile(file); }
+    GitConflictSides sides;
+    //他のアプリがファイルを開いていて読み込めない状態で保存すると、リモートの変更が失われるため保存しない
+    if(QFile::exists(path) && FastCSVContainer::loadGitConflictSidesFromFile(path, sides) == false) { return false; }
+    const auto& file = sides.theirs;
+    const bool hasFile = file.hasColumn("original");
+    if(hasFile)
+    {
+        const auto gitConflicts = mergeGitConflictSides(sides);
+        _mergeConflicts = takeChangesFromFile(file, gitConflicts);
+    }
 
     const auto output = hasFile ? withUnknownContents(file) : csvContainer;
     const bool success = output.saveToFile(path);
@@ -147,7 +152,8 @@ bool CSVEditorTableModel::saveToFile(const QString& path)
         rememberFileContents(output);
         _savedValues.clear();
         _modifiedWithoutRecord = false;
-        //衝突したセルは自分の訳で保存したため、ファイルとの衝突ではなくなる（mergeConflicts で聞く）
+        _fileHasGitConflictMarkers = false;
+        //衝突したセルはローカルの翻訳文で保存したため、ファイルとの衝突は解消される。ユーザーへの確認は mergeConflicts で行う
         _conflictCells.clear();
         setModified(false);
         emit markStateChanged();
@@ -158,6 +164,8 @@ bool CSVEditorTableModel::saveToFile(const QString& path)
 bool CSVEditorTableModel::needsSave() const
 {
     if(_modified) { return true; }
+    //すべてリモートの翻訳文にして表の変更が無くなっても、ファイルの競合マーカーは保存しないと消えない
+    if(_fileHasGitConflictMarkers) { return true; }
     for(const auto& header : csvContainer.headers()) {
         if(_fileHeaders.contains(header) == false) { return true; }
     }
@@ -185,10 +193,57 @@ void CSVEditorTableModel::rememberFileContents(const FastCSVContainer& file)
 
 std::vector<CSVEditorTableModel::MergeConflict> CSVEditorTableModel::syncWithFile(const QString& path)
 {
-    FastCSVContainer file;
-    if(QFile::exists(path) == false || file.loadFromFile(path) == false || file.hasColumn("original") == false) { return {}; }
-    _fileHeaders = file.headers();
-    return takeChangesFromFile(file);
+    GitConflictSides sides;
+    if(QFile::exists(path) == false || FastCSVContainer::loadGitConflictSidesFromFile(path, sides) == false || sides.theirs.hasColumn("original") == false) { return {}; }
+    _fileHasGitConflictMarkers = sides.hasConflictMarkers;
+    _fileHeaders = sides.theirs.headers();
+    const auto gitConflicts = mergeGitConflictSides(sides);
+    return takeChangesFromFile(sides.theirs, gitConflicts);
+}
+
+QSet<std::pair<QString, QString>> CSVEditorTableModel::mergeGitConflictSides(GitConflictSides& sides) const
+{
+    QSet<std::pair<QString, QString>> cells;
+    auto& ours = sides.ours;
+    auto& theirs = sides.theirs;
+    if(sides.hasConflictMarkers == false || ours.hasColumn("original") == false) { return cells; }
+
+    //片方にしか無い行・列は、もう片方で追加されたものなので競合として扱わない
+    const auto oursRowOfOriginal = RowsOfOriginal(ours);
+    QHash<QString, size_t> baseRowOfOriginal;
+    if(sides.base.has_value()) { baseRowOfOriginal = RowsOfOriginal(sides.base.value()); }
+    const auto theirsOriginalColumn = theirs.getColumnIndex("original");
+    for(size_t row = 0; row < theirs.rowCount(); ++row)
+    {
+        const auto original = ToKey(theirs.at(row, theirsOriginalColumn));
+        const auto oursRow = oursRowOfOriginal.constFind(original);
+        if(oursRow == oursRowOfOriginal.cend()) { continue; }
+        const auto baseRow = baseRowOfOriginal.constFind(original);
+        for(size_t column = 0; column < theirs.columnCount(); ++column)
+        {
+            const auto& header = theirs.headerAt(column);
+            if(IsTranslationColumn(header) == false || ours.hasColumn(header) == false) { continue; }
+            const auto oursValue = ours.at(oursRow.value(), header);
+            const auto theirsValue = theirs.at(row, column);
+            if(ToKey(oursValue) == ToKey(theirsValue)) { continue; }
+
+            //base がある場合、片方のみで変更されたセルは確認しない。base に無い行・列は、両方で追加されたものとして確認する
+            if(baseRow != baseRowOfOriginal.cend() && sides.base->hasColumn(header))
+            {
+                const auto baseValue = sides.base->at(baseRow.value(), header);
+                //リモートで未変更のセルは、ローカルの翻訳文のままにする
+                if(ToKey(theirsValue) == ToKey(baseValue))
+                {
+                    theirs.setValue(row, column, oursValue);
+                    continue;
+                }
+                //ローカルで未変更のセルは、リモートの翻訳文を取り込む
+                if(ToKey(oursValue) == ToKey(baseValue)) { continue; }
+            }
+            cells.insert({original, header});
+        }
+    }
+    return cells;
 }
 
 void CSVEditorTableModel::resolveConflict(const MergeConflict& conflict, bool useTheirs)
@@ -197,7 +252,7 @@ void CSVEditorTableModel::resolveConflict(const MergeConflict& conflict, bool us
     if(conflict.column < 0 || columnCount() <= conflict.column) { return; }
 
     if(useTheirs) { takeTheirs(conflict.row, conflict.column, conflict.theirs); }
-    //他の人の訳を見たものとして覚える。自分の訳にした場合は、自分の変更として次の保存で書く
+    //リモートの翻訳文を確認済みとして保持する。ローカルの翻訳文を選んだ場合は、ローカルの変更として次の保存で書き込む
     rememberFileValue(conflict.row, conflict.column, conflict.theirs);
     _conflictCells.remove({conflict.row, conflict.column});
     emit markStateChanged();
@@ -210,7 +265,7 @@ void CSVEditorTableModel::rememberFileValue(int row, int column, const QString& 
     const auto original = ToKey(csvContainer.at(cellRow, QString("original")));
     _fileValues.insert({original, csvContainer.headerAt(cellColumn)}, value);
 
-    //_savedValues はファイルの値。ファイルと同じになったセルは、変更なしとして扱う
+    //_savedValues はファイルの値。ファイルと同じ値に戻ったセルは変更なしとして扱う
     const auto key = std::pair(row, column);
     if(ToKey(csvContainer.at(cellRow, cellColumn)) == ToKey(value)) {
         _savedValues.remove(key);
@@ -229,7 +284,7 @@ void CSVEditorTableModel::takeTheirs(int row, int column, const QString& theirs)
     csvContainer.setValue(cellRow, cellColumn, theirs);
     _editedSinceValidation.insert({row, column});
 
-    //すでに印があるセルは、最初の訳を変わる前の訳として残す
+    //すでにハイライト済のセルは、最初の変更前の翻訳文を保持する
     const auto key = cellKey(row, column);
     if(_changedByOthers.contains(key) == false) { _changedByOthers.insert(key, before); }
     emit dataChanged(index(row, column), index(row, column));
@@ -253,7 +308,7 @@ void CSVEditorTableModel::clearChangedByOthers()
     emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1));
 }
 
-std::vector<CSVEditorTableModel::MergeConflict> CSVEditorTableModel::takeChangesFromFile(const FastCSVContainer& file)
+std::vector<CSVEditorTableModel::MergeConflict> CSVEditorTableModel::takeChangesFromFile(const FastCSVContainer& file, const QSet<std::pair<QString, QString>>& gitConflicts)
 {
     std::vector<MergeConflict> conflicts;
     if(csvContainer.hasColumn("original") == false) { return conflicts; }
@@ -264,7 +319,7 @@ std::vector<CSVEditorTableModel::MergeConflict> CSVEditorTableModel::takeChanges
     {
         const auto original = ToKey(csvContainer.at(row, originalColumn));
         const auto fileRow = fileRowOfOriginal.constFind(original);
-        //ファイルに無い行は、他の人が変えていないものとして扱う
+        //ファイルに無い行は、リモートで未変更として扱う
         if(fileRow == fileRowOfOriginal.cend()) { continue; }
 
         for(size_t column = 0; column < csvContainer.columnCount(); ++column)
@@ -275,24 +330,25 @@ std::vector<CSVEditorTableModel::MergeConflict> CSVEditorTableModel::takeChanges
             const auto& theirs = file.at(fileRow.value(), header);
             const auto mine = csvContainer.at(row, column);
             const auto base = _fileValues.value({original, header});
-            //他の人が変えていない
+            //リモートで未変更
             if(ToKey(theirs) == ToKey(base)) { continue; }
 
             const auto cellRow = static_cast<int>(row);
             const auto cellColumn = static_cast<int>(column);
-            const bool changedByMe = ToKey(mine) != ToKey(base);
+            //Git が競合と判定したセルは、保存後にローカルで未変更でも、どちらの翻訳文にするかユーザーに確認する
+            const bool changedByMe = ToKey(mine) != ToKey(base) || gitConflicts.contains({original, header});
             if(changedByMe && ToKey(theirs) != ToKey(mine))
             {
-                //衝突したセルは、決めるまでファイルの値を覚え直さない（読み直すたびに衝突として返す）
+                //衝突したセルは解決するまでファイルの値を更新しない。そのため読み直すたびに衝突として返す
                 conflicts.push_back({cellRow, cellColumn, mine, theirs});
                 continue;
             }
-            //他の人だけが変えたセルは、その人の訳にする
+            //リモートのみで変更されたセルは、リモートの翻訳文にする
             if(changedByMe == false) { takeTheirs(cellRow, cellColumn, theirs); }
             rememberFileValue(cellRow, cellColumn, theirs);
         }
     }
-    //決めていない衝突は、読み直すたびにすべて返るため、その結果に置き換える
+    //未解決の衝突は読み直すたびにすべて返るため、その結果で置き換える
     _conflictCells.clear();
     for(const auto& conflict : conflicts) {
         _conflictCells.insert({conflict.row, conflict.column});
@@ -306,7 +362,7 @@ FastCSVContainer CSVEditorTableModel::withUnknownContents(const FastCSVContainer
     auto output = csvContainer;
     if(output.hasColumn("original") == false) { return output; }
 
-    //ファイルにだけある言語の列（他の人が有効にした言語など）を、type 列の前に足す
+    //ファイルにのみ存在する言語の列（リモートで有効にした言語など）を、type 列の前に追加する
     QStringList addedColumns;
     for(const auto& header : file.headers())
     {
@@ -331,7 +387,7 @@ FastCSVContainer CSVEditorTableModel::withUnknownContents(const FastCSVContainer
         }
     }
 
-    //表に無い行（他の人が解析し直して増えた行など）を残す。読み込んだときに古い翻訳へ移した行は消す
+    //表に無い行（リモートで再解析して増えた行など）は残す。読み込み時に古い翻訳へ移した行は削除する
     for(size_t fileRow = 0; fileRow < file.rowCount(); ++fileRow)
     {
         const auto original = ToKey(file.at(fileRow, QString("original")));
@@ -377,7 +433,7 @@ const std::vector<ValidationErrorInfo>* CSVEditorTableModel::indexedFileErrors()
     const auto found = errors.find(currentShowFileName);
     if(found == errors.end() || found->second.empty()) { return nullptr; }
 
-    //検証中は結果が増えていくため、件数が変わったときも作り直す
+    //検証中は結果が増えていくため、件数が変わったときも再構築する
     const auto& list = found->second;
     if(_errorIndex.revision != _runtimeData->errorsRevision || _errorIndex.size != list.size())
     {
@@ -399,7 +455,7 @@ const std::vector<ValidationErrorInfo>* CSVEditorTableModel::indexedFileErrors()
     return &list;
 }
 
-//セルに対応する検証結果を返す（原文・種類の列は対象外）
+//セルに対応する検証結果を返す。原文・種類の列は対象外
 std::vector<const ValidationErrorInfo*> CSVEditorTableModel::cellErrors(int row, int col) const
 {
     std::vector<const ValidationErrorInfo*> result;
@@ -428,7 +484,7 @@ std::vector<const ValidationErrorInfo*> CSVEditorTableModel::fileErrors() const
     return result;
 }
 
-//すべての言語列が埋まっている行の数と、全体の行数を返す（無効にした言語は数えない）
+//すべての言語列が埋まっている行の数と、全体の行数を返す。無効にした言語は数えない
 std::pair<int, int> CSVEditorTableModel::translatedRowCount() const
 {
     std::vector<size_t> languageColumns;
@@ -491,18 +547,18 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
     }
     else if((role == Qt::BackgroundRole || role == Qt::DecorationRole) && _changedByOthers.isEmpty() == false && _changedByOthers.contains(cellKey(row, col)))
     {
-        //他の人の訳にしたセル。色だけでは見分けにくいため、アイコンも付ける
+        //リモートの翻訳文を取り込んだセル。色だけでは見分けにくいため、アイコンも表示する
         if(role == Qt::DecorationRole) { return QApplication::style()->standardIcon(QStyle::SP_BrowserReload); }
         return QColor(0, 120, 215, 64);
     }
     else if(role == Qt::BackgroundRole || role == Qt::DecorationRole)
     {
-        //検証の後に編集したセルは、結果が古いため色を付けない
+        //検証後に編集したセルは結果が古いため、色を付けない
         if(_editedSinceValidation.contains({row, col})) { return QVariant(); }
         const auto cellErrorList = cellErrors(row, col);
         const bool isError = std::ranges::any_of(cellErrorList, [](const auto* x) { return x->type == ValidationErrorInfo::Error; });
         const bool isWarning = std::ranges::any_of(cellErrorList, [](const auto* x) { return x->type == ValidationErrorInfo::Warning; });
-        //色だけでは見分けにくいため、アイコンも付ける
+        //色だけでは見分けにくいため、アイコンも表示する
         if(role == Qt::DecorationRole)
         {
             if(isError) { return ValidationIcon(ValidationErrorInfo::Error); }
@@ -517,7 +573,7 @@ QVariant CSVEditorTableModel::data(const QModelIndex& index, int role) const
     {
         QStringList lines;
         if(const auto before = _changedByOthers.constFind(cellKey(row, col)); before != _changedByOthers.cend()) {
-            //他の人が変更しました（変更前: %1）
+            //リモートで変更されました。変更前: %1
             lines.append(tr("Changed by someone else (before: %1)").arg(before.value().isEmpty() ? tr("(empty)") : before.value()));
         }
         if(_editedSinceValidation.contains({row, col}) == false)
@@ -621,9 +677,9 @@ bool CSVEditorTableModel::setData(const QModelIndex& index, const QVariant& valu
 void CSVEditorTableModel::recordEdit(int row, int col, const QString& oldValue, const QString& newValue)
 {
     _editedSinceValidation.insert({row, col});
-    //自分で編集したセルは、他の人の訳の印を消す
+    //ローカルで編集したセルは、リモートの翻訳文のハイライトを解除する
     if(_changedByOthers.isEmpty() == false && _changedByOthers.remove(cellKey(row, col))) { emit markStateChanged(); }
-    //保存したときの値に戻ったセルは、変更なしとして扱う
+    //保存時の値に戻ったセルは、変更なしとして扱う
     const auto key = std::pair(row, col);
     const auto saved = _savedValues.constFind(key);
     if(saved == _savedValues.cend()) {
@@ -658,7 +714,7 @@ Qt::ItemFlags CSVEditorTableModel::flags(const QModelIndex& index) const
 QVariant CSVEditorTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if(orientation != Qt::Horizontal) {
-        //行の番号は1から。検証結果の行（CSVのヘッダーを0行目とした行）と同じ番号になる
+        //行番号は1始まり。検証結果の行番号はヘッダーを0行目とするため、それと一致する
         return role == Qt::DisplayRole ? QVariant(section + 1) : QVariant();
     }
     //headerAt は範囲外で例外を投げるため、先に範囲を確認する
@@ -760,8 +816,8 @@ const std::vector<std::vector<QString>>& CSVEditorTableModel::dataRaw() const {
 }
 
 
-//editing に保存したCSVの翻訳を、原文が一致する行へ戻す。
-//今の表に無い言語の列（無効にした言語）は、翻訳を失わないよう列ごと足す
+//editing に保存した CSV の翻訳文を、原文が一致する行へ戻す
+//無効にした言語など現在の表に無い列は、翻訳文を失わないよう列ごと追加する
 bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
 {
     FastCSVContainer saved;
@@ -772,7 +828,7 @@ bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
     if(savedOriginalColumn < 0) { return false; }
 
     //原文から、保存したCSVの行を参照できるようにする
-    //CSV を読むと原文の改行 \r\n が \n になるため、改行をそろえてから比較する
+    //CSV の読み込みで原文の改行コード \r\n が \n に変わるため、改行コードを統一してから比較する
     const auto toKey = [](QString text) { return text.replace("\r\n", "\n"); };
     QHash<QString, size_t> savedRowOfOriginal;
     for(size_t row = 0; row < saved.rowCount(); ++row) {
@@ -781,7 +837,7 @@ bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
 
     const auto originalColumn = static_cast<size_t>(csvContainer.headers().indexOf("original"));
 
-    //保存したCSVにあり、今の表に無い行（古い翻訳へ移した行）は、次の保存で消す
+    //保存した CSV にあり現在の表に無い行は、古い翻訳へ移した行のため次の保存で削除する
     QSet<QString> originals;
     for(size_t row = 0; row < csvContainer.rowCount(); ++row) {
         originals.insert(toKey(csvContainer[row][originalColumn]));
@@ -797,7 +853,7 @@ bool CSVEditorTableModel::mergeTranslationsFromCsv(const QString& csvPath)
         const auto& language = savedHeaders[savedColumn];
         if(language == "original" || language == "type") { continue; }
 
-        //無効にした言語の列は今の表に無いので、type 列の前に足す
+        //無効にした言語の列は現在の表に無いため、type 列の前に追加する
         if(csvContainer.headers().contains(language) == false)
         {
             const auto typeColumn = csvContainer.headers().indexOf("type");

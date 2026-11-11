@@ -21,7 +21,7 @@ struct TestMainWindow : public MainWindow
 
 namespace
 {
-    //閉じるときに確認のダイアログが出たかを記録し、出たらキャンセルする
+    //閉じるときに確認のダイアログが表示されたかを記録し、表示されたらキャンセルする
     bool CloseAndCheckAsked(TestMainWindow& window, bool& accepted)
     {
         bool asked = false;
@@ -64,7 +64,7 @@ TEST(MainWindowTest, AskSaveOnlyWhenEdited)
 
 TEST(MainWindowTest, OpenProjectCreatesEditingFolder)
 {
-    // editing が無いプロジェクト（以前のバージョン・解析した直後）を開くと、editing を作ること
+    // 以前のバージョンや解析直後など、editing が無いプロジェクトを開くと、editing を作成すること
     QTemporaryDir tempDir;
     const auto gameDir = tempDir.filePath("Game");
     QDir().mkpath(gameDir);
@@ -74,7 +74,7 @@ TEST(MainWindowTest, OpenProjectCreatesEditingFolder)
 
     TestMainWindow window;
     window.setting->setGameProjectPath(gameDir);
-    //書き出し先の移動を確認するダイアログを出さないよう、今のバージョンの書き出し先にしておく
+    //書き出し先の移動を確認するダイアログを表示しないよう、現在のバージョンの書き出し先にする
     window.setting->useGameTranslateFolderForExport();
     const auto configPath = window.setting->langscoreProjectDirectory + "/config.json";
     window.setting->write(configPath);

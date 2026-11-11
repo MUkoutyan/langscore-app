@@ -38,7 +38,7 @@ public:
         textEdit->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         textEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
 
-        // エディタ自体のフレームを消す（セルの枠線と重複して太く見えるのを防ぐ）
+        // セルの枠線と重なって太く見えるのを防ぐため、エディタ自体のフレームを消す
         textEdit->setFrameStyle(QFrame::NoFrame);
 
         const auto keys = EditKeyBindings::load();
@@ -68,7 +68,7 @@ public:
             if(moveTo == MultiLineEditDelegate::MultiLineTextEdit::MoveTo::None) { return; }
             if(auto editor = getCSVEditor(this))
             {
-                //今のセルは編集したセルと違う場合があるため、編集したセルから次のセルを決める
+                //currentIndex は編集したセルと異なる場合があるため、編集したセルから次のセルを決める
                 const bool moveDown = (moveTo == MultiLineEditDelegate::MultiLineTextEdit::MoveTo::Down);
                 editor->selectAndEditNextCell(editingIndex, moveDown ? 1 : 0, moveDown ? 0 : 1);
             }
@@ -78,7 +78,7 @@ public:
             emit delegate->closeEditor(this, QAbstractItemDelegate::RevertModelCache);
         });
 
-        //入力して行が増えたら、エディタを大きくする
+        //入力で行数が増えたら、エディタを拡大する
         connect(textEdit, &QTextEdit::textChanged, this, &EditorWidgetWrapper::fitGeometry);
     }
 
@@ -102,13 +102,13 @@ public:
         rect.setHeight(std::max(rect.height(), textHeight + updateGuide(rect.width())));
         if(auto* area = this->parentWidget(); area != nullptr && area->height() < rect.bottom() + 1) {
             rect.moveBottom(area->height() - 1);
-            //表より高い場合は上端に合わせる（はみ出た分はエディタ内でスクロールする）
+            //表より高い場合は上端に合わせ、はみ出た分はエディタ内でスクロールする
             if(rect.top() < 0) { rect.moveTop(0); }
         }
         this->setGeometry(rect);
     }
 
-    //キーの説明を、幅に収まるところで改行する（説明の途中では改行しない）。説明の高さを返す
+    //キーの説明を、説明の途中を避けて幅に収まる位置で改行する。説明の高さを返す
     int updateGuide(int width)
     {
         const QFontMetrics fontMetrics(guideLabel->font());
@@ -168,7 +168,7 @@ void MultiLineEditDelegate::setEditorData(QWidget* _editor, const QModelIndex& i
             textEdit->setFont(font);
         }
         
-        //文字を打って編集を始めた場合は、表計算ソフトと同じく元の文章を置き換える
+        //文字入力で編集を始めた場合は、表計算ソフトと同様に元の文章を置き換える
         if(auto* csvEditor = getCSVEditor(this); csvEditor != nullptr && csvEditor->isReplacingTextOnEdit()) {
             text.clear();
         }
@@ -195,7 +195,7 @@ void MultiLineEditDelegate::updateEditorGeometry(QWidget* editorWidget,
                                                const QStyleOptionViewItem& viewItemOption,
                                                const QModelIndex& index) const
 {
-    //高さは入力中の文章に合わせて変える（EditorWidgetWrapper::fitGeometry）
+    //高さは EditorWidgetWrapper::fitGeometry で入力中の文章に合わせる
     if(auto* wrapper = qobject_cast<EditorWidgetWrapper*>(editorWidget)) {
         wrapper->setCellRect(viewItemOption.rect);
     }
@@ -250,7 +250,7 @@ void MultiLineEditDelegate::MultiLineTextEdit::focusOutEvent(QFocusEvent* event)
     QTextEdit::focusOutEvent(event);
 
     //デリゲートのイベントフィルタはラッパーに付いており、フォーカスプロキシのこのウィジェットの FocusOut を受け取れない。
-    //そのため、表の外（保存ボタンなど）をクリックした場合もここで入力内容を確定する。
+    //そのため、保存ボタンなど表の外をクリックした場合もここで入力内容を確定する。
     if(event->reason() == Qt::PopupFocusReason) { return; } //右クリックメニューなど
     for(auto* w = QApplication::focusWidget(); w != nullptr; w = w->parentWidget()) {
         if(w == this->parentWidget()) { return; } //エディタ内でのフォーカス移動

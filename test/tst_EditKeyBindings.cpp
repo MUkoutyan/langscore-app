@@ -10,7 +10,7 @@ using TextEdit = MultiLineEditDelegate::MultiLineTextEdit;
 
 namespace
 {
-    //キーを押し、編集の終わり方を返す（終わらなければ -1）
+    //キーを押し、編集の終わり方を返す。終わらなければ -1
     int Press(TextEdit& edit, Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier)
     {
         int moveTo = -1;
@@ -24,7 +24,7 @@ namespace
 
 TEST(EditKeyBindingsTest, DefaultKeys)
 {
-    // 既定では Enter で改行し、Ctrl+Enter で確定、Tab で確定して右へ移ること
+    // 既定では Enter で改行し、Ctrl+Enter で確定、Tab で確定して右へ移動すること
     TextEdit edit;
     EXPECT_EQ(Press(edit, Qt::Key_Return), -1);
     EXPECT_EQ(edit.toPlainText(), QString("\n"));

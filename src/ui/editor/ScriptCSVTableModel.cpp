@@ -97,7 +97,7 @@ void ScriptCSVTableModel::loadFromEditJSONWithSettings(const QString& editingDir
 
     for(const auto& scriptData : scripts)
     {
-        // 表示名（拡張子なし）
+        // 拡張子なしの表示名
         auto displayName = scriptData.scriptName;
         if(displayName.contains(scriptExt)) {
             displayName.chop(scriptExt.length());
@@ -154,13 +154,13 @@ bool ScriptCSVTableModel::saveToFile(const QString& editJsonFile) const
     return saveToEditCsvFile(QFileInfo(editJsonFile).absolutePath() + "/Scripts.csv");
 }
 
-//divisi が書き出す Scripts.csv と同じく、原文ごとに1行の CSV（original, 有効な言語…）で保存する。
+//divisi が書き出す Scripts.csv と同じく、original と有効な言語の列を持つ、原文ごとに1行の CSV で保存する
 //無視する行は書き出されないため含めない
 bool ScriptCSVTableModel::saveToEditCsvFile(const QString& csvPath) const
 {
     if(_rows.isEmpty()) { return true; }
 
-    //原文が変わった・消えた行の訳は、上書きすると消えてしまうため古い翻訳として残す
+    //原文が変更・削除された行の翻訳文は、上書きすると失われるため古い翻訳として残す
     QSet<QString> originals;
     for(const auto& rd : _rows) { originals.insert(rd.originalText); }
     KeepOldTranslations(csvPath, originals);
@@ -172,7 +172,7 @@ bool ScriptCSVTableModel::saveToEditCsvFile(const QString& csvPath) const
     //行を追加すると csvData が再確保され header の参照が無効になるため、列数は先に取っておく
     const auto columnCount = header.size();
 
-    //同じ原文が複数のスクリプトにある場合は1行にまとめ、空の訳は他の行の訳で埋める
+    //同じ原文が複数のスクリプトにある場合は1行にまとめ、空の翻訳文は他の行の翻訳文で埋める
     QHash<QString, size_t> rowOfOriginal;
     for(const auto& rd : _rows)
     {
@@ -194,7 +194,7 @@ bool ScriptCSVTableModel::saveToEditCsvFile(const QString& csvPath) const
     return container.loadFromCsvData(csvData) && container.saveToFile(csvPath);
 }
 
-//言語の有効・無効を変えたとき、入力済みの訳を保ったまま言語の列を作り直す
+//言語の有効・無効を切り替えたとき、入力済みの翻訳文を保持したまま言語の列を再構築する
 void ScriptCSVTableModel::refreshLanguages()
 {
     if(_settings == nullptr) { return; }
@@ -391,7 +391,7 @@ QVariant ScriptCSVTableModel::data(const QModelIndex& idx, int role) const
     const auto& rd = _rows[idx.row()];
     const int   col = idx.column();
 
-    // フォントロール（言語列のみ）
+    // フォントロール。言語列のみ対象
     if(role == Qt::FontRole) {
         if(_useLanguageFont && _settings && col >= Columns::LangColumnStart) {
             const int li = col - Columns::LangColumnStart;
@@ -417,7 +417,7 @@ QVariant ScriptCSVTableModel::data(const QModelIndex& idx, int role) const
         return QBrush(colorMap[rd.include ? Qt::Checked : Qt::Unchecked]);
     }
 
-    // チェック状態ロール（列 0 のみ）
+    // チェック状態ロール。列 0 のみ対象
     else if(role == Qt::CheckStateRole) {
         if(col == Columns::Include) {
             return static_cast<int>(rd.include ? Qt::Checked : Qt::Unchecked);
@@ -433,7 +433,7 @@ QVariant ScriptCSVTableModel::data(const QModelIndex& idx, int role) const
 
     if(col == textPointColumn()) { return rd.textPoint; }
     switch(col) {
-    case Columns::Include:      return QVariant();          // テキストなし（チェックボックスのみ）
+    case Columns::Include:      return QVariant();          // チェックボックスのみでテキストなし
     case Columns::ScriptName:   return rd.scriptDisplayName;
     case Columns::OriginalText: return rd.originalText;
     default:
@@ -454,7 +454,7 @@ bool ScriptCSVTableModel::setData(const QModelIndex& idx, const QVariant& value,
     auto& rd = _rows[idx.row()];
     const int col = idx.column();
 
-    // ── チェック状態の変更（列 0） ──────────────────────────
+    // ── 列 0 のチェック状態の変更 ──────────────────────────
     if(role == Qt::CheckStateRole && col == Columns::Include) {
         const auto state = static_cast<Qt::CheckState>(value.toInt());
         const bool ignore = (state == Qt::Unchecked);
@@ -475,7 +475,7 @@ bool ScriptCSVTableModel::setData(const QModelIndex& idx, const QVariant& value,
         return true;
     }
 
-    // ── 言語列の編集（列 Columns::MaxColumns 以降） ─────────────────
+    // ── Columns::MaxColumns 以降の言語列の編集 ─────────────────
     if(role == Qt::EditRole && col >= Columns::LangColumnStart) {
         const int li = col - Columns::LangColumnStart;
         if(li >= 0 && li < _languages.size()) {

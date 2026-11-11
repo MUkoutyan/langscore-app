@@ -5,7 +5,7 @@
 
 class QLineEdit;
 
-//テストプレイに使うツクール（MV・MZ）のインストール先を指定するダイアログ
+//テストプレイに使う MV・MZ のツクールのインストール先を指定するダイアログ
 class RPGMakerPathDialog : public QDialog
 {
     Q_OBJECT

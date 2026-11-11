@@ -16,7 +16,7 @@ EditKeySettingsDialog::EditKeySettingsDialog(QWidget* parent)
     for(int i = 0; i < EditKeyBindings::Count; ++i)
     {
         auto* keyEdit = new QKeySequenceEdit(this);
-        //1つのキーの組み合わせだけを受け付ける
+        //1つのキーの組み合わせのみ受け付ける
         keyEdit->setMaximumSequenceLength(1);
         keyEdit->setClearButtonEnabled(true);
         keyEdits[i] = keyEdit;
@@ -31,7 +31,7 @@ EditKeySettingsDialog::EditKeySettingsDialog(QWidget* parent)
     connect(buttons, &QDialogButtonBox::accepted, this, [this]()
     {
         const auto keys = this->bindings();
-        //取り消しのキーが無いと、入力を取り消す方法が無くなる（表の外をクリックすると確定になる）
+        //表の外のクリックは確定になるため、取り消しのキーが無いと入力を取り消す方法が無くなる
         if(keys.keys[EditKeyBindings::Cancel].isEmpty()) {
             QMessageBox::warning(this, tr("Cell Editing Keys"), tr("Please assign a key to \"%1\".").arg(EditKeyBindings::actionName(EditKeyBindings::Cancel)));
             return;

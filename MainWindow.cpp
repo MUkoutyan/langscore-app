@@ -76,7 +76,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)
     {
-        //別のプロジェクトを読み込む前に、今のプロジェクトの未保存の変更を確認する。
+        //別のプロジェクトを読み込む前に、現在のプロジェクトの未保存の変更を確認する。
         //setGameProjectPathの後だと保存先が新しいプロジェクトになるため、ここで行う
         const auto button = this->askCloseProject();
         if(button == QMessageBox::Cancel) { return; }
@@ -93,7 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
     connect(this->taskBar, &FormTaskBar::validationAll, this, [this]() {
-        //divisiでアプリ側エディターのCSVを検証するため、開いていないファイルも読み込んでから保存する
+        //divisiでアプリ側エディターのCSVを検証するため、未表示のファイルも読み込んでから保存する
         this->writeUi->loadAllMainFiles();
         this->dispatch(SaveProject, {});
         this->dispatch(ValidateAll, {});
@@ -102,7 +102,7 @@ MainWindow::MainWindow(QWidget *parent)
     {
         //プロジェクトを開いていない間は取り込み先が無い
         if(this->writeUi->isEnabled() == false) { return; }
-        //外部エディターでは、書き出したCSVを直接編集していたため、書き出し先から選ぶ
+        //外部エディターでは書き出した CSV を直接編集していたため、書き出し先から選択する
         const QDir langscoreProjectDir(this->setting->langscoreProjectDirectory);
         const auto exportFolder = langscoreProjectDir.absoluteFilePath(this->setting->writeObj.exportDirectory);
         const auto csvPaths = QFileDialog::getOpenFileNames(this, tr("Import Translation CSV"), exportFolder, tr("CSV (*.csv)"));
@@ -121,7 +121,7 @@ MainWindow::MainWindow(QWidget *parent)
     {
         auto projFile = this->setting->langscoreProjectDirectory+"/config.json";
         if(QFile::exists(projFile) == false){ return; }
-        //解析済みの別プロジェクトを開いた場合は、初回解析の扱い（破棄時の削除）をしない
+        //解析済みの別プロジェクトを開いた場合は、破棄時の削除など初回解析としての扱いをしない
         if(this->setting->langscoreProjectDirectory != initialAnalysisProjectDir) {
             this->initialAnalysis = false;
         }
@@ -133,7 +133,7 @@ MainWindow::MainWindow(QWidget *parent)
         this->initialAnalysis = false;
     });
 
-    //履歴を消したとき（再解析・プロジェクトの切り替え）も保存済みの状態になるよう、履歴の clean 状態で判定する
+    //再解析やプロジェクトの切り替えで履歴をクリアしたときも保存済みの状態になるよう、履歴の clean 状態で判定する
     connect(this->history, &QUndoStack::cleanChanged, this, [this](bool clean){
         this->setWindowTitle(clean ? "Langscore" : "Langscore " + tr("Edited"));
     });
@@ -160,7 +160,7 @@ MainWindow::MainWindow(QWidget *parent)
             qDebug() << "Parent Rect:" << parentRect;
             analyzeRect.moveCenter(parentRect.center());
             qDebug() << "Analyze Dialog Rect (parent coords):" << analyzeRect;
-            // AnalyzeDialog はウィンドウ（トップレベル）なので、親のローカル座標をグローバルへ変換して移動する
+            // AnalyzeDialog はトップレベルのウィンドウのため、親のローカル座標をグローバルへ変換して移動する
             this->analyzeDialog->move(this->mapToGlobal(analyzeRect.topLeft()));
         });
     }
@@ -169,7 +169,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    //ゲームの確認のタイマーが、破棄した画面へ dispatch しないよう先に消す
+    //ゲームの確認のタイマーが、破棄した画面へ dispatch しないよう先に破棄する
     delete followGameService;
     delete ui;
 }
@@ -180,8 +180,8 @@ void MainWindow::openGameProject(QString configFilePath)
     this->writeUi->clear();
 
     this->setting->load(std::move(configFilePath));
-    //新しいプロジェクトや、editing が無い以前のバージョンのプロジェクトでも、最初から作っておく。
-    //初めて保存する前から editing を監視でき、共有している他の人の保存に気づける
+    //新しいプロジェクトや、editing が無い以前のバージョンのプロジェクトでも、最初に作成する。
+    //初回保存前から editing を監視し、共有先でのリモートの保存を検知できるようにする
     QDir().mkpath(this->setting->langscoreProjectDirectory + "/editing");
     this->history->clear();
     this->askMoveExportDirectory();
@@ -216,7 +216,7 @@ void MainWindow::openGameProject(QString configFilePath)
     this->showWriteMode();
 }
 
-//以前のバージョンでは langscore のフォルダの中に書き出していた。ゲームが読む翻訳フォルダへ変えるかを確認する。
+//以前のバージョンでは langscore のフォルダの中に書き出していた。ゲームが読み込む翻訳フォルダへ変更するかを確認する。
 //「いいえ」を選んだプロジェクトでは次から確認しない
 void MainWindow::askMoveExportDirectory()
 {

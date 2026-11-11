@@ -103,7 +103,7 @@ void WriteDialog::changeOutputPath(const QString &text)
     QDirIterator it(text, QStringList() << "*.csv", QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext())
     {
-        //next() で次のファイルに進めてから情報を取得する（先に fileInfo() を呼ぶと最初のファイルを調べられない）
+        //先に fileInfo() を呼ぶと最初のファイルを調べられないため、next() で次のファイルに進めてから情報を取得する
         auto info = QFileInfo(it.next());
         if(info.suffix() != "csv"){ continue; }
 

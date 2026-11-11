@@ -31,8 +31,8 @@ TEST(ScriptCSVTable, ClearKeepsManagerOwnedModel)
 
 TEST(ScriptCSVTable, SelectRowOfScriptExactName)
 {
-    // ファイルツリーでスクリプトを選ぶと、名前がそのスクリプトと一致する最初の行が選ばれること。
-    // 名前の一部が一致する別のスクリプト（"A" に対する "AB"）の行は選ばない
+    // ファイルツリーでスクリプトを選択すると、名前がそのスクリプトと一致する最初の行が選択されること。
+    // "A" に対する "AB" のように、名前の一部が一致する別のスクリプトの行は選択しない
     ComponentBase component;
     auto manager = std::make_shared<EditDataManager>();
     auto table = std::make_unique<ScriptCSVTable>(&component, manager);

@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>323</width>
-    <height>116</height>
+    <height>286</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,6 +32,62 @@
    <string notr="true">border-color: rgb(236, 236, 236);</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QCheckBox" name="updateLsScript">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="statusTip">
+      <string extracomment="ゲームの langscore プラグインを、最新の内容で上書きします。">Overwrites the langscore plugin in the game with the latest version.</string>
+     </property>
+     <property name="text">
+      <string>Overwrite langscore Script</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="updateLsCustomScript">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="statusTip">
+      <string extracomment="langscore_custom を上書きします。langscore_custom に加えた変更は失われます。">Overwrites langscore_custom. Changes made to langscore_custom are lost.</string>
+     </property>
+     <property name="text">
+      <string>Overwrite langscore_custom Script</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="enableRemoteHub">
+     <property name="statusTip">
+      <string extracomment="リアルタイム編集機能を行うためのプラグイン Langscore_RemoteHub を追加します。このプラグインはテスト時のみ動作しますが、リリースする際はゲームから取り除いて下さい。">Adds Langscore_RemoteHub, the plugin for real-time editing.
+It works only while test playing, but remove it from the game before you release it.</string>
+     </property>
+     <property name="text">
+      <string>Add the real-time editing plugin</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Policy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>8</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
    <item>
     <widget class="QCheckBox" name="enablePatch">
      <property name="statusTip">
@@ -56,51 +112,11 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="updateLsScript">
-     <property name="statusTip">
-      <string extracomment="ゲームの langscore プラグインを、最新の内容で上書きします。">Overwrites the langscore plugin in the game with the latest version.</string>
-     </property>
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string>Overwrite langscore Script</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="updateLsCustomScript">
-     <property name="statusTip">
-      <string extracomment="langscore_custom を上書きします。langscore_custom に加えた変更は失われます。">Overwrites langscore_custom. Changes made to langscore_custom are lost.</string>
-     </property>
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string>Overwrite langscore_custom Script</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="enableRemoteHub">
-     <property name="statusTip">
-      <string extracomment="リアルタイム編集機能を行うためのプラグイン Langscore_RemoteHub を追加します。このプラグインはテスト時のみ動作しますが、リリースする際はゲームから取り除いて下さい。">Adds Langscore_RemoteHub, the plugin for real-time editing.
-It works only while test playing, but remove it from the game before you release it.</string>
-     </property>
-     <property name="text">
-      <string>Add the real-time editing plugin</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QLabel" name="descriptionLabel">
      <property name="minimumSize">
       <size>
        <width>300</width>
-       <height>60</height>
+       <height>80</height>
       </size>
      </property>
      <property name="frameShape">

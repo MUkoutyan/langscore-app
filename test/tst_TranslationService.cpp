@@ -1,7 +1,7 @@
 #include "test_common.h"
 #include "translation/TranslationService.h"
 
-// normalizeLanguageCode は protected なのでサブクラス経由で呼び出す
+// normalizeLanguageCode は protected のためサブクラス経由で呼び出す
 struct DummyService : public TranslationService
 {
     using TranslationService::normalizeLanguageCode;
@@ -60,7 +60,7 @@ TEST(TranslationService, Normalize)
 // 不具合の再発防止
 TEST(TranslationService, DeepLTraditionalChinese)
 {
-    // 繁体字は DeepL の繁体字ターゲット（ZH-HANT）に変換されること。"ZH" は簡体字になる
+    // 繁体字は DeepL の繁体字ターゲットである ZH-HANT に変換されること。"ZH" は簡体字になる
     EXPECT_EQ(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "zh-tw"), QString("ZH-HANT"));
     EXPECT_EQ(TranslationService::GetTranslationLanguageCode(ServiceType::DeepL, "traditional chinese"), QString("ZH-HANT"));
 }

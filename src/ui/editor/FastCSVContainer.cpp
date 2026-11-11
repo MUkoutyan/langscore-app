@@ -8,6 +8,8 @@
 #include <QDir>
 #include <QTextStream>
 #include <QRegularExpression>
+#include <QProcess>
+#include <QStandardPaths>
 
 namespace langscore {
 
@@ -39,13 +41,85 @@ bool FastCSVContainer::loadFromCsvData(const std::vector<std::vector<CellData>>&
     return true;
 }
 
+namespace
+{
+    bool HasGitConflictMarkers(const QByteArray& contents)
+    {
+        //ほとんどのファイルには競合マーカーが無いため、行に分ける前に除外する
+        if(contents.contains("<<<<<<<") == false) { return false; }
+        //競合マーカーの行は必ず取り除かれるため、行数が減っていれば競合マーカーがある
+        const auto lines = QString::fromUtf8(contents).split('\n');
+        return pickGitConflictSide(lines, GitConflictSide::Ours).size() != lines.size();
+    }
+
+    //Git は競合中、base・ローカル側・リモート側の内容をステージ 1・2・3 として保持している
+    //翻訳文に「=======」のみの行などがあると競合マーカーから両側を正しく分けられないため、取得できる場合はこちらを使う
+    //git が無い場合や、Git で競合しているファイルでない場合は取得できない
+    std::optional<QByteArray> ReadGitConflictStage(const QString& filePath, int stage)
+    {
+        const auto git = QStandardPaths::findExecutable("git");
+        if(git.isEmpty()) { return std::nullopt; }
+        const QFileInfo info(filePath);
+        QProcess process;
+        process.setWorkingDirectory(info.absolutePath());
+        process.start(git, {"show", QString(":%1:./%2").arg(stage).arg(info.fileName())});
+        if(process.waitForFinished(5000) == false)
+        {
+            process.kill();
+            process.waitForFinished();
+            return std::nullopt;
+        }
+        if(process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) { return std::nullopt; }
+        return process.readAllStandardOutput();
+    }
+}
+
 bool FastCSVContainer::loadFromFile(const CellData& filePath) {
-    //CSV ファイルの値はエスケープされているので、ここで元に戻す。
-    //loadFromCsvData は JSON 由来などのエスケープされていない値も受け取るため、そちらでは戻さない。
-    //セル内の改行はアプリ内では \n にそろえる（以前の保存で \r\r\n になったものも含む）。
+    QFile file(filePath);
+    if(file.open(QIODevice::ReadOnly) == false) { return false; }
+    const auto contents = file.readAll();
+    if(HasGitConflictMarkers(contents))
+    {
+        const auto ours = ReadGitConflictStage(filePath, 2);
+        if(ours.has_value()) { return loadFromFileContents(ours.value(), GitConflictSide::Ours); }
+    }
+    return loadFromFileContents(contents, GitConflictSide::Ours);
+}
+
+bool FastCSVContainer::loadGitConflictSidesFromFile(const CellData& filePath, GitConflictSides& sides) {
+    //2回に分けて読むと、その間の Git による書き換えや他のアプリによるロックで、両側が別時点の内容になる
+    QFile file(filePath);
+    if(file.open(QIODevice::ReadOnly) == false) { return false; }
+    const auto contents = file.readAll();
+    sides.hasConflictMarkers = HasGitConflictMarkers(contents);
+    sides.base.reset();
+    if(sides.hasConflictMarkers)
+    {
+        const auto ours = ReadGitConflictStage(filePath, 2);
+        const auto theirs = ReadGitConflictStage(filePath, 3);
+        if(ours.has_value() && theirs.has_value())
+        {
+            sides.ours.loadFromFileContents(ours.value(), GitConflictSide::Ours);
+            sides.theirs.loadFromFileContents(theirs.value(), GitConflictSide::Ours);
+            //ローカルとリモートで別々に追加されたファイルには base が無い
+            const auto base = ReadGitConflictStage(filePath, 1);
+            if(base.has_value()) { sides.base.emplace().loadFromFileContents(base.value(), GitConflictSide::Ours); }
+            return true;
+        }
+    }
+    //競合マーカーが無い場合、ローカル側は使わないため読み込まない
+    if(sides.hasConflictMarkers) { sides.ours.loadFromFileContents(contents, GitConflictSide::Ours); }
+    sides.theirs.loadFromFileContents(contents, GitConflictSide::Theirs);
+    return true;
+}
+
+bool FastCSVContainer::loadFromFileContents(const QByteArray& contents, GitConflictSide side) {
+    //CSV ファイルの値はエスケープされているため、ここで元に戻す
+    //loadFromCsvData は JSON 由来などのエスケープされていない値も受け取るため、そちらでは戻さない
+    //セル内の改行は、以前の保存で \r\r\n になったものも含め、アプリ内では \n に統一する
     //ゲームに合わせた改行への変換は、書き出し時に行う
     static const QRegularExpression lineBreak("\\r+\\n");
-    auto csvData = langscore::readCsv(filePath);
+    auto csvData = langscore::parseCsv(contents, side);
     for (size_t i = 1; i < csvData.size(); ++i) {
         for (auto& field : csvData[i]) {
             field = unescapeCSVField(field);
@@ -69,7 +143,7 @@ bool FastCSVContainer::saveToFile(const CellData& filePath) const
     }
 
     //一時ファイルに書いてから置き換える。途中で失敗しても元のファイルは残る
-    //Text モードはセル内の \r\n を \r\r\n にしてしまうため、バイナリで書く
+    //Text モードではセル内の \r\n が \r\r\n に変換されるため、バイナリで書く
     QSaveFile file(filePath);
     if(file.open(QIODevice::WriteOnly) == false) {
         return false;
@@ -104,7 +178,7 @@ bool FastCSVContainer::saveToFile(const CellData& filePath) const
         stream << "\n";
     }
 
-    //書き残しを出し切ってから確認する。失敗した場合は commit せず、元のファイルを残す
+    //バッファを書き出してから確認する。失敗した場合は commit せず、元のファイルを残す
     stream.flush();
     if(stream.status() != QTextStream::Ok) {
         file.cancelWriting();
@@ -120,7 +194,7 @@ FastCSVContainer::CellData FastCSVContainer::unescapeCSVField(const CellData& fi
         return field;
     }
 
-    // 長さが2未満（""のみ）の場合は空文字を返す
+    // 長さが2未満の場合は空文字を返す
     if(field.length() < 2) {
         return "";
     }
@@ -128,7 +202,7 @@ FastCSVContainer::CellData FastCSVContainer::unescapeCSVField(const CellData& fi
     // 前後のダブルクォートを除去
     CellData unescaped = field.mid(1, field.length() - 2);
 
-    // エスケープされたダブルクォート（""）を元に戻す（"に変換）
+    // エスケープされたダブルクォート "" を " に戻す
     unescaped.replace("\"\"", "\"");
 
     return unescaped;
@@ -139,7 +213,7 @@ FastCSVContainer::CellData FastCSVContainer::escapeCSVField(const CellData& fiel
     // フィールドにカンマ、ダブルクォート、改行が含まれている場合はダブルクォートで囲む
     if(field.contains(',') || field.contains('"') || field.contains('\n') || field.contains('\r')) {
         CellData escaped = field;
-        // ダブルクォートをエスケープ（""に変換）
+        // ダブルクォートを "" にエスケープする
         escaped.replace("\"", "\"\"");
         return "\"" + escaped + "\"";
     }
@@ -232,7 +306,7 @@ void FastCSVContainer::insertRow(RowIndex index, std::vector<CellData> rowData) 
     }
     
     data_.insert(data_.begin() + index, rowData);
-    indexBuilt_ = false; // インデックスを再構築が必要
+    indexBuilt_ = false; // インデックスの再構築が必要
 }
 
 void FastCSVContainer::removeRow(RowIndex index) {
@@ -241,7 +315,7 @@ void FastCSVContainer::removeRow(RowIndex index) {
     }
     
     data_.erase(data_.begin() + index);
-    indexBuilt_ = false; // インデックスを再構築が必要
+    indexBuilt_ = false; // インデックスの再構築が必要
 }
 
 void FastCSVContainer::addColumn(const CellData& columnName, const CellData& defaultValue) 

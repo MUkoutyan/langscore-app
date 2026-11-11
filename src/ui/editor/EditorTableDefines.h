@@ -17,7 +17,7 @@ enum Columns
     ScriptName,
     OriginalText,
 
-    LangColumnStart     //言語の列の後の最後の列は、テキストの位置（ScriptCSVTableModel::textPointColumn）
+    LangColumnStart     //言語の列の後の最後の列は、テキストの位置。ScriptCSVTableModel::textPointColumn を参照
 };
 
 enum FilterMode : int

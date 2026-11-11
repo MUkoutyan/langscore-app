@@ -7,7 +7,7 @@
 
 TEST(TranslationProgressDialogTest, ColorResetOnNextTranslation)
 {
-    // 一部失敗した色（黄色）が、次の翻訳を始めたときに残らないこと
+    // 一部失敗を示す黄色が、次の翻訳の開始時に残らないこと
     TranslationProgressDialog dialog;
     auto* statusLabel = dialog.findChild<QLabel*>("statusLabel");
     ASSERT_NE(statusLabel, nullptr);
@@ -21,7 +21,7 @@ TEST(TranslationProgressDialogTest, ColorResetOnNextTranslation)
 }
 
 namespace {
-    //自動で閉じるタイマー（1秒）が動くまで待つ
+    //自動で閉じる1秒のタイマーが動作するまで待つ
     void WaitAutoClose()
     {
         QEventLoop loop;
@@ -56,7 +56,7 @@ TEST(TranslationProgressDialogTest, KeepOpenWithMessages)
     EXPECT_TRUE(messageText->isVisible());
     EXPECT_TRUE(messageText->toPlainText().contains("empty"));
 
-    // 次の翻訳では前回の内容を消すこと
+    // 次の翻訳では前回の内容をクリアすること
     dialog.startProgress(1);
     EXPECT_FALSE(dialog.hasMessages());
     EXPECT_FALSE(messageText->isVisible());

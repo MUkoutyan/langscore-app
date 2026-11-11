@@ -15,10 +15,10 @@ public:
 
     explicit CSVEditorSortFilterProxyModel(QObject* parent = nullptr);
 
-    // テキストフィルタ（空文字列でフィルタ解除）
+    // テキストフィルタ。空文字列でフィルタを解除する
     void setFilterText(const QString& text);
 
-    // フィルタ対象列（-1 で全列を検索）
+    // フィルタ対象列。-1 で全列を検索する
     void setFilterTargetColumn(int column);
 
     void setFilterMode(FilterModes mode);
@@ -39,7 +39,7 @@ public:
     QString settingsGroup() const { return _settingsGroup; }
     static QString settingsGroupForProject(const QString& projectDirectory);
 
-    // 3ステートソート（なし → 昇順 → 降順 → なし）
+    // 3ステートソート。なし → 昇順 → 降順 → なし の順に切り替える
     void cycleColumnSort(int proxyColumn);
     void setSortState(int proxyColumn, SortOrder order);
     int sortedColumn() const { return _sortColumn; }

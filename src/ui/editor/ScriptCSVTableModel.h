@@ -30,19 +30,19 @@ public:
 
     void setUseLanguageFont(bool use);
 
-    // 指定行の原文テキストを返す（auto-check 操作向け）
+    // 指定行の原文テキストを返す。auto-check 操作で使う
     QString getOriginalText(int row) const;
 
     // 指定行の位置を旧形式の Scripts.csv の original と同じ "ファイル名:行:列" で返す。行・列を持たない行は空
     QString getPositionKey(int row) const;
 
-    // 指定行のスクリプトファイル名を返す（拡張子付き）
+    // 指定行のスクリプトファイル名を拡張子付きで返す
     QString getScriptFileName(int row) const;
 
     // 指定行のチェック状態を返す
     Qt::CheckState getCheckState(int row) const;
 
-    // ツリー側からのチェック状態変更（settings の更新なし）
+    // ツリー側からのチェック状態変更。settings は更新しない
     void updateCheckStateFromTree(const QString& scriptName, Qt::CheckState state);
 
     // 指定スクリプト名に対応する行インデックス一覧を返す
@@ -68,8 +68,8 @@ private:
     struct ScriptRowData {
         bool include = true;
         bool scriptIgnored = false;  // 親スクリプトがスクリプトレベルで無視されているか 
-        QString scriptDisplayName;   // 表示用スクリプト名（拡張子付き）
-        QString scriptFileName;      // ファイル名（拡張子付き、settings 検索用）
+        QString scriptDisplayName;   // 拡張子付きの表示用スクリプト名
+        QString scriptFileName;      // settings の検索に使う拡張子付きファイル名
         QString textPoint;           // "10:5" または引数名
         langscore::ScriptTextPosition position;
         QString originalText;

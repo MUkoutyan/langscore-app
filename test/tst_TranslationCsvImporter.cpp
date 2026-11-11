@@ -29,7 +29,7 @@ TEST(TranslationCsvImporter, ImportsNonEmptyCellsByOriginal)
     {
         QFile file(csvPath);
         ASSERT_TRUE(file.open(QFile::WriteOnly));
-        //外部エディターは改行を \r\n で保存することがある。行の並びもエディターと違う
+        //外部エディターは改行を \r\n で保存する場合がある。行の並びもエディターと異なる
         file.write("\xEF\xBB\xBF");
         file.write(Text(
             u"original,ja,en,fr\r\n"
@@ -46,14 +46,14 @@ TEST(TranslationCsvImporter, ImportsNonEmptyCellsByOriginal)
     const auto changed = langscore::ImportTranslationCsv(csvPath, model, originalOfRow, {{"ja", 1}, {"en", 2}});
 
     EXPECT_EQ(changed, 2);
-    //空のセルは取り込まず、エディターの訳を残す
+    //空のセルは取り込まず、エディターの翻訳文を残す
     EXPECT_EQ(model.item(0, 1)->text(), Text(u"名前"));
     EXPECT_EQ(model.item(0, 2)->text(), "Name");
     //原文の改行の違いは無視して一致させ、セルの改行は \n にする
     EXPECT_EQ(model.item(1, 2)->text(), "Line1\nLine2");
 }
 
-//以前の divisi は、複数行の文章の末尾（または先頭）に改行を付けて書き出していた
+//以前の divisi は、複数行の文章の末尾または先頭に改行を付けて書き出していた
 TEST(TranslationCsvImporter, IgnoresEdgeLineBreaksOfOldCsv)
 {
     QTemporaryDir dir;
@@ -75,7 +75,7 @@ TEST(TranslationCsvImporter, IgnoresEdgeLineBreaksOfOldCsv)
     const auto changed = langscore::ImportTranslationCsv(csvPath, model, originalOfRow, {{"ja", 1}, {"en", 2}});
 
     EXPECT_EQ(changed, 2);
-    //訳の末尾の改行は、エディターの原文に無いため取り除く
+    //翻訳文の末尾の改行は、エディターの原文に無いため取り除く
     EXPECT_EQ(model.item(0, 2)->text(), "Name\nLine");
     EXPECT_EQ(model.item(1, 2)->text(), "Leading");
 }

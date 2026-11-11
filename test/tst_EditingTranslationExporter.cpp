@@ -27,7 +27,7 @@ namespace
         return QString::fromUtf16(text).toUtf8();
     }
 
-    //divisi が書き出すCSVの BOM（fromUtf16 は先頭の BOM を取り除くため別に足す）
+    //divisi が書き出す CSV の BOM。fromUtf16 は先頭の BOM を取り除くため別に追加する
     const QByteArray Bom("\xEF\xBB\xBF");
 
     QByteArray ReadBytes(const QString& path)
@@ -53,13 +53,13 @@ namespace
         return setting;
     }
 
-    //アプリが保存する editing の CSV（セル内の改行は \n）
+    //アプリが保存する editing の CSV。セル内の改行は \n
     const QByteArray EditingCsv = Utf8(
         u"original,ja,en,type\n"
         u"\"説明\r\n2行目\",,\"Line1\nLine2\",description\n"
         u"名前,,,name\n");
 
-    //divisi が書き出す CSV（BOM 付き、原文は \r\n のまま）
+    //divisi が書き出す CSV。BOM 付きで、原文は \r\n のまま
     const QByteArray ExportedCsv = Bom + Utf8(
         u"original,ja,en\n"
         u"\"説明\r\n2行目\",,old\n"
@@ -86,7 +86,7 @@ TEST(EditingTranslationExporter, KeepExistingWhenEditingIsEmpty)
     const auto updated = langscore::ApplyEditingTranslations(setting);
     ASSERT_EQ(updated.size(), 1);
 
-    //原文はそのまま、訳は原文と同じ \r\n、editing で空の訳は書き出し済みの訳を残す
+    //原文はそのまま、翻訳文は原文と同じ \r\n、editing で空の翻訳文は書き出し済みの翻訳文を残す
     const QByteArray expected = Bom + Utf8(
         u"original,ja,en\n"
         u"\"説明\r\n2行目\",,\"Line1\r\nLine2\"\n"
@@ -105,7 +105,7 @@ TEST(EditingTranslationExporter, OverwriteModeReplacesWithEditing)
 
     langscore::ApplyEditingTranslations(setting);
 
-    //新しい内容で上書きする場合は、editing で空の訳も空にする
+    //新しい内容で上書きする場合は、editing で空の翻訳文も空にする
     const QByteArray expected = Bom + Utf8(
         u"original,ja,en\n"
         u"\"説明\r\n2行目\",,\"Line1\r\nLine2\"\n"
@@ -131,7 +131,7 @@ TEST(EditingTranslationExporter, LanguagePatchFolders)
 
 TEST(EditingTranslationExporter, UnexportedFilesAreDetectedByContent)
 {
-    //書き出したときから内容が変わったファイルだけを未書き出しとし、指定したファイルだけに反映する
+    //書き出し時から内容が変わったファイルのみを未書き出しとし、指定したファイルのみに反映する
     QTemporaryDir tempDir;
     const auto setting = MakeSetting(tempDir.path());
     WriteBytes(tempDir.filePath("editing/Actors.csv"), EditingCsv);
@@ -144,7 +144,7 @@ TEST(EditingTranslationExporter, UnexportedFilesAreDetectedByContent)
     langscore::ApplyEditingTranslations(setting);
     EXPECT_TRUE(langscore::UnexportedEditingFiles(setting).isEmpty());
 
-    //同じ内容で保存し直しても未書き出しにはしない
+    //同じ内容で再保存しても未書き出しにはしない
     WriteBytes(tempDir.filePath("editing/Actors.csv"), EditingCsv);
     EXPECT_TRUE(langscore::UnexportedEditingFiles(setting).isEmpty());
 
@@ -161,8 +161,8 @@ TEST(EditingTranslationExporter, UnexportedFilesAreDetectedByContent)
 
 TEST(FastCSVContainer, LineBreakInCellIsSavedOnceAndReadAsLF)
 {
-    //セル内の \r\n が \r\r\n にならずに保存され、読むと \n にそろうこと。
-    //以前の保存（Text モード）で \r\r\n になったファイルも \n で読めること
+    //セル内の \r\n が \r\r\n にならずに保存され、読み込むと \n に統一されること。
+    //以前の Text モードでの保存で \r\r\n になったファイルも \n で読めること
     QTemporaryDir tempDir;
     const auto path = tempDir.filePath("lb.csv");
     langscore::FastCSVContainer csv;
@@ -187,7 +187,7 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
     QTemporaryDir tempDir;
     auto setting = std::make_shared<settings>(MakeSetting(tempDir.path()));
     setting->projectType = settings::MZ;
-    //同じ原文が2つのスクリプトにあっても、訳は1行にまとまる。A.js にはプラグインのパラメータもある
+    //同じ原文が2つのスクリプトにあっても、翻訳文は1行にまとまる。A.js にはプラグインのパラメータもある
     for(const auto& fileName : {QString("A.js"), QString("B.js")})
     {
         settings::ScriptInfo info;
@@ -228,7 +228,7 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
     }
     ASSERT_TRUE(model.saveToFile(editingFolder + "/Scripts.lsjson"));
 
-    //divisi の Scripts.csv は、1列目が「ファイル名:行:列」か「ファイル名:パラメータ名」のキーで、プラグインはこのキーで訳を引く
+    //divisi の Scripts.csv は、1列目が「ファイル名:行:列」か「ファイル名:パラメータ名」のキーで、プラグインはこのキーで翻訳文を引く
     const auto exportPath = tempDir.filePath("Data/Translate/Scripts.csv");
     WriteBytes(exportPath, Bom + QString(u"original,ja,en\nA:1:2,Hello,\nA:Exit Command,外に出る,\nB:1:2,Hello,").toUtf8());
     langscore::ApplyEditingTranslations(*setting);
@@ -237,7 +237,7 @@ TEST(EditingTranslationExporter, ScriptTranslationsAreApplied)
 
 TEST(EditingTranslationExporter, RemovePackedCsvFiles)
 {
-    //パッキングできたCSVだけを削除し、.rvdata2 が無いCSVは残す
+    //パッキングできたCSVのみ削除し、.rvdata2 が無いCSVは残す
     QTemporaryDir tempDir;
     auto setting = MakeSetting(tempDir.path());
     setting.gameProjectPath = tempDir.path();

@@ -29,7 +29,7 @@ void TranslationProgressDialog::startProgress(int totalRequests)
     ui->progressBar->setRange(0, totalRequests);
     ui->progressBar->setValue(0);
     ui->statusLabel->setText(tr("Starting translation..."));
-    //前回の結果の色（エラー・一部失敗）が残らないようにする
+    //エラー・一部失敗など、前回の結果の色が残らないようにする
     ui->statusLabel->setStyleSheet(QString());
     ui->currentTextLabel->clear();
     ui->messageText->clear();
@@ -88,7 +88,7 @@ void TranslationProgressDialog::showCompletion(int successCount, int totalCount,
     ui->cancelButton->setText(tr("Close"));
     ui->currentTextLabel->clear();
 
-    //表示するものが無ければ、結果を少し見せてから閉じる
+    //表示する内容が無ければ、結果を少し表示してから閉じる
     if (successCount == totalCount && hasMessages() == false) {
         QTimer::singleShot(1000, this, [this]() {
             if (!isCancelled) {
@@ -103,7 +103,7 @@ void TranslationProgressDialog::onCancelClicked()
     if (ui->cancelButton->text() == tr("Cancel")) {
         isCancelled = true;
         emit cancelled();
-        //中止までに出たエラー・警告は確認できるよう残す
+        //中止までに発生したエラー・警告は確認できるよう残す
         if (hasMessages()) {
             ui->statusLabel->setText(tr("Translation cancelled."));
             ui->cancelButton->setText(tr("Close"));

@@ -16,7 +16,7 @@ protected:
 
     void SetUp() override
     {
-        // 有効言語 ja, en と、1行だけ持つ Plugin.js を用意する
+        // 有効言語 ja, en と、1行のみ持つ Plugin.js を用意する
         setting = std::make_shared<settings>();
         setting->projectType = settings::MZ;
         setting->languages = {
@@ -116,7 +116,7 @@ TEST_F(ScriptCSVTableModelTest, IsLanguageColumn)
 
 TEST_F(ScriptCSVTableModelTest, SaveKeepsDisabledLanguage)
 {
-    // 無効にした言語の翻訳が、保存で Scripts.lsjson から消えないこと
+    // 無効にした言語の翻訳文が、保存で Scripts.lsjson から消えないこと
     WriteEditJson(R"([{"original": "Hello", "file": "Plugin.js", "row": 1, "col": 2,
                       "translates": {"ja": "Konnichiwa", "en": "Hello!"}}])");
     setting->languages[1].enable = false;
@@ -135,7 +135,7 @@ TEST_F(ScriptCSVTableModelTest, SaveKeepsDisabledLanguage)
     EXPECT_EQ(translates["en"].toString(), QString("Hello!"));
 }
 
-// 不具合の再発防止：表を作った後に有効にした言語の列が出なかった
+// 不具合の再発防止：表の作成後に有効にした言語の列が表示されなかった
 TEST_F(ScriptCSVTableModelTest, RefreshLanguagesKeepsTranslations)
 {
     ScriptCSVTableModel model;
@@ -150,7 +150,7 @@ TEST_F(ScriptCSVTableModelTest, RefreshLanguagesKeepsTranslations)
     EXPECT_EQ(model.columnCount(), Columns::LangColumnStart + 2 + 1);
     EXPECT_EQ(LangCell(model, 0), QString("Hi"));
 
-    //ja を戻しても、入力済みの訳は失われない
+    //ja を有効に戻しても、入力済みの翻訳文は失われない
     setting->languages[0].enable = true;
     ASSERT_TRUE(model.setData(model.index(0, Columns::LangColumnStart + 0), "Hi2", Qt::EditRole));
     model.refreshLanguages();
