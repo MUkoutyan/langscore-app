@@ -138,17 +138,6 @@ QString DeepLTranslationService::endpointUrl(const QString& apiKey, const QStrin
     return QString("https://%1/v2/%2").arg(host, api);
 }
 
-int DeepLTranslationService::retryDelayMs(int httpStatus, int retryCount, const QByteArray& retryAfterHeader)
-{
-    constexpr int MaxRetry = 5;
-    const bool retryable = httpStatus == 429 || (500 <= httpStatus && httpStatus < 600);
-    if(retryable == false || MaxRetry <= retryCount) { return -1; }
-    bool isOk = false;
-    const int retryAfterSec = retryAfterHeader.toInt(&isOk);
-    if(isOk && 0 < retryAfterSec) { return std::min(retryAfterSec, 60) * 1000; }
-    return 1000 << retryCount;  //1, 2, 4, 8, 16 秒
-}
-
 QString DeepLTranslationService::mapLanguageCode(const QString& langCode) const
 {
     //"NB", "ZH-HANT" など、GetTranslationLanguageCode で変換済みの DeepL コードはそのまま使う

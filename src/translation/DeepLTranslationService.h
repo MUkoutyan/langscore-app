@@ -20,10 +20,6 @@ public:
     // 無料版・Pro版といった APIキーの種類に応じたエンドポイントのURL
     static QString endpointUrl(const QString& apiKey, const QString& api = "translate");
 
-    //429 の混雑や 5xx のサーバーの一時的な不具合の場合は、待ってから再送する。
-    //再送までの時間をミリ秒で返す。再送しない場合は -1
-    static int retryDelayMs(int httpStatus, int retryCount, const QByteArray& retryAfterHeader = {});
-
 private slots:
     void onTranslationFinished();
 

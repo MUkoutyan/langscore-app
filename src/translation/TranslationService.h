@@ -44,6 +44,10 @@ public:
 
     static QString GetTranslationLanguageCode(TranslationService::ServiceType service, QString languageName);
 
+    //429 の混雑や 5xx のサーバーの一時的な不具合の場合は、待ってから再送する。
+    //再送までの時間をミリ秒で返す。再送しない場合は -1
+    static int retryDelayMs(int httpStatus, int retryCount, const QByteArray& retryAfterHeader = {});
+
 signals:
     void translationCompleted(const TranslationResult& result);
     void translationError(int requestId, const QString& errorMessage);

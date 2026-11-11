@@ -1,5 +1,6 @@
 ﻿#include "TranslationManager.h"
 #include "DeepLTranslationService.h"
+#include "GoogleTranslationService.h"
 #include <QDebug>
 
 TranslationManager::TranslationManager(QObject *parent)
@@ -14,6 +15,7 @@ TranslationManager::TranslationManager(QObject *parent)
     
     // Add default services
     addTranslationService(std::make_unique<DeepLTranslationService>(this));
+    addTranslationService(std::make_unique<GoogleTranslationService>(this));
 }
 
 TranslationManager::~TranslationManager() = default;
@@ -47,6 +49,7 @@ void TranslationManager::translateBatch(const QList<BatchTranslationRequest>& re
     for (const auto& request : requests) {
         BatchTranslationRequest queuedRequest = request;
         queuedRequest.batchId = batchId;
+        queuedRequest.serviceType = preferredService;
         requestQueue.enqueue(queuedRequest);
     }
     
@@ -75,7 +78,7 @@ void TranslationManager::processNextRequest()
     
     pendingRequests[request.requestId] = batchRequest;
     
-    TranslationService* service = getPreferredService(TranslationService::ServiceType::DeepL);
+    TranslationService* service = getPreferredService(batchRequest.serviceType);
     if (service) {
         service->translateText(request);
     }

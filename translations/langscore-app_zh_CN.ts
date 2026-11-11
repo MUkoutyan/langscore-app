@@ -658,6 +658,24 @@ No need to enter &quot;\&quot;</source>
     </message>
 </context>
 <context>
+    <name>GoogleTranslationService</name>
+    <message>
+        <location filename="../src/translation/GoogleTranslationService.cpp" line="31"/>
+        <source>Google Translate API key not configured</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/translation/GoogleTranslationService.cpp" line="37"/>
+        <source>Unsupported target language: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/translation/GoogleTranslationService.cpp" line="111"/>
+        <source>Invalid response from Google Translate API</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>InvokerLogViewer</name>
     <message>
         <location filename="../src/ui/InvokerLogViewer.cpp" line="18"/>
@@ -1003,16 +1021,16 @@ No need to enter &quot;\&quot;</source>
     </message>
     <message>
         <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="61"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="580"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="627"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="633"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="581"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="628"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="634"/>
         <source>Old Translations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="62"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="942"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="999"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="943"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1000"/>
         <source>Changes by Others</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1033,7 +1051,7 @@ No need to enter &quot;\&quot;</source>
     </message>
     <message>
         <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="216"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="945"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="946"/>
         <source>Translations by another worker. The highlight disappears when you edit the cell.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1048,197 +1066,197 @@ No need to enter &quot;\&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="595"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="596"/>
         <source>There are no deleted translations.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="598"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="599"/>
         <source>Translations of text whose original was changed or deleted in the game. They are saved but not exported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="611"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="612"/>
         <source>Delete Selected Translations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="612"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="613"/>
         <source>Delete All Translations Without Original Text in This File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="613"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="614"/>
         <source>Delete All Translations Without Original Text</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="614"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="615"/>
         <source>Deletes the translations without original text in all files.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="627"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="628"/>
         <source>Delete all translations without original text in this file?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="633"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="634"/>
         <source>Delete the translations without original text in all files?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="784"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="785"/>
         <source>Edit Conflict</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="787"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="788"/>
         <source>The contents of %1 conflict. Choose the translation to apply for each cell.
 Hold Ctrl or Shift to select multiple rows.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="862"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="863"/>
         <source>Decide Later</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1198"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1208"/>
         <source>[Error] </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1201"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1211"/>
         <source>[Warning] </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1295"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1305"/>
         <source>Row</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1295"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1305"/>
         <source>Type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="795"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="951"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1295"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="796"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1305"/>
         <source>Language</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1295"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1305"/>
         <source>Description</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="951"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1362"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1372"/>
         <source>File</source>
         <translation type="unfinished">文件</translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="795"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="951"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="796"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
         <source>Original</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="795"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="812"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="796"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="813"/>
         <source>Yours</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="795"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="812"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="796"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="813"/>
         <source>Theirs</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="795"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="796"/>
         <source>Use</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="841"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="842"/>
         <source>Use Yours for Selected</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="843"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="844"/>
         <source>Use Theirs for Selected</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="845"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="846"/>
         <source>Use Yours for All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="846"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="847"/>
         <source>Use Theirs for All</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="859"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="860"/>
         <source>Apply</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="951"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
         <source>Time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="951"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
         <source>Before</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="951"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="952"/>
         <source>After</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="984"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="985"/>
         <source>Clear Highlights</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="985"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="986"/>
         <source>Removes the highlight from the cells changed by someone else in all files.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="986"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="987"/>
         <source>Delete History</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="999"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1000"/>
         <source>Delete the history of changes by others?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1421"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1440"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1431"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1450"/>
         <source>Change Table State : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1423"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1442"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1433"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1452"/>
         <source>Change Table State : Row %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1427"/>
-        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1446"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1437"/>
+        <location filename="../src/ui/csvtable/MainCSVTable.cpp" line="1456"/>
         <source>Change Table State</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1681,8 +1699,8 @@ VX Ace does not need to be specified because the Game.exe in the game project is
 <context>
     <name>TranslationManager</name>
     <message>
-        <location filename="../src/translation/TranslationManager.cpp" line="38"/>
-        <location filename="../src/translation/TranslationManager.cpp" line="84"/>
+        <location filename="../src/translation/TranslationManager.cpp" line="40"/>
+        <location filename="../src/translation/TranslationManager.cpp" line="87"/>
         <source>No translation service is configured. (The API is not used.)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1985,6 +2003,7 @@ It works only while test playing, but remove it from the game before you release
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="366"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="495"/>
         <source>Export Translate CSV</source>
         <translation type="unfinished"></translation>
     </message>

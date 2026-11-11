@@ -18,6 +18,8 @@ public:
         int row;
         int column;
         int batchId;
+        //translateBatch で設定される、このリクエストを送るサービス
+        TranslationService::ServiceType serviceType;
     };
 
     struct BatchTranslationResult {

@@ -69,9 +69,9 @@ target_compile_definitions(langscore_tests PRIVATE
 
 # テストを1件ずつ CTest に登録し、Visual Studio のテストエクスプローラーに表示できるようにする
 include(GoogleTest)
-# DeepL のテストは exe の隣の settings.ini を書き換え・削除するため、並列実行時に同時に動かないようにする
+# DeepL・Google のテストは exe の隣の settings.ini を書き換え・削除するため、並列実行時に同時に動かないようにする
 gtest_discover_tests(langscore_tests
-    TEST_FILTER "DeepLTranslationServiceTest.*"
+    TEST_FILTER "DeepLTranslationServiceTest.*:GoogleTranslationServiceTest.*"
     PROPERTIES RESOURCE_LOCK app_settings_ini
     DISCOVERY_TIMEOUT 60
 )
@@ -83,6 +83,6 @@ gtest_discover_tests(langscore_tests
     DISCOVERY_TIMEOUT 60
 )
 gtest_discover_tests(langscore_tests
-    TEST_FILTER "-DeepLTranslationServiceTest.*:Invoker.*:ProjectUpdateTest.*:Platforms/FirstRunGamePlayTest.*"
+    TEST_FILTER "-DeepLTranslationServiceTest.*:GoogleTranslationServiceTest.*:Invoker.*:ProjectUpdateTest.*:Platforms/FirstRunGamePlayTest.*"
     DISCOVERY_TIMEOUT 60
 )

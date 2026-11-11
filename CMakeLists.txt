@@ -129,6 +129,8 @@ set(PROJECT_SOURCES
     src/translation/TranslationService.cpp
     src/translation/DeepLTranslationService.h
     src/translation/DeepLTranslationService.cpp
+    src/translation/GoogleTranslationService.h
+    src/translation/GoogleTranslationService.cpp
     src/translation/TranslationManager.h
     src/translation/TranslationManager.cpp
     src/service/ColorTheme.cpp
