@@ -87,7 +87,7 @@ FormTaskBar::FormTaskBar(QUndoStack *history, ComponentBase* setting, QWidget *p
     //File Menu
     auto fileMenu = AddMenu(tr("File"));
     auto openGameProj = fileMenu->addAction(tr("Open Game Project..."));
-    auto saveProj     = fileMenu->addAction(tr("Save Langscore Project..."));
+    auto saveProj     = fileMenu->addAction(tr("Save"));
     recentProjMenu = fileMenu->addMenu(tr("Recent Projects"));
     updateRecentMenu();
 

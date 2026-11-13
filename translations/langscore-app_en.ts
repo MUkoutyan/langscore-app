@@ -509,7 +509,7 @@ No need to enter &quot;\&quot;</source>
     </message>
     <message>
         <location filename="../src/ui/FormTaskBar.cpp" line="90"/>
-        <source>Save Langscore Project...</source>
+        <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1236,33 +1236,33 @@ Hold Ctrl or Shift to select multiple rows.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="75"/>
+        <location filename="../MainWindow.cpp" line="76"/>
         <source>Project saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="108"/>
-        <location filename="../MainWindow.cpp" line="111"/>
+        <location filename="../MainWindow.cpp" line="109"/>
+        <location filename="../MainWindow.cpp" line="112"/>
         <source>Import Translation CSV</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="108"/>
+        <location filename="../MainWindow.cpp" line="109"/>
         <source>CSV (*.csv)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="138"/>
+        <location filename="../MainWindow.cpp" line="139"/>
         <source>Edited</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="229"/>
+        <location filename="../MainWindow.cpp" line="230"/>
         <source>Change Export Folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="230"/>
+        <location filename="../MainWindow.cpp" line="231"/>
         <source>The export folder of this project is inside the Langscore project folder.
 From this version, translations are exported to the game&apos;s translation folder.
 Change the export folder to the following folder?
@@ -1271,18 +1271,18 @@ Change the export folder to the following folder?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="317"/>
+        <location filename="../MainWindow.cpp" line="318"/>
         <source>Closing the project.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="317"/>
+        <location filename="../MainWindow.cpp" line="318"/>
         <source>Do you want to save the changes you made to the project?
 If you choose No, your edits will be discarded.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="396"/>
+        <location filename="../MainWindow.cpp" line="397"/>
         <source>Edit History</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1894,7 +1894,7 @@ It works only while test playing, but remove it from the game before you release
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.cpp" line="100"/>
+        <location filename="../src/ui/dialog/WriteDialog.cpp" line="101"/>
         <source>The path must be a directory!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1948,8 +1948,8 @@ It works only while test playing, but remove it from the game before you release
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="301"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="661"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="699"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="686"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="719"/>
         <source>Run Game</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2045,8 +2045,7 @@ Fix the cause and run &quot;Export Translate CSV&quot; again.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="448"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="677"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="852"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="651"/>
         <source>Write Translate Files...
 </source>
         <translation type="unfinished"></translation>
@@ -2064,46 +2063,46 @@ The running game reloads the translations.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="628"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="686"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="866"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="706"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="881"/>
         <source>Applied the edited translations to %1 files.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="661"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="686"/>
         <source>There are unsaved or unexported edits.
 Do you want to export them before the test play?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="662"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="687"/>
         <source>Export and Play</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="663"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="688"/>
         <source>Play without Exporting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1022"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1037"/>
         <source>No running game was found.
 Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="723"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="743"/>
         <source>Overwrite read-only files</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="724"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="744"/>
         <source>The following files are read-only. Do you want to overwrite them?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="584"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1015"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1030"/>
         <source>Follow Game</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2114,17 +2113,17 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1010"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1025"/>
         <source>Connected.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1012"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1027"/>
         <source>Click to disconnect</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1018"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1033"/>
         <source>Shows the row of the text displayed in the test playing game.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2135,13 +2134,13 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="699"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="719"/>
         <source>Failed to start the game.
 %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="840"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="860"/>
         <source>Game: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2151,7 +2150,7 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="863"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="878"/>
         <source>There are no edits to apply to the game.</source>
         <translation type="unfinished"></translation>
     </message>

@@ -75,7 +75,7 @@ TEST(EditingTranslationExporter, LineBreakFollowsOriginal)
     EXPECT_EQ(langscore::ToGameLineBreak("a\r\nb", "x", false), QString("a\nb"));
 }
 
-TEST(EditingTranslationExporter, KeepExistingWhenEditingIsEmpty)
+TEST(EditingTranslationExporter, OverwriteWithEditing)
 {
     QTemporaryDir tempDir;
     const auto setting = MakeSetting(tempDir.path());
@@ -86,26 +86,7 @@ TEST(EditingTranslationExporter, KeepExistingWhenEditingIsEmpty)
     const auto updated = langscore::ApplyEditingTranslations(setting);
     ASSERT_EQ(updated.size(), 1);
 
-    //原文はそのまま、翻訳文は原文と同じ \r\n、editing で空の翻訳文は書き出し済みの翻訳文を残す
-    const QByteArray expected = Bom + Utf8(
-        u"original,ja,en\n"
-        u"\"説明\r\n2行目\",,\"Line1\r\nLine2\"\n"
-        u"名前,,keep");
-    EXPECT_EQ(ReadBytes(exportPath), expected);
-}
-
-TEST(EditingTranslationExporter, OverwriteModeReplacesWithEditing)
-{
-    QTemporaryDir tempDir;
-    auto setting = MakeSetting(tempDir.path());
-    setting.writeObj.writeMode = 0;
-    WriteBytes(tempDir.filePath("editing/Actors.csv"), EditingCsv);
-    const auto exportPath = tempDir.filePath("Data/Translate/Actors.csv");
-    WriteBytes(exportPath, ExportedCsv);
-
-    langscore::ApplyEditingTranslations(setting);
-
-    //新しい内容で上書きする場合は、editing で空の翻訳文も空にする
+    //原文はそのまま、翻訳文は原文と同じ \r\n。editing で空の翻訳文も空で上書きする
     const QByteArray expected = Bom + Utf8(
         u"original,ja,en\n"
         u"\"説明\r\n2行目\",,\"Line1\r\nLine2\"\n"

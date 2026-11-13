@@ -99,7 +99,6 @@ namespace
             headers.append(csvFormat.unescapeCSVField(field));
         }
 
-        const bool overwriteAll = setting.writeObj.writeMode == 0;
         const bool isVXAce = setting.projectType == settings::VXAce;
         const auto columnCount = static_cast<size_t>(headers.size());
         for(size_t row = 1; row < rows.size(); ++row)
@@ -115,10 +114,12 @@ namespace
             {
                 const auto& language = headers[static_cast<qsizetype>(column)];
                 auto text = csvFormat.unescapeCSVField(fields[column]);
+                //書き出し先の翻訳文は、空欄も含めて常に editing の内容で上書きする。
+                //ただし既定言語の空欄は原文と同じ意味で、書き出し先には原文が入っているため残す
                 if(editingRow != editingRowOfOriginal.cend() && editing.hasColumn(language))
                 {
                     const auto& edited = editing.at(editingRow.value(), language);
-                    if(overwriteAll || edited.isEmpty() == false) { text = edited; }
+                    if(edited.isEmpty() == false || language != setting.defaultLanguage) { text = edited; }
                 }
                 fields[column] = csvFormat.escapeCSVField(ToGameLineBreak(text, original, isVXAce));
             }

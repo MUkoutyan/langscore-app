@@ -31,7 +31,8 @@ WriteDialog::WriteDialog(std::shared_ptr<settings> settings, QWidget *parent) :
 
     this->ui->buttonGroup->setId(this->ui->keepSource, 2);
     this->ui->buttonGroup->setId(this->ui->keepBoth, 4);
-    this->ui->buttonGroup->setId(this->ui->acceptTarget, 0);
+    //ID は divisi の MergeTextMode の値。0 (AcceptSource) は既存のCSVをそのまま残すため使わない
+    this->ui->buttonGroup->setId(this->ui->acceptTarget, 1);
 
     connect(this->ui->buttonGroup, &QButtonGroup::idToggled, this, [this](int id, bool check){
         this->ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);

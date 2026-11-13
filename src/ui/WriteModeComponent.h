@@ -39,6 +39,7 @@ public:
     void loadAllMainFiles();
     //外部エディターで編集した翻訳のCSVをエディターに取り込み、結果の文章を返す
     QString importTranslationCsvFiles(const QStringList& csvPaths);
+    void updateExportDirectory();
 
 public slots:
     void treeItemSelected();
@@ -108,6 +109,7 @@ private:
     bool confirmOverwriteReadOnlyPlugins();
 
     void applyEditingTranslationsToExport();
+    void exportCsvToExportDirectory();
     void finishExport(bool openExportFolder = true);
     void launchTestPlay();
     void showLogTab();
@@ -126,7 +128,7 @@ private:
     void updateApplyToGameButton();
     QPushButton* followGameButton = nullptr;
     QPushButton* applyToGameButton = nullptr;
-    //ゲーム実行時の書き出しの場合、書き出し先のフォルダーを開かない
+    //ゲームへの反映・上書き保存での書き出しの場合、書き出し先のフォルダーを開かない
     bool applyToGameAfterExport = false;
     //ゲームに反映していない編集があるか
     bool hasUnappliedEdits = false;

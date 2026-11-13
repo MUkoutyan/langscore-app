@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.28)
 
-project(langscore-app VERSION 1.0.0 LANGUAGES CXX)
+project(langscore-app VERSION 1.0.1 LANGUAGES CXX)
 
 set(CONFIG_FILE_VERSION 1.1.0)
 configure_file(application_config.h.in application_config.h @ONLY)

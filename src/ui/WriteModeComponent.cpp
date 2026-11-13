@@ -628,6 +628,31 @@ void WriteModeComponent::applyEditingTranslationsToExport()
     this->ui->logText->writeText("\n" + tr("Applied the edited translations to %1 files.").arg(updatedFiles.size()) + "\n");
 }
 
+//上書き保存では、editing への保存に加えて書き出し先の CSV も更新する。
+//初回の書き出し前は書き出し先が無く、他の処理の実行中は書き出せないため行わない
+void WriteModeComponent::updateExportDirectory()
+{
+    if(this->setting->isFirstExported == false || invokeType != InvokeType::None) { return; }
+    applyToGameAfterExport = true;
+    this->exportCsvToExportDirectory();
+}
+
+//ダイアログを使わず、設定済みの書き出し先へ CSV を書き出す。
+//行は既存の CSV を残して追加し、翻訳文は書き出し後に editing の内容で上書きする
+void WriteModeComponent::exportCsvToExportDirectory()
+{
+    //divisi の MergeTextMode::MergeKeepSource
+    this->setting->writeObj.writeMode = 2;
+    this->setting->saveForProject();
+
+    this->changeEnabledUIState(false);
+    this->showLogTab();
+    this->ui->logText->clear();
+    this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
+    _invoker->exportCSV();
+    invokeType = InvokeType::ExportCSV;
+}
+
 void WriteModeComponent::finishExport(bool openExportFolder)
 {
     //テストプレイのための書き出しでは、フォルダーを開かずにゲームを起動する
@@ -671,13 +696,8 @@ void WriteModeComponent::testPlay()
             //VXAce は書き出したCSVをパッキング後に削除しているため、divisi で再度書き出してからパッキングする
             if(type == settings::VXAce && files.isEmpty() == false)
             {
-                this->changeEnabledUIState(false);
-                this->showLogTab();
-                this->ui->logText->clear();
-                this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
                 testPlayAfterExport = true;
-                _invoker->exportCSV();
-                invokeType = InvokeType::ExportCSV;
+                this->exportCsvToExportDirectory();
                 return;
             }
             //MV・MZ は書き出したCSVが残っているため、内容が変わったファイルにだけ編集を反映する
@@ -846,13 +866,8 @@ void WriteModeComponent::receive(DispatchType type, const QVariantList &args)
     }
     else if(type == ComponentBase::ExportForGame)
     {
-        this->changeEnabledUIState(false);
-        this->showLogTab();
-        this->ui->logText->clear();
-        this->ui->logText->insertPlainText(tr("Write Translate Files...\n"));
         applyToGameAfterExport = true;
-        _invoker->exportCSV();
-        invokeType = InvokeType::ExportCSV;
+        this->exportCsvToExportDirectory();
     }
     else if(type == ComponentBase::NotifyApplyToGame)
     {

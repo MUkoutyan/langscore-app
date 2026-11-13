@@ -72,6 +72,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->taskBar, &FormTaskBar::saveProj,        this, [this](){
         this->explicitSave = true;
         this->dispatch(SaveProject, {});
+        this->writeUi->updateExportDirectory();
         this->receive(StatusMessage, {tr("Project saved."), 5000});
     });
     connect(this->taskBar, &FormTaskBar::requestOpenProj, this, [this](QString path)

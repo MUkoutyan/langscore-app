@@ -668,8 +668,8 @@ No need to enter &quot;\&quot;</source>
     </message>
     <message>
         <location filename="../src/ui/FormTaskBar.cpp" line="90"/>
-        <source>Save Langscore Project...</source>
-        <translation>Langscoreプロジェクトを保存...</translation>
+        <source>Save</source>
+        <translation>上書き保存</translation>
     </message>
     <message>
         <location filename="../src/ui/FormTaskBar.cpp" line="91"/>
@@ -1426,13 +1426,13 @@ Ctrl や Shift を押すと複数選択できます。</translation>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../MainWindow.cpp" line="108"/>
-        <location filename="../MainWindow.cpp" line="111"/>
+        <location filename="../MainWindow.cpp" line="109"/>
+        <location filename="../MainWindow.cpp" line="112"/>
         <source>Import Translation CSV</source>
         <translation>翻訳CSVの取り込み</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="108"/>
+        <location filename="../MainWindow.cpp" line="109"/>
         <source>CSV (*.csv)</source>
         <translation>CSV (*.csv)</translation>
     </message>
@@ -1446,12 +1446,12 @@ Ctrl や Shift を押すと複数選択できます。</translation>
         <translation type="vanished">ゲームプロジェクトのフォルダを開く...</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="75"/>
+        <location filename="../MainWindow.cpp" line="76"/>
         <source>Project saved.</source>
         <translation>プロジェクトを保存しました。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="138"/>
+        <location filename="../MainWindow.cpp" line="139"/>
         <source>Edited</source>
         <translation>編集済み</translation>
     </message>
@@ -1460,12 +1460,12 @@ Ctrl や Shift を押すと複数選択できます。</translation>
         <translation type="vanished">プロジェクトファイルを開く</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="229"/>
+        <location filename="../MainWindow.cpp" line="230"/>
         <source>Change Export Folder</source>
         <translation>書き出し先の変更</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="230"/>
+        <location filename="../MainWindow.cpp" line="231"/>
         <source>The export folder of this project is inside the Langscore project folder.
 From this version, translations are exported to the game&apos;s translation folder.
 Change the export folder to the following folder?
@@ -1478,19 +1478,19 @@ Change the export folder to the following folder?
 %1</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="317"/>
+        <location filename="../MainWindow.cpp" line="318"/>
         <source>Closing the project.</source>
         <translation>プロジェクトを閉じます。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="317"/>
+        <location filename="../MainWindow.cpp" line="318"/>
         <source>Do you want to save the changes you made to the project?
 If you choose No, your edits will be discarded.</source>
         <translation>プロジェクトに加えた変更を保存しますか？
 「いいえ」を選んだ場合、編集した内容は破棄されます。</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="396"/>
+        <location filename="../MainWindow.cpp" line="397"/>
         <source>Edit History</source>
         <translation>編集履歴</translation>
     </message>
@@ -2457,7 +2457,7 @@ If unchecked, the order will depend on the event sequence.</source>
         <translation>出力先ディレクトリを選択</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialog/WriteDialog.cpp" line="100"/>
+        <location filename="../src/ui/dialog/WriteDialog.cpp" line="101"/>
         <source>The path must be a directory!</source>
         <translation>パスはディレクトリである必要があります！</translation>
     </message>
@@ -2466,30 +2466,30 @@ If unchecked, the order will depend on the event sequence.</source>
     <name>WriteModeComponent</name>
     <message>
         <location filename="../src/ui/WriteModeComponent.ui" line="301"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="661"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="699"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="686"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="719"/>
         <source>Run Game</source>
         <translation>ゲームを実行</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="661"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="686"/>
         <source>There are unsaved or unexported edits.
 Do you want to export them before the test play?</source>
         <translation>未保存または未書き出しの編集があります。
 テストプレイの前に書き出しますか？</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="662"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="687"/>
         <source>Export and Play</source>
         <translation>書き出して実行</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="663"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="688"/>
         <source>Play without Exporting</source>
         <translation>書き出さずに実行</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="699"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="719"/>
         <source>Failed to start the game.
 %1</source>
         <translation>ゲームを起動できませんでした。
@@ -2693,14 +2693,14 @@ Fix the cause and run &quot;Export Translate CSV&quot; again.</source>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="628"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="686"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="866"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="706"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="881"/>
         <source>Applied the edited translations to %1 files.</source>
         <translation>編集した翻訳を %1 個のファイルに反映しました。</translation>
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="584"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1015"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1030"/>
         <source>Follow Game</source>
         <translation>ゲームに追従</translation>
     </message>
@@ -2718,22 +2718,22 @@ The running game reloads the translations.</source>
 実行中のゲームは翻訳データを読み直します。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1010"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1025"/>
         <source>Connected.</source>
         <translation>接続しました。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1012"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1027"/>
         <source>Click to disconnect</source>
         <translation>クリックで切断</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1018"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1033"/>
         <source>Shows the row of the text displayed in the test playing game.</source>
         <translation>テストプレイ中のゲームで表示している文章の行を示します。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="1022"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="1037"/>
         <source>No running game was found.
 Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source>
         <translation>実行中のゲームが見つかりません。
@@ -2746,7 +2746,7 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
         <translation>ゲームへ反映</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="840"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="860"/>
         <source>Game: %1</source>
         <translation>ゲーム: %1</translation>
     </message>
@@ -2756,7 +2756,7 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
         <translation>先に翻訳ファイルを書き出して下さい。</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="863"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="878"/>
         <source>There are no edits to apply to the game.</source>
         <translation>ゲームに反映していない編集はありません。</translation>
     </message>
@@ -2776,12 +2776,12 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
         <translation>次のファイルは、プロジェクトに同じ名前のファイルが無いため取り込みませんでした：</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="723"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="743"/>
         <source>Overwrite read-only files</source>
         <translation>読み取り専用ファイルの上書き</translation>
     </message>
     <message>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="724"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="744"/>
         <source>The following files are read-only. Do you want to overwrite them?</source>
         <translation>次のファイルは読み取り専用です。上書きしますか？</translation>
     </message>
@@ -2815,8 +2815,7 @@ Add Langscore_RemoteHub in &quot;Update Plugin&quot;, then run the game.</source
     </message>
     <message>
         <location filename="../src/ui/WriteModeComponent.cpp" line="448"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="677"/>
-        <location filename="../src/ui/WriteModeComponent.cpp" line="852"/>
+        <location filename="../src/ui/WriteModeComponent.cpp" line="651"/>
         <source>Write Translate Files...
 </source>
         <translation>翻訳ファイルの書き出し...
